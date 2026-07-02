@@ -7,6 +7,18 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Planned (next)
+
+- Epic 7 — UI refinement/design system + superadmin dashboard
+
+## [0.5.0] — 2026-07-03
+
+Exceptions & partial deliveries complete (Epic 6): a PO accumulates receipts
+and invoices over time with cumulative matching (I-2/I-3 hold across any
+split), amendments version the PO with an approval gate on increases, and the
+exceptions queue became a real worklist — sorted, counted per reason, and
+updating live as AP resolves.
+
 ### Added
 
 - **Exceptions queue drives daily work (FR-603)**: `GET /exceptions` gains
@@ -39,12 +51,6 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
   40/30/30 against a qty-100 line ends at open qty 0 and PO `received`, and a
   further receipt is refused; receipt history shown under the selected PO on the
   warehouse screen
-
-### Planned (next)
-
-- Epic 6 — exceptions & partial deliveries (v1): credit-note application,
-  PO amendments
-- Epic 7 — UI polish & superadmin dashboard
 
 ## [0.4.0] — 2026-07-03
 

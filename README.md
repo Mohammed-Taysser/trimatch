@@ -1,6 +1,6 @@
 # TriMatch — Procurement & Purchase Orders with 3-Way Matching
 
-> **Status:** `v0.4.0` — matrix engine live (versioned rules → snapshotted chains → delegation) · **Stage:** Epic 6 (exceptions & partial deliveries)
+> **Status:** `v0.5.0` — exceptions & partial deliveries complete (cumulative matching · PO amendments · live queue) · **Stage:** Epic 7 (UI polish & superadmin)
 > **Stack (decided, see ADR-0001):** NestJS · PostgreSQL · Sequelize · React · Redis/BullMQ
 
 ## Getting started
