@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import {
   Invoice as InvoiceView,
@@ -12,6 +17,7 @@ import { AuditService } from '../audit/audit.service';
 import { PagedResult, pageMeta, pageOffset } from '../common/paged';
 import { PoLine, PurchaseOrder } from '../purchasing/purchase-order.model';
 import { Vendor } from '../vendors/vendor.model';
+import { invoiceLifecycle } from './invoice.lifecycle';
 import { Invoice, InvoiceLine } from './invoice.model';
 
 const INVOICEABLE_PO_STATES = new Set(['issued', 'partially_received', 'received', 'closed']);
@@ -105,6 +111,48 @@ export class InvoicingService {
       }
     });
     return this.findOne(invoiceId);
+  }
+
+  // FR-404: AP resolves an exception — accept the variance (reason mandatory,
+  // TC-403), hold for a credit note, or reject back to the vendor.
+  async resolve(
+    id: string,
+    resolution: 'variance_accepted' | 'awaiting_credit_note' | 'rejected',
+    actorId: string,
+    reason?: string,
+  ): Promise<InvoiceView> {
+    const trimmed = reason?.trim();
+    if (resolution !== 'awaiting_credit_note' && !trimmed) {
+      throw new UnprocessableEntityException({
+        code: 'REASON_REQUIRED',
+        message: 'A written reason is mandatory for this resolution',
+      });
+    }
+    await this.sequelize.transaction(async (transaction) => {
+      const invoice = await this.invoices.findByPk(id, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!invoice) {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'Invoice not found' });
+      }
+      invoiceLifecycle.assertCanTransition(invoice.status, resolution);
+      const from = invoice.status;
+      await invoice.update({ status: resolution }, { transaction });
+      await this.audit.record(
+        {
+          entityType: 'invoice',
+          entityId: id,
+          actorId,
+          action: `invoice.${resolution}`,
+          fromState: from,
+          toState: resolution,
+          comment: trimmed,
+        },
+        transaction,
+      );
+    });
+    return this.findOne(id);
   }
 
   async findAll(query: PaginationQuery): Promise<PagedResult<InvoiceView>> {

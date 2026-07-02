@@ -5,6 +5,8 @@ export const InvoiceStatusSchema = z.enum([
   'entered',
   'matched',
   'exception',
+  'variance_accepted',
+  'awaiting_credit_note',
   'payable',
   'rejected',
 ]);
@@ -60,3 +62,10 @@ export const InvoiceSchema = z.object({
 });
 export type Invoice = z.infer<typeof InvoiceSchema>;
 export const InvoiceListSchema = z.array(InvoiceSchema);
+
+// FR-404 resolutions: reasons are validated in the service so the API answers
+// 422 REASON_REQUIRED (consistent with approvals).
+export const ResolutionRequestSchema = z.object({
+  reason: z.string().optional(),
+});
+export type ResolutionRequest = z.infer<typeof ResolutionRequestSchema>;

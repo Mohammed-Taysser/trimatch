@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { InboxSchema, InvoiceSchema, MatchRecordSchema, VendorSchema } from '@trimatch/shared';
+import { QueryTypes } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -243,6 +244,77 @@ describe('the 3-way match end to end (FR-402/403/405/406)', () => {
     expect(
       (aged.body.data as { invoice: { id: string } }[]).some((i) => i.invoice.id === invoiceId),
     ).toBe(false);
+  });
+
+  it('TC-403: accepting a variance requires a reason and lands in variance_accepted', async () => {
+    const { poId, poLineId } = await receivedPo(100);
+    const invoiceId = await enterInvoice(poId, poLineId, { qty: 100, priceMinor: 55_00 });
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+
+    // no reason → 422 REASON_REQUIRED
+    const missing = await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/accept-variance`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .send({})
+      .expect(422);
+    expect(missing.body.code).toBe('REASON_REQUIRED');
+
+    const reason = 'Vendor price list updated — variance approved by finance';
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/accept-variance`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .send({ reason })
+      .expect(200);
+    expect(res.body.data.status).toBe('variance_accepted');
+
+    const audit = await app
+      .get(Sequelize)
+      .query<{ comment: string }>(
+        `SELECT comment FROM audit_log WHERE entity_id = '${invoiceId}' AND action = 'invoice.variance_accepted'`,
+        { type: QueryTypes.SELECT },
+      );
+    expect(audit).toEqual([expect.objectContaining({ comment: reason })]);
+  });
+
+  it('requesting a credit note holds the invoice in awaiting_credit_note', async () => {
+    const { poId, poLineId } = await receivedPo(100);
+    const invoiceId = await enterInvoice(poId, poLineId, { qty: 100, priceMinor: 55_00 });
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/request-credit-note`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .send({ reason: 'Credit note for the price delta requested from vendor' })
+      .expect(200);
+    expect(res.body.data.status).toBe('awaiting_credit_note');
+  });
+
+  it('rejecting returns the invoice to the vendor; resolutions need an exception', async () => {
+    const { poId, poLineId } = await receivedPo(100);
+    const invoiceId = await enterInvoice(poId, poLineId, { qty: 100, priceMinor: 55_00 });
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/reject`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .send({ reason: 'Billing errors — please reissue' })
+      .expect(200);
+    expect(res.body.data.status).toBe('rejected');
+
+    // resolving a non-exception invoice is refused
+    const again = await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/accept-variance`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .send({ reason: 'x' })
+      .expect(409);
+    expect(again.body.code).toBe('INVALID_TRANSITION');
   });
 
   it('match records are immutable (FR-405) and re-matching is refused', async () => {

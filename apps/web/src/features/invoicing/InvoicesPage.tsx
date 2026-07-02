@@ -23,6 +23,7 @@ export function InvoicesPage() {
   const [tax, setTax] = useState('0');
   const [isFinal, setIsFinal] = useState(true);
   const [reasonFilter, setReasonFilter] = useState('');
+  const [resolutionReasons, setResolutionReasons] = useState<Record<string, string>>({});
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
@@ -123,6 +124,26 @@ export function InvoicesPage() {
           };
         }[]
       >,
+  });
+
+  const resolve = useMutation({
+    mutationFn: ({ id, action }: { id: string; action: string }) =>
+      apiFetch(`/api/v1/invoices/${id}/${action}`, {
+        method: 'POST',
+        token,
+        body: { reason: resolutionReasons[id] },
+        schema: InvoiceSchema,
+      }),
+    onSuccess: (invoice) => {
+      setError(null);
+      setMessage(`${invoice.invoiceNumber} → ${invoice.status}`);
+      void queryClient.invalidateQueries({ queryKey: ['exceptions'] });
+      void queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    },
+    onError: (err) => {
+      setMessage(null);
+      setError(err instanceof ApiError ? err.message : 'Resolution failed');
+    },
   });
 
   const runMatch = useMutation({
@@ -349,6 +370,40 @@ export function InvoicesPage() {
                   total delta: <strong>{(ex.match.totalDeltaMinor / 100).toFixed(2)}</strong>
                 </div>
               )}
+              <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                <input
+                  placeholder="Resolution reason"
+                  aria-label={`Resolution reason for ${ex.invoice.invoiceNumber}`}
+                  value={resolutionReasons[ex.invoice.id] ?? ''}
+                  onChange={(e) =>
+                    setResolutionReasons((prev) => ({ ...prev, [ex.invoice.id]: e.target.value }))
+                  }
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => resolve.mutate({ id: ex.invoice.id, action: 'accept-variance' })}
+                  disabled={resolve.isPending}
+                >
+                  Accept variance
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    resolve.mutate({ id: ex.invoice.id, action: 'request-credit-note' })
+                  }
+                  disabled={resolve.isPending}
+                >
+                  Credit note
+                </button>
+                <button
+                  type="button"
+                  onClick={() => resolve.mutate({ id: ex.invoice.id, action: 'reject' })}
+                  disabled={resolve.isPending}
+                >
+                  Reject
+                </button>
+              </div>
             </li>
           ))}
         </ul>
