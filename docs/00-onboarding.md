@@ -24,7 +24,8 @@ requisition → approval matrix → purchase order → goods receipt → vendor 
   api :3000, web :5173 (ports overridable via `.env`). Root `CLAUDE.md` carries
   the working rules (no env defaults, single-line commits, ticket per request,
   registry-verified deps).
-- Full docs pack exists — see the [README index](../README.md). Key contracts:
+- Full docs pack exists — see the [README index](../README.md); unfamiliar terms
+  are defined in the [glossary](08-glossary.md). Key contracts:
   - Business rules with worked numbers: [PRD §5](01-prd.md) (matrix R1–R5, tolerance cases A–H)
   - Invariants I-1..I-8: [domain doc §4](03-domain.md)
   - TC-xxx ↔ FR-xxx test matrix: [test plan](05-test-plan.md)
