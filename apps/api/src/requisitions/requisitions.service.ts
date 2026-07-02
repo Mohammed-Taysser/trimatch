@@ -18,6 +18,7 @@ import { PagedResult, pageMeta, pageOffset } from '../common/paged';
 import { AuditService } from '../audit/audit.service';
 import { User } from '../identity/user.model';
 import { UsersService } from '../identity/users.service';
+import { PurchaseOrder } from '../purchasing/purchase-order.model';
 import { requisitionLifecycle } from './requisition.lifecycle';
 import { Requisition, RequisitionLine } from './requisition.model';
 import { computeTotals } from './requisition.totals';
@@ -168,7 +169,7 @@ export class RequisitionsService {
   ): Promise<PagedResult<RequisitionView>> {
     const { rows, count } = await this.requisitions.findAndCountAll({
       where: { requesterId },
-      include: [RequisitionLine, { model: ApprovalStep, include: [User] }],
+      include: [RequisitionLine, { model: ApprovalStep, include: [User] }, PurchaseOrder],
       order: [
         ['createdAt', 'DESC'],
         [{ model: RequisitionLine, as: 'lines' }, 'lineNo', 'ASC'],
@@ -184,7 +185,7 @@ export class RequisitionsService {
 
   async findOwn(id: string, requesterId: string): Promise<RequisitionView> {
     const row = await this.requisitions.findByPk(id, {
-      include: [RequisitionLine, { model: ApprovalStep, include: [User] }],
+      include: [RequisitionLine, { model: ApprovalStep, include: [User] }, PurchaseOrder],
     });
     if (!row) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Requisition not found' });
@@ -285,6 +286,7 @@ export class RequisitionsService {
           reason: step.reason,
           decidedAt: step.decidedAt ? step.decidedAt.toISOString() : null,
         })),
+      po: row.po ? { id: row.po.id, poNumber: row.po.poNumber, status: row.po.status } : null,
       createdAt: (row.createdAt as Date).toISOString(),
       updatedAt: (row.updatedAt as Date).toISOString(),
     });

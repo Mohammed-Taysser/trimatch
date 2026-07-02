@@ -8,12 +8,14 @@ import {
   Default,
   ForeignKey,
   HasMany,
+  HasOne,
   Model,
   PrimaryKey,
   Table,
 } from 'sequelize-typescript';
 import { ApprovalStep } from '../approvals/approval-step.model';
 import { User } from '../identity/user.model';
+import { PurchaseOrder } from '../purchasing/purchase-order.model';
 
 @Table({ tableName: 'requisitions', underscored: true, timestamps: true })
 export class Requisition extends Model {
@@ -57,6 +59,9 @@ export class Requisition extends Model {
 
   @HasMany(() => ApprovalStep)
   declare steps?: ApprovalStep[];
+
+  @HasOne(() => PurchaseOrder)
+  declare po?: PurchaseOrder;
 }
 
 @Table({ tableName: 'requisition_lines', underscored: true, timestamps: true })

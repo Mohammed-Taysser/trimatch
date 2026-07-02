@@ -4,6 +4,7 @@ import {
   InboxSchema,
   PurchaseOrderSchema,
   RequisitionListSchema,
+  RequisitionSchema,
   VendorSchema,
 } from '@trimatch/shared';
 import { QueryTypes } from 'sequelize';
@@ -325,6 +326,38 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
         .expect(409);
       expect(again.body.code).toBe('INVALID_TRANSITION');
     });
+  });
+
+  it('a converted requisition links to its PO with live status (869dz0fqu)', async () => {
+    const reqId = await approvedRequisition();
+    const converted = await request(app.getHttpServer())
+      .post('/api/v1/purchase-orders/from-requisition')
+      .set('Authorization', `Bearer ${purchasingToken}`)
+      .send({ requisitionId: reqId, vendorId })
+      .expect(201);
+    const poId = converted.body.data.id as string;
+
+    const beforeIssue = await request(app.getHttpServer())
+      .get(`/api/v1/requisitions/${reqId}`)
+      .set('Authorization', `Bearer ${requesterToken}`)
+      .expect(200);
+    expect(RequisitionSchema.parse(beforeIssue.body.data).po).toMatchObject({
+      id: poId,
+      poNumber: null,
+      status: 'draft',
+    });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/purchase-orders/${poId}/issue`)
+      .set('Authorization', `Bearer ${purchasingToken}`)
+      .expect(200);
+    const afterIssue = await request(app.getHttpServer())
+      .get(`/api/v1/requisitions/${reqId}`)
+      .set('Authorization', `Bearer ${requesterToken}`)
+      .expect(200);
+    const po = RequisitionSchema.parse(afterIssue.body.data).po;
+    expect(po?.status).toBe('issued');
+    expect(po?.poNumber).toMatch(/^PO-\d{4}-\d{4}$/);
   });
 
   it('a requester role cannot convert → 403', async () => {
