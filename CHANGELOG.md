@@ -9,14 +9,23 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Monorepo scaffold** (pnpm workspaces): `apps/api` (NestJS 11, zod-validated env —
+  refuses to boot on invalid config, `/api/v1/health/liveness|readiness`),
+  `apps/web` (React 19 + Vite 7 + TanStack Query health dashboard),
+  `packages/shared` (zod schemas consumed by both apps),
+  `docker-compose.yml` (postgres:16, redis:7 with healthchecks, host ports
+  overridable via env), `.env.example`;
+  Jest suites mirror the story's acceptance criteria
+- **CLAUDE.md**: session guide for Claude Code (context pointers, locked decisions,
+  workflow rules, ClickUp REST fallback)
 - **Onboarding & session handoff** (`docs/00-onboarding.md`): current state, locked
   decisions, ClickUp IDs and workflow-simulation rules, session-start validation
   checklist, and the kickoff prompt for continuing work in a new session
 
 ### Planned (next)
 
-- Code scaffold: pnpm monorepo (`apps/api` NestJS, `apps/web` React, `packages/shared`),
-  docker-compose, husky + commitlint, CI pipeline (ClickUp Epic 0 leftovers)
+- Guardrails + CI: husky + commitlint, ESLint/Prettier strict, GitHub Actions
+  lint→typecheck→unit→integration→build, coverage gate (ClickUp Epic 0)
 - Epic 1 first vertical slice: create → submit → approve a requisition (FR-101..107)
 
 ## [0.0.1] — 2026-07-02

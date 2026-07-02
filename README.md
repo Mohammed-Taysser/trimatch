@@ -1,7 +1,20 @@
 # TriMatch — Procurement & Purchase Orders with 3-Way Matching
 
-> **Status:** `docs-baseline` (v0.0.1) · **Stage:** pre-code — requirements & design
+> **Status:** `scaffold` (0.1.0-dev) · **Stage:** monorepo scaffold — Epic 0
 > **Stack (decided, see ADR-0001):** NestJS · PostgreSQL · Sequelize · React · Redis/BullMQ
+
+## Getting started
+
+```bash
+# prerequisites: node 22.12+, pnpm 10+, docker
+cp .env.example .env
+pnpm install
+docker compose up -d   # postgres:16, redis:7
+pnpm dev               # api on :3000 (/api/v1), web on :5173
+```
+
+The web app at <http://localhost:5173> shows live api + infrastructure health.
+`pnpm test` / `pnpm typecheck` / `pnpm build` run across the workspace.
 
 TriMatch is an enterprise procurement system: employees raise **purchase requisitions**,
 approvals route through an **amount/department-based approval matrix**, purchasing issues
