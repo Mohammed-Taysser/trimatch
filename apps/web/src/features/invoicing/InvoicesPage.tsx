@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   InvoiceListSchema,
   InvoiceSchema,
+  MatchRecordSchema,
   PurchaseOrderListSchema,
   PurchaseOrderSchema,
 } from '@trimatch/shared';
@@ -20,6 +21,7 @@ export function InvoicesPage() {
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [invoiceDate, setInvoiceDate] = useState('');
   const [tax, setTax] = useState('0');
+  const [isFinal, setIsFinal] = useState(true);
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
@@ -71,6 +73,7 @@ export function InvoicesPage() {
           invoiceDate,
           taxMinor,
           totalMinor: subtotal + taxMinor,
+          isFinal,
           lines,
         },
       });
@@ -86,6 +89,28 @@ export function InvoicesPage() {
     onError: (err) => {
       setMessage(null);
       setError(err instanceof ApiError ? err.message : 'Invoice entry failed');
+    },
+  });
+
+  const runMatch = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/v1/invoices/${id}/match`, {
+        method: 'POST',
+        token,
+        schema: MatchRecordSchema,
+      }),
+    onSuccess: (record) => {
+      setError(null);
+      setMessage(
+        record.outcome === 'matched'
+          ? '✅ Matched — invoice is payable'
+          : `❌ Exception: ${record.reasons.map((r) => r.code).join(', ')}`,
+      );
+      void queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    },
+    onError: (err) => {
+      setMessage(null);
+      setError(err instanceof ApiError ? err.message : 'Match failed');
     },
   });
 
@@ -175,7 +200,15 @@ export function InvoicesPage() {
                 />
               </div>
             ))}
-            <div>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={isFinal}
+                  onChange={(e) => setIsFinal(e.target.checked)}
+                />{' '}
+                Final settlement for this PO
+              </label>
               <button type="button" onClick={() => submit.mutate()} disabled={submit.isPending}>
                 Enter invoice
               </button>
@@ -202,7 +235,19 @@ export function InvoicesPage() {
               <div style={{ color: '#555', fontSize: 14 }}>
                 PO {inv.poNumber ?? inv.poId.slice(0, 8)} · dated {inv.invoiceDate} · tax{' '}
                 {money(inv.taxMinor, inv.currency)}
+                {inv.isFinal ? ' · final' : ''}
               </div>
+              {inv.status === 'entered' && (
+                <div style={{ marginTop: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => runMatch.mutate(inv.id)}
+                    disabled={runMatch.isPending}
+                  >
+                    Run 3-way match
+                  </button>
+                </div>
+              )}
             </li>
           ))}
         </ul>

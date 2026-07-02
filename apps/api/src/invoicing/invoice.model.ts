@@ -71,6 +71,11 @@ export class Invoice extends Model {
   @Column(DataType.BIGINT)
   declare totalMinor: string | number;
 
+  @AllowNull(false)
+  @Default(false)
+  @Column(DataType.BOOLEAN)
+  declare isFinal: boolean;
+
   @ForeignKey(() => User)
   @AllowNull(false)
   @Column(DataType.UUID)
