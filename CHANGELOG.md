@@ -9,6 +9,12 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Exception resolution (FR-404/TC-403)**: `accept-variance` (reason mandatory →
+  `variance_accepted`, reason verbatim in audit), `request-credit-note` (invoice
+  held in `awaiting_credit_note`), `reject` (returned to vendor); invoice
+  lifecycle aligned with domain §3.4 (`variance_accepted`/`awaiting_credit_note`
+  states added; exception no longer jumps straight to payable); resolution
+  controls on the exception cards
 - **Exceptions queue (FR-403/FR-603)**: `GET /exceptions` (ap/admin, paginated)
   filterable by vendor, reason and age; every item carries the match record's
   side-by-side comparisons (ordered/received/invoiced, PO vs invoice price,
