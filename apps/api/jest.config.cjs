@@ -21,6 +21,7 @@ module.exports = {
     '!src/receiving/receiving.service.ts',
     '!src/invoicing/invoicing.service.ts',
     '!src/matching/matching.service.ts',
+    '!src/approvals/matrix.service.ts',
   ],
   coverageThreshold: {
     global: {

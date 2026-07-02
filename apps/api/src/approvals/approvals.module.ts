@@ -4,10 +4,14 @@ import { AuditModule } from '../audit/audit.module';
 import { ApprovalStep } from './approval-step.model';
 import { ApprovalsController } from './approvals.controller';
 import { ApprovalsService } from './approvals.service';
+import { MatrixRule } from './matrix-rule.model';
+import { MatrixController } from './matrix.controller';
+import { MatrixService } from './matrix.service';
 
 @Module({
-  imports: [SequelizeModule.forFeature([ApprovalStep]), AuditModule],
-  controllers: [ApprovalsController],
-  providers: [ApprovalsService],
+  imports: [SequelizeModule.forFeature([ApprovalStep, MatrixRule]), AuditModule],
+  controllers: [ApprovalsController, MatrixController],
+  providers: [ApprovalsService, MatrixService],
+  exports: [MatrixService],
 })
 export class ApprovalsModule {}

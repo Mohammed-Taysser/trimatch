@@ -4,6 +4,7 @@ export * from './auth';
 export * from './health';
 export * from './invoicing';
 export * from './matching';
+export * from './matrix';
 export * from './purchase-orders';
 export * from './receiving';
 export * from './requisitions';

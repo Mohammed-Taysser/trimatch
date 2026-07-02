@@ -7,6 +7,14 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Added
+
+- **Matrix rules as versioned data (FR-501/505, ADR-0002)**: `matrix_rules` table —
+  immutable rows, every admin save creates version N+1; base rules (amount range ×
+  department × category → ordered chain of titles) + append rules (R5: CISO for
+  IT/Software licenses); pure overlap validator (422 `MATRIX_OVERLAP`, TC-506);
+  default R1–R5 seeded as version 1; admin `GET/POST /matrix-rules`
+
 ### Planned (next)
 
 - Epic 5 — approval matrix engine (v1): data-driven rules R1–R5, multi-step
