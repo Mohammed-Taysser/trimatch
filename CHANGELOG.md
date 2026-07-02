@@ -9,6 +9,11 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Delegation (FR-503/TC-504)**: `delegations` table + CRUD (approver delegates to
+  a peer by email for a date range; self-delegation and backwards windows refused);
+  within the window the delegate sees and works the delegator's queue, and the
+  audit row records both identities ("on behalf of …"); delegation form + list on
+  the approver inbox
 - **Sequential multi-step chains (FR-502/TC-503)**: an approver sees a step only
   when it is their turn (lowest pending step of the current round, requisition
   still pending); out-of-turn decisions → 409 `STEP_NOT_CURRENT`; a rejection at

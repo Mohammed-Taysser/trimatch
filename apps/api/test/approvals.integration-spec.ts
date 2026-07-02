@@ -291,6 +291,134 @@ describe('approver inbox and decisions (FR-104 · TC-105)', () => {
     });
   });
 
+  describe('delegation for a date range (FR-503 · TC-504)', () => {
+    let cisoToken: string;
+    const R1_DRAFT = {
+      justification: 'Delegation test requisition',
+      neededBy: '2026-12-22',
+      currency: 'USD',
+      lines: [
+        { description: 'Cable pack', category: 'IT hardware', quantity: 3, unitPriceMinor: 20_00 },
+      ],
+    };
+
+    beforeAll(async () => {
+      cisoToken = await login('ciso@demo');
+    });
+
+    function today(offsetDays = 0): string {
+      return new Date(Date.now() + offsetDays * 86_400_000).toISOString().slice(0, 10);
+    }
+
+    async function submitR1(): Promise<string> {
+      const created = await request(app.getHttpServer())
+        .post('/api/v1/requisitions')
+        .set('Authorization', `Bearer ${requesterToken}`)
+        .send(R1_DRAFT)
+        .expect(201);
+      const reqId = created.body.data.id as string;
+      await request(app.getHttpServer())
+        .post(`/api/v1/requisitions/${reqId}/submit`)
+        .set('Authorization', `Bearer ${requesterToken}`)
+        .expect(200);
+      return reqId;
+    }
+
+    async function inboxItemFor(token: string, reqId: string) {
+      return findAcrossPages(
+        async (page) => {
+          const res = await request(app.getHttpServer())
+            .get(`/api/v1/approvals/inbox?page=${page}&pageSize=100`)
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200);
+          return { items: InboxSchema.parse(res.body.data), totalPages: res.body.meta.totalPages };
+        },
+        (i) => i.requisition.id === reqId,
+      );
+    }
+
+    it('TC-504: within the window the delegate acts; audit shows both identities', async () => {
+      const delegation = await request(app.getHttpServer())
+        .post('/api/v1/delegations')
+        .set('Authorization', `Bearer ${leadToken}`)
+        .send({ delegateEmail: 'ciso@demo', startsOn: today(), endsOn: today(1) })
+        .expect(201);
+
+      const reqId = await submitR1();
+      const item = await inboxItemFor(cisoToken, reqId); // delegator's step, visible to delegate
+      expect(item).toBeDefined();
+
+      await request(app.getHttpServer())
+        .post(`/api/v1/approvals/steps/${item?.stepId}/approve`)
+        .set('Authorization', `Bearer ${cisoToken}`)
+        .expect(204);
+
+      const view = await request(app.getHttpServer())
+        .get(`/api/v1/requisitions/${reqId}`)
+        .set('Authorization', `Bearer ${requesterToken}`)
+        .expect(200);
+      expect(view.body.data.status).toBe('approved');
+
+      const audit = await app
+        .get(Sequelize)
+        .query<{ actor_id: string; comment: string }>(
+          `SELECT actor_id, comment FROM audit_log WHERE entity_id = '${reqId}' AND action = 'requisition.approved'`,
+          { type: QueryTypes.SELECT },
+        );
+      expect(audit[0].actor_id).toBe('019787c8-0000-4000-8000-00000000000b'); // ciso acted
+      expect(audit[0].comment).toContain('on behalf of Lee Lead'); // delegator recorded
+
+      // cleanup: revoke so later suites are unaffected
+      await request(app.getHttpServer())
+        .delete(`/api/v1/delegations/${delegation.body.data.id}`)
+        .set('Authorization', `Bearer ${leadToken}`)
+        .expect(204);
+    });
+
+    it('outside the window the delegate cannot see or act', async () => {
+      const delegation = await request(app.getHttpServer())
+        .post('/api/v1/delegations')
+        .set('Authorization', `Bearer ${leadToken}`)
+        .send({ delegateEmail: 'ciso@demo', startsOn: today(3), endsOn: today(5) })
+        .expect(201);
+
+      const reqId = await submitR1();
+      expect(await inboxItemFor(cisoToken, reqId)).toBeUndefined();
+
+      const view = await request(app.getHttpServer())
+        .get(`/api/v1/requisitions/${reqId}`)
+        .set('Authorization', `Bearer ${requesterToken}`)
+        .expect(200);
+      const stepId = view.body.data.steps[0].id as string;
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/approvals/steps/${stepId}/approve`)
+        .set('Authorization', `Bearer ${cisoToken}`)
+        .expect(403);
+      expect(res.body.code).toBe('FORBIDDEN');
+
+      await request(app.getHttpServer())
+        .delete(`/api/v1/delegations/${delegation.body.data.id}`)
+        .set('Authorization', `Bearer ${leadToken}`)
+        .expect(204);
+    });
+
+    it('self-delegation and backwards windows are refused', async () => {
+      const self = await request(app.getHttpServer())
+        .post('/api/v1/delegations')
+        .set('Authorization', `Bearer ${leadToken}`)
+        .send({ delegateEmail: 'lead@demo', startsOn: today(), endsOn: today(1) })
+        .expect(409);
+      expect(self.body.code).toBe('SELF_DELEGATION');
+
+      const backwards = await request(app.getHttpServer())
+        .post('/api/v1/delegations')
+        .set('Authorization', `Bearer ${leadToken}`)
+        .send({ delegateEmail: 'ciso@demo', startsOn: today(2), endsOn: today() })
+        .expect(422);
+      expect(backwards.body.code).toBe('INVALID_WINDOW');
+    });
+  });
+
   describe('revise & resubmit (FR-105 · TC-106)', () => {
     it('TC-106: revise + resubmit → new round, previous round preserved in history', async () => {
       const { reqId, stepId } = await submittedRequisition();
