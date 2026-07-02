@@ -7,12 +7,18 @@ import {
   VendorListSchema,
 } from '@trimatch/shared';
 import { useState } from 'react';
-import { ApiError, apiFetch } from '../../lib/api';
+import {
+  Alert,
+  Button,
+  EmptyState,
+  Field,
+  Loading,
+  Pagination,
+  StatusBadge,
+} from '../../components/ui';
+import { ApiError, apiFetch, apiFetchPaged } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
-
-function money(minor: number, currency: string): string {
-  return `${(minor / 100).toFixed(2)} ${currency}`;
-}
+import { formatDate, money } from '../../lib/format';
 
 export function PurchaseOrdersTab() {
   const { token, user } = useAuth();
@@ -24,6 +30,7 @@ export function PurchaseOrdersTab() {
   const [amendQty, setAmendQty] = useState<Record<string, string>>({});
   const [amendPrice, setAmendPrice] = useState<Record<string, string>>({});
   const [versionsId, setVersionsId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const approved = useQuery({
     queryKey: ['requisitions', 'approved'],
@@ -35,8 +42,12 @@ export function PurchaseOrdersTab() {
     queryFn: () => apiFetch('/api/v1/vendors?active=true', { token, schema: VendorListSchema }),
   });
   const orders = useQuery({
-    queryKey: ['purchase-orders'],
-    queryFn: () => apiFetch('/api/v1/purchase-orders', { token, schema: PurchaseOrderListSchema }),
+    queryKey: ['purchase-orders', page],
+    queryFn: () =>
+      apiFetchPaged(`/api/v1/purchase-orders?page=${page}&pageSize=20`, {
+        token,
+        schema: PurchaseOrderListSchema,
+      }),
   });
 
   const cancel = useMutation({
@@ -150,21 +161,21 @@ export function PurchaseOrdersTab() {
     <>
       <section>
         <h2>Approved requisitions</h2>
-        {error && <p style={{ color: 'crimson' }}>{error}</p>}
-        {approved.isPending && <p>Loading…</p>}
-        {approved.data?.length === 0 && <p>Nothing awaiting conversion.</p>}
-        <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>
+        {error && <Alert kind="error">{error}</Alert>}
+        {approved.isPending && <Loading what="Loading approved requisitions" />}
+        {approved.data?.length === 0 && <EmptyState title="Nothing awaiting conversion." />}
+        <ul className="card-list">
           {approved.data?.map((req) => (
-            <li key={req.id} style={{ border: '1px solid #ccc', borderRadius: 6, padding: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <li key={req.id} className="card">
+              <div className="card-row">
                 <strong>{req.justification}</strong>
-                <span>{money(req.totalMinor, req.currency)}</span>
+                <span className="num">{money(req.totalMinor, req.currency)}</span>
               </div>
-              <div style={{ color: '#555', fontSize: 14 }}>
-                from {req.requesterName ?? req.requesterId} · needed by {req.neededBy} ·{' '}
+              <div className="card-meta">
+                from {req.requesterName ?? req.requesterId} · needed by {formatDate(req.neededBy)} ·{' '}
                 {req.lines.length} line(s)
               </div>
-              <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+              <div className="card-actions">
                 <select
                   aria-label="Vendor for this purchase order"
                   value={vendorByReq[req.id] ?? ''}
@@ -179,15 +190,15 @@ export function PurchaseOrdersTab() {
                     </option>
                   ))}
                 </select>
-                <button
-                  type="button"
+                <Button
+                  variant="primary"
                   onClick={() =>
                     convert.mutate({ requisitionId: req.id, vendorId: vendorByReq[req.id] })
                   }
                   disabled={!vendorByReq[req.id] || convert.isPending}
                 >
                   Convert to PO
-                </button>
+                </Button>
               </div>
             </li>
           ))}
@@ -196,151 +207,168 @@ export function PurchaseOrdersTab() {
 
       <section>
         <h2>Purchase orders</h2>
-        {orders.isPending && <p>Loading…</p>}
-        {orders.data?.length === 0 && <p>No purchase orders yet.</p>}
-        <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>
-          {orders.data?.map((po) => (
-            <li key={po.id} style={{ border: '1px solid #ccc', borderRadius: 6, padding: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        {orders.isPending && <Loading what="Loading purchase orders" />}
+        {orders.data?.items.length === 0 && <EmptyState title="No purchase orders yet." />}
+        <ul className="card-list">
+          {orders.data?.items.map((po) => (
+            <li key={po.id} className="card">
+              <div className="card-row">
                 <strong>
                   {po.poNumber ?? '(draft — no number yet)'} · {po.vendorName}
                 </strong>
                 <span>
-                  v{po.version} · {po.status} · {money(po.totalMinor, po.currency)}
+                  v{po.version} <StatusBadge status={po.status} />{' '}
+                  {money(po.totalMinor, po.currency)}
                 </span>
               </div>
-              <div style={{ color: '#555', fontSize: 14 }}>
+              <div className="card-meta">
                 {po.lines.length} line(s) · from requisition {po.requisitionId.slice(0, 8)}…
               </div>
               {(po.status === 'draft' || po.status === 'issued') && (
-                <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+                <div className="card-actions">
                   {po.status === 'draft' && (
-                    <button
-                      type="button"
-                      onClick={() => issue.mutate(po.id)}
-                      disabled={issue.isPending}
-                    >
+                    <Button onClick={() => issue.mutate(po.id)} disabled={issue.isPending}>
                       Issue (claims number)
-                    </button>
+                    </Button>
                   )}
-                  <button
-                    type="button"
+                  <Button
+                    variant="danger"
                     onClick={() => cancel.mutate(po.id)}
                     disabled={cancel.isPending}
                   >
                     Cancel PO
-                  </button>
+                  </Button>
                 </div>
               )}
-              <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+              <div className="card-actions">
                 {(po.status === 'issued' || po.status === 'partially_received') && (
-                  <button
-                    type="button"
-                    onClick={() => setAmendingId(amendingId === po.id ? null : po.id)}
-                  >
+                  <Button onClick={() => setAmendingId(amendingId === po.id ? null : po.id)}>
                     Amend…
-                  </button>
+                  </Button>
                 )}
                 {po.status === 'pending_reapproval' && user?.role === 'admin' && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="primary"
                     onClick={() => approveAmendment.mutate(po.id)}
                     disabled={approveAmendment.isPending}
                   >
                     Approve amendment
-                  </button>
+                  </Button>
                 )}
                 {po.status === 'pending_reapproval' && user?.role !== 'admin' && (
-                  <span style={{ color: '#8a6d00', fontSize: 14 }}>
-                    Awaiting approver sign-off (total increased)
-                  </span>
+                  <span className="badge badge-warn">awaiting approver sign-off</span>
                 )}
                 {po.version > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => setVersionsId(versionsId === po.id ? null : po.id)}
-                  >
+                  <Button onClick={() => setVersionsId(versionsId === po.id ? null : po.id)}>
                     {versionsId === po.id ? 'Hide versions' : 'Versions'}
-                  </button>
+                  </Button>
                 )}
               </div>
               {amendingId === po.id && (
-                <div style={{ marginTop: 8, borderTop: '1px dashed #ccc', paddingTop: 8 }}>
-                  {po.lines.map((line) => (
-                    <div
-                      key={line.id}
-                      style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}
-                    >
-                      <span style={{ flex: 2 }}>
-                        {line.description} (qty {line.quantity} @{' '}
-                        {money(line.unitPriceMinor, po.currency)})
-                      </span>
-                      <input
-                        type="number"
-                        min={1}
-                        placeholder="New qty"
-                        aria-label={`New quantity for ${line.description}`}
-                        value={amendQty[line.id] ?? ''}
-                        onChange={(e) =>
-                          setAmendQty((prev) => ({ ...prev, [line.id]: e.target.value }))
-                        }
-                        style={{ width: 90 }}
-                      />
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        placeholder="New price"
-                        aria-label={`New unit price for ${line.description}`}
-                        value={amendPrice[line.id] ?? ''}
-                        onChange={(e) =>
-                          setAmendPrice((prev) => ({ ...prev, [line.id]: e.target.value }))
-                        }
-                        style={{ width: 110 }}
-                      />
+                <>
+                  <hr className="divider" />
+                  <div className="form-grid">
+                    {po.lines.map((line) => (
+                      <div key={line.id} className="form-row">
+                        <span className="card-meta">
+                          {line.description} (qty {line.quantity} @{' '}
+                          {money(line.unitPriceMinor, po.currency)})
+                        </span>
+                        <Field label="New qty">
+                          <input
+                            type="number"
+                            min={1}
+                            placeholder="New qty"
+                            aria-label={`New quantity for ${line.description}`}
+                            value={amendQty[line.id] ?? ''}
+                            onChange={(e) =>
+                              setAmendQty((prev) => ({ ...prev, [line.id]: e.target.value }))
+                            }
+                          />
+                        </Field>
+                        <Field label="New price">
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            placeholder="New price"
+                            aria-label={`New unit price for ${line.description}`}
+                            value={amendPrice[line.id] ?? ''}
+                            onChange={(e) =>
+                              setAmendPrice((prev) => ({ ...prev, [line.id]: e.target.value }))
+                            }
+                          />
+                        </Field>
+                      </div>
+                    ))}
+                    <div className="form-row">
+                      <Field label="Reason">
+                        <input
+                          placeholder="Reason for the amendment"
+                          aria-label="Reason for the amendment"
+                          value={amendReason}
+                          onChange={(e) => setAmendReason(e.target.value)}
+                        />
+                      </Field>
+                      <Button
+                        variant="primary"
+                        onClick={() => submitAmendment(po)}
+                        disabled={!amendReason || amend.isPending}
+                      >
+                        Submit amendment
+                      </Button>
                     </div>
-                  ))}
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input
-                      placeholder="Reason for the amendment"
-                      aria-label="Reason for the amendment"
-                      value={amendReason}
-                      onChange={(e) => setAmendReason(e.target.value)}
-                      style={{ flex: 1 }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => submitAmendment(po)}
-                      disabled={!amendReason || amend.isPending}
-                    >
-                      Submit amendment
-                    </button>
                   </div>
-                </div>
+                </>
               )}
               {versionsId === po.id && (
-                <ul style={{ listStyle: 'none', padding: 0, marginTop: 8, fontSize: 14 }}>
-                  {versions.data?.map((v) => (
-                    <li key={v.version} style={{ marginBottom: 4 }}>
-                      <strong>v{v.version}</strong>
-                      {v.current ? ' (current)' : ''} · {money(v.totalMinor, po.currency)} ·{' '}
-                      {v.lines
-                        .map((l) => `${l.quantity} × ${money(l.unitPriceMinor, po.currency)}`)
-                        .join(', ')}
-                      {v.supersededReason && (
-                        <span style={{ color: '#555' }}>
-                          {' '}
-                          — superseded {new Date(v.supersededAt ?? '').toLocaleDateString()}:{' '}
-                          {v.supersededReason}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <hr className="divider" />
+                  {versions.isPending && <Loading what="Loading versions" />}
+                  {versions.data && (
+                    <div className="table-wrap">
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>Version</th>
+                            <th className="num">Total</th>
+                            <th>Lines</th>
+                            <th>Superseded</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {versions.data.map((v) => (
+                            <tr key={v.version}>
+                              <td>
+                                v{v.version}
+                                {v.current ? ' (current)' : ''}
+                              </td>
+                              <td className="num">{money(v.totalMinor, po.currency)}</td>
+                              <td>
+                                {v.lines
+                                  .map(
+                                    (l) =>
+                                      `${l.quantity} × ${money(l.unitPriceMinor, po.currency)}`,
+                                  )
+                                  .join(', ')}
+                              </td>
+                              <td>
+                                {v.supersededReason
+                                  ? `${v.supersededAt ? formatDate(v.supersededAt) : ''}: ${v.supersededReason}`
+                                  : '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
               )}
             </li>
           ))}
         </ul>
+        <Pagination meta={orders.data?.meta} onPage={setPage} />
       </section>
     </>
   );

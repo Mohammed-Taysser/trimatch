@@ -8,15 +8,23 @@ import {
   PurchaseOrderSchema,
 } from '@trimatch/shared';
 import { useState } from 'react';
-import { ApiError, apiFetch } from '../../lib/api';
+import { AppShell } from '../../components/AppShell';
+import {
+  Alert,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  Loading,
+  Pagination,
+  StatusBadge,
+} from '../../components/ui';
+import { ApiError, apiFetch, apiFetchPaged } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
-
-function money(minor: number, currency: string): string {
-  return `${(minor / 100).toFixed(2)} ${currency}`;
-}
+import { formatDate, money } from '../../lib/format';
 
 export function InvoicesPage() {
-  const { token, user, logout } = useAuth();
+  const { token } = useAuth();
   const queryClient = useQueryClient();
   const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
   const [invoiceNumber, setInvoiceNumber] = useState('');
@@ -28,6 +36,7 @@ export function InvoicesPage() {
   const [resolutionReasons, setResolutionReasons] = useState<Record<string, string>>({});
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [prices, setPrices] = useState<Record<string, string>>({});
+  const [invoicesPage, setInvoicesPage] = useState(1);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,8 +60,12 @@ export function InvoicesPage() {
   });
 
   const invoices = useQuery({
-    queryKey: ['invoices'],
-    queryFn: () => apiFetch('/api/v1/invoices?pageSize=100', { token, schema: InvoiceListSchema }),
+    queryKey: ['invoices', invoicesPage],
+    queryFn: () =>
+      apiFetchPaged(`/api/v1/invoices?page=${invoicesPage}&pageSize=20`, {
+        token,
+        schema: InvoiceListSchema,
+      }),
   });
 
   const submit = useMutation({
@@ -194,240 +207,246 @@ export function InvoicesPage() {
   });
 
   return (
-    <main style={{ fontFamily: 'system-ui, sans-serif', maxWidth: 860, margin: '2rem auto' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h1>Vendor invoices</h1>
-        <span>
-          {user?.fullName} ({user?.role}){' '}
-          <button type="button" onClick={logout}>
-            Sign out
-          </button>
-        </span>
-      </header>
-
-      {message && <p style={{ color: '#1a6b2f' }}>{message}</p>}
-      {error && <p style={{ color: 'crimson' }}>{error}</p>}
+    <AppShell title="Invoices & 3-way match">
+      {message && <Alert kind="success">{message}</Alert>}
+      {error && <Alert kind="error">{error}</Alert>}
 
       <section>
         <h2>Enter an invoice</h2>
-        <select
-          aria-label="Purchase order to invoice"
-          value={selectedPoId ?? ''}
-          onChange={(e) => setSelectedPoId(e.target.value || null)}
-        >
-          <option value="">Pick a purchase order…</option>
-          {invoiceable?.map((po) => (
-            <option key={po.id} value={po.id}>
-              {po.poNumber} · {po.vendorName} · {money(po.totalMinor, po.currency)}
-            </option>
-          ))}
-        </select>
+        <Card>
+          <div className="form-grid">
+            <Field label="Purchase order">
+              <select
+                aria-label="Purchase order to invoice"
+                value={selectedPoId ?? ''}
+                onChange={(e) => setSelectedPoId(e.target.value || null)}
+              >
+                <option value="">Pick a purchase order…</option>
+                {invoiceable?.map((po) => (
+                  <option key={po.id} value={po.id}>
+                    {po.poNumber} · {po.vendorName} · {money(po.totalMinor, po.currency)}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-        {detail.data && (
-          <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                placeholder="Vendor invoice number"
-                value={invoiceNumber}
-                onChange={(e) => setInvoiceNumber(e.target.value)}
-                style={{ flex: 1 }}
-                required
-              />
-              <input
-                type="date"
-                aria-label="Invoice date"
-                value={invoiceDate}
-                onChange={(e) => setInvoiceDate(e.target.value)}
-                required
-              />
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="Tax"
-                aria-label="Tax amount"
-                value={tax}
-                onChange={(e) => setTax(e.target.value)}
-                style={{ width: 90 }}
-              />
-            </div>
-            {detail.data.lines.map((line) => (
-              <div key={line.id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ flex: 2 }}>
-                  {line.description} (received {line.receivedQuantity ?? 0})
-                </span>
-                <input
-                  type="number"
-                  min={0}
-                  placeholder="Qty billed"
-                  aria-label={`Quantity billed for ${line.description}`}
-                  value={quantities[line.id] ?? ''}
-                  onChange={(e) =>
-                    setQuantities((prev) => ({ ...prev, [line.id]: e.target.value }))
-                  }
-                  style={{ width: 100 }}
-                />
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  placeholder="Unit price"
-                  aria-label={`Unit price billed for ${line.description}`}
-                  value={prices[line.id] ?? ''}
-                  onChange={(e) => setPrices((prev) => ({ ...prev, [line.id]: e.target.value }))}
-                  style={{ width: 110 }}
-                />
-              </div>
-            ))}
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={isFinal}
-                  onChange={(e) => setIsFinal(e.target.checked)}
-                />{' '}
-                Final settlement for this PO
-              </label>
-              <button type="button" onClick={() => submit.mutate()} disabled={submit.isPending}>
-                Enter invoice
-              </button>
-            </div>
+            {detail.data && (
+              <>
+                <div className="form-row">
+                  <Field label="Invoice number">
+                    <input
+                      placeholder="Vendor invoice number"
+                      aria-label="Vendor invoice number"
+                      value={invoiceNumber}
+                      onChange={(e) => setInvoiceNumber(e.target.value)}
+                      required
+                    />
+                  </Field>
+                  <Field label="Invoice date">
+                    <input
+                      type="date"
+                      aria-label="Invoice date"
+                      value={invoiceDate}
+                      onChange={(e) => setInvoiceDate(e.target.value)}
+                      required
+                    />
+                  </Field>
+                  <Field label="Tax">
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      placeholder="Tax"
+                      aria-label="Tax amount"
+                      value={tax}
+                      onChange={(e) => setTax(e.target.value)}
+                    />
+                  </Field>
+                </div>
+                {detail.data.lines.map((line) => (
+                  <div key={line.id} className="form-row">
+                    <span className="card-meta">
+                      {line.description} (received {line.receivedQuantity ?? 0})
+                    </span>
+                    <Field label="Qty billed">
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="Qty billed"
+                        aria-label={`Quantity billed for ${line.description}`}
+                        value={quantities[line.id] ?? ''}
+                        onChange={(e) =>
+                          setQuantities((prev) => ({ ...prev, [line.id]: e.target.value }))
+                        }
+                      />
+                    </Field>
+                    <Field label="Unit price">
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        placeholder="Unit price"
+                        aria-label={`Unit price billed for ${line.description}`}
+                        value={prices[line.id] ?? ''}
+                        onChange={(e) =>
+                          setPrices((prev) => ({ ...prev, [line.id]: e.target.value }))
+                        }
+                      />
+                    </Field>
+                  </div>
+                ))}
+                <div className="form-row">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={isFinal}
+                      onChange={(e) => setIsFinal(e.target.checked)}
+                    />{' '}
+                    Final settlement for this PO
+                  </label>
+                  <Button
+                    variant="primary"
+                    onClick={() => submit.mutate()}
+                    disabled={submit.isPending}
+                  >
+                    Enter invoice
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
-        )}
+        </Card>
       </section>
 
       <section>
         <h2>Exceptions queue{summary.data ? ` (${summary.data.total})` : ''}</h2>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-          <button
-            type="button"
+        <div className="card-actions">
+          <Button
+            small
+            className="chip"
+            aria-pressed={reasonFilter === ''}
             onClick={() => setReasonFilter('')}
-            style={{ fontWeight: reasonFilter === '' ? 'bold' : 'normal' }}
           >
             all ({summary.data?.total ?? 0})
-          </button>
+          </Button>
           {summary.data?.counts.map((entry) => (
-            <button
+            <Button
               key={entry.reason}
-              type="button"
+              small
+              className="chip"
+              aria-pressed={reasonFilter === entry.reason}
               onClick={() => setReasonFilter(entry.reason)}
-              style={{ fontWeight: reasonFilter === entry.reason ? 'bold' : 'normal' }}
             >
               {entry.reason} ({entry.count})
-            </button>
+            </Button>
           ))}
         </div>
-        <label>
-          Sort{' '}
-          <select
-            aria-label="Sort exceptions"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="oldest">oldest first</option>
-            <option value="newest">newest first</option>
-            <option value="vendor">by vendor</option>
-            <option value="reason">by reason</option>
-          </select>
-        </label>{' '}
-        <label>
-          Reason{' '}
-          <select
-            aria-label="Filter exceptions by reason"
-            value={reasonFilter}
-            onChange={(e) => setReasonFilter(e.target.value)}
-          >
-            <option value="">all</option>
-            <option value="PRICE_VARIANCE">PRICE_VARIANCE</option>
-            <option value="QTY_OVER_INVOICED">QTY_OVER_INVOICED</option>
-            <option value="QTY_UNDER_DELIVERY">QTY_UNDER_DELIVERY</option>
-            <option value="TOTAL_VARIANCE">TOTAL_VARIANCE</option>
-          </select>
-        </label>
-        {exceptions.data?.length === 0 && <p>No exceptions. 🎉</p>}
-        <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>
-          {exceptions.data?.map((ex) => (
-            <li
-              key={ex.invoice.id}
-              style={{ border: '1px solid #d99', borderRadius: 6, padding: 12 }}
+        <div className="form-row">
+          <Field label="Sort">
+            <select
+              aria-label="Sort exceptions"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <option value="oldest">oldest first</option>
+              <option value="newest">newest first</option>
+              <option value="vendor">by vendor</option>
+              <option value="reason">by reason</option>
+            </select>
+          </Field>
+          <Field label="Reason">
+            <select
+              aria-label="Filter exceptions by reason"
+              value={reasonFilter}
+              onChange={(e) => setReasonFilter(e.target.value)}
+            >
+              <option value="">all</option>
+              <option value="PRICE_VARIANCE">PRICE_VARIANCE</option>
+              <option value="QTY_OVER_INVOICED">QTY_OVER_INVOICED</option>
+              <option value="QTY_UNDER_DELIVERY">QTY_UNDER_DELIVERY</option>
+              <option value="TOTAL_VARIANCE">TOTAL_VARIANCE</option>
+            </select>
+          </Field>
+        </div>
+        {exceptions.data?.length === 0 && (
+          <EmptyState title="No exceptions" hint="Every invoice matched. 🎉" />
+        )}
+        <ul className="card-list">
+          {exceptions.data?.map((ex) => (
+            <li key={ex.invoice.id} className="card">
+              <div className="card-row">
                 <strong>
                   {ex.invoice.invoiceNumber} · {ex.invoice.vendorName}
                 </strong>
-                <span>
+                <span className="card-meta">
                   {money(ex.invoice.totalMinor, ex.invoice.currency)} · {ex.invoice.ageDays}d old
                 </span>
               </div>
-              <div style={{ color: 'crimson', fontSize: 14 }}>
-                {ex.match.reasons.map((r) => r.code).join(', ')}
+              <div className="card-actions">
+                {ex.match.reasons.map((r) => (
+                  <span key={r.code} className="badge badge-danger">
+                    {r.code}
+                  </span>
+                ))}
               </div>
-              <table style={{ marginTop: 6, fontSize: 13, borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    {[
-                      'line',
-                      'ordered',
-                      'received',
-                      'invoiced',
-                      'PO price',
-                      'inv price',
-                      'verdict',
-                    ].map((h) => (
-                      <th key={h} style={{ padding: '2px 10px', textAlign: 'right' }}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {ex.match.comparisons.map((c) => (
-                    <tr key={c.lineNo}>
-                      <td style={{ padding: '2px 10px', textAlign: 'right' }}>{c.lineNo}</td>
-                      <td style={{ padding: '2px 10px', textAlign: 'right' }}>{c.orderedQty}</td>
-                      <td
-                        style={{
-                          padding: '2px 10px',
-                          textAlign: 'right',
-                          fontWeight: c.receivedQty !== c.orderedQty ? 700 : 400,
-                        }}
-                      >
-                        {c.receivedQty}
-                      </td>
-                      <td
-                        style={{
-                          padding: '2px 10px',
-                          textAlign: 'right',
-                          fontWeight: c.cumulativeInvoicedQty !== c.receivedQty ? 700 : 400,
-                        }}
-                      >
-                        {c.cumulativeInvoicedQty}
-                      </td>
-                      <td style={{ padding: '2px 10px', textAlign: 'right' }}>
-                        {(c.poUnitPriceMinor / 100).toFixed(2)}
-                      </td>
-                      <td
-                        style={{
-                          padding: '2px 10px',
-                          textAlign: 'right',
-                          fontWeight: c.invoiceUnitPriceMinor !== c.poUnitPriceMinor ? 700 : 400,
-                        }}
-                      >
-                        {(c.invoiceUnitPriceMinor / 100).toFixed(2)}
-                      </td>
-                      <td style={{ padding: '2px 10px', textAlign: 'right' }}>
-                        {c.verdict === 'ok' ? '✓' : c.verdict}
-                      </td>
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th className="num">line</th>
+                      <th className="num">ordered</th>
+                      <th className="num">received</th>
+                      <th className="num">invoiced</th>
+                      <th className="num">PO price</th>
+                      <th className="num">inv price</th>
+                      <th className="num">verdict</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {ex.match.comparisons.map((c) => (
+                      <tr key={c.lineNo}>
+                        <td className="num">{c.lineNo}</td>
+                        <td className="num">{c.orderedQty}</td>
+                        <td className="num">
+                          {c.receivedQty !== c.orderedQty ? (
+                            <strong>{c.receivedQty}</strong>
+                          ) : (
+                            c.receivedQty
+                          )}
+                        </td>
+                        <td className="num">
+                          {c.cumulativeInvoicedQty !== c.receivedQty ? (
+                            <strong>{c.cumulativeInvoicedQty}</strong>
+                          ) : (
+                            c.cumulativeInvoicedQty
+                          )}
+                        </td>
+                        <td className="num">{(c.poUnitPriceMinor / 100).toFixed(2)}</td>
+                        <td className="num">
+                          {c.invoiceUnitPriceMinor !== c.poUnitPriceMinor ? (
+                            <strong>{(c.invoiceUnitPriceMinor / 100).toFixed(2)}</strong>
+                          ) : (
+                            (c.invoiceUnitPriceMinor / 100).toFixed(2)
+                          )}
+                        </td>
+                        <td className="num">
+                          {c.verdict === 'ok' ? (
+                            <span className="badge badge-ok">✓</span>
+                          ) : (
+                            <span className="badge badge-danger">{c.verdict}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               {ex.match.totalDeltaMinor !== 0 && (
-                <div style={{ fontSize: 13, marginTop: 4 }}>
+                <div className="card-meta">
                   total delta: <strong>{(ex.match.totalDeltaMinor / 100).toFixed(2)}</strong>
                 </div>
               )}
-              <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+              <div className="card-actions">
                 <input
                   placeholder="Resolution reason"
                   aria-label={`Resolution reason for ${ex.invoice.invoiceNumber}`}
@@ -435,31 +454,31 @@ export function InvoicesPage() {
                   onChange={(e) =>
                     setResolutionReasons((prev) => ({ ...prev, [ex.invoice.id]: e.target.value }))
                   }
-                  style={{ flex: 1 }}
                 />
-                <button
-                  type="button"
+                <Button
+                  small
                   onClick={() => resolve.mutate({ id: ex.invoice.id, action: 'accept-variance' })}
                   disabled={resolve.isPending}
                 >
                   Accept variance
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  small
                   onClick={() =>
                     resolve.mutate({ id: ex.invoice.id, action: 'request-credit-note' })
                   }
                   disabled={resolve.isPending}
                 >
                   Credit note
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  small
+                  variant="danger"
                   onClick={() => resolve.mutate({ id: ex.invoice.id, action: 'reject' })}
                   disabled={resolve.isPending}
                 >
                   Reject
-                </button>
+                </Button>
               </div>
             </li>
           ))}
@@ -468,50 +487,53 @@ export function InvoicesPage() {
 
       <section>
         <h2>Invoices</h2>
-        {invoices.isPending && <p>Loading…</p>}
-        {invoices.data?.length === 0 && <p>No invoices yet.</p>}
-        <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>
-          {invoices.data?.map((inv) => (
-            <li key={inv.id} style={{ border: '1px solid #ccc', borderRadius: 6, padding: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        {invoices.isPending && <Loading />}
+        {invoices.data?.items.length === 0 && <EmptyState title="No invoices yet" />}
+        <ul className="card-list">
+          {invoices.data?.items.map((inv) => (
+            <li key={inv.id} className="card">
+              <div className="card-row">
                 <strong>
                   {inv.invoiceNumber} · {inv.vendorName}
                 </strong>
                 <span>
-                  {inv.status} · {money(inv.totalMinor, inv.currency)}
+                  <StatusBadge status={inv.status} /> · {money(inv.totalMinor, inv.currency)}
                 </span>
               </div>
-              <div style={{ color: '#555', fontSize: 14 }}>
-                PO {inv.poNumber ?? inv.poId.slice(0, 8)} · dated {inv.invoiceDate} · tax{' '}
-                {money(inv.taxMinor, inv.currency)}
+              <div className="card-meta">
+                PO {inv.poNumber ?? inv.poId.slice(0, 8)} · dated {formatDate(inv.invoiceDate)} ·
+                tax {money(inv.taxMinor, inv.currency)}
                 {inv.isFinal ? ' · final' : ''}
               </div>
               {inv.status === 'entered' && (
-                <div style={{ marginTop: 6 }}>
-                  <button
-                    type="button"
+                <div className="card-actions">
+                  <Button
+                    variant="primary"
+                    small
                     onClick={() => runMatch.mutate(inv.id)}
                     disabled={runMatch.isPending}
                   >
                     Run 3-way match
-                  </button>
+                  </Button>
                 </div>
               )}
               {inv.status === 'variance_accepted' && (
-                <div style={{ marginTop: 6 }}>
-                  <button
-                    type="button"
+                <div className="card-actions">
+                  <Button
+                    variant="primary"
+                    small
                     onClick={() => markPayable.mutate(inv.id)}
                     disabled={markPayable.isPending}
                   >
                     Mark payable
-                  </button>
+                  </Button>
                 </div>
               )}
             </li>
           ))}
         </ul>
+        <Pagination meta={invoices.data?.meta} onPage={setInvoicesPage} />
       </section>
-    </main>
+    </AppShell>
   );
 }

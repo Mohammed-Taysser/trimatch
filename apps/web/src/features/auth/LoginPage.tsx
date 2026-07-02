@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react';
+import { Alert, Button, Card, Field } from '../../components/ui';
 import { ApiError } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 
@@ -23,33 +24,38 @@ export function LoginPage() {
   }
 
   return (
-    <main style={{ fontFamily: 'system-ui, sans-serif', maxWidth: 360, margin: '6rem auto' }}>
-      <h1>TriMatch</h1>
-      <form onSubmit={(e) => void onSubmit(e)} style={{ display: 'grid', gap: 12 }}>
-        <label>
-          Email
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{ width: '100%' }}
-            autoComplete="username"
-          />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{ width: '100%' }}
-            autoComplete="current-password"
-          />
-        </label>
-        {error && <p style={{ color: 'crimson' }}>{error}</p>}
-        <button type="submit" disabled={busy}>
-          {busy ? 'Signing in…' : 'Sign in'}
-        </button>
-      </form>
+    <main className="login-wrap">
+      <div className="login-card">
+        <div className="login-brand">
+          <h1>TriMatch</h1>
+          <p>Requisition → approval → PO → receipt → invoice → 3-way match</p>
+        </div>
+        <Card>
+          <form onSubmit={(e) => void onSubmit(e)} className="form-grid">
+            <Field label="Email">
+              <input
+                aria-label="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="username"
+              />
+            </Field>
+            <Field label="Password">
+              <input
+                type="password"
+                aria-label="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+              />
+            </Field>
+            {error && <Alert kind="error">{error}</Alert>}
+            <Button type="submit" variant="primary" disabled={busy}>
+              {busy ? 'Signing in…' : 'Sign in'}
+            </Button>
+          </form>
+        </Card>
+      </div>
     </main>
   );
 }

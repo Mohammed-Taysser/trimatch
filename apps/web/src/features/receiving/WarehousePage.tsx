@@ -6,15 +6,14 @@ import {
   PurchaseOrderSchema,
 } from '@trimatch/shared';
 import { useState } from 'react';
+import { AppShell } from '../../components/AppShell';
+import { Alert, Button, Card, EmptyState, Loading, StatusBadge } from '../../components/ui';
 import { ApiError, apiFetch } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
-
-function money(minor: number, currency: string): string {
-  return `${(minor / 100).toFixed(2)} ${currency}`;
-}
+import { formatDateTime, money } from '../../lib/format';
 
 export function WarehousePage() {
-  const { token, user, logout } = useAuth();
+  const { token } = useAuth();
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [quantities, setQuantities] = useState<Record<string, string>>({});
@@ -22,6 +21,8 @@ export function WarehousePage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // pageSize=100 + client-side status filter: there is no server-side status
+  // filter yet (tracked in the backlog) — a page of 20 would hide receivable POs.
   const orders = useQuery({
     queryKey: ['purchase-orders'],
     queryFn: () =>
@@ -83,39 +84,29 @@ export function WarehousePage() {
   }
 
   return (
-    <main style={{ fontFamily: 'system-ui, sans-serif', maxWidth: 860, margin: '2rem auto' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h1>Goods receiving</h1>
-        <span>
-          {user?.fullName} ({user?.role}){' '}
-          <button type="button" onClick={logout}>
-            Sign out
-          </button>
-        </span>
-      </header>
-
-      {message && <p style={{ color: '#1a6b2f' }}>{message}</p>}
-      {error && <p style={{ color: 'crimson' }}>{error}</p>}
+    <AppShell title="Goods receiving">
+      {message && <Alert kind="success">{message}</Alert>}
+      {error && <Alert kind="error">{error}</Alert>}
 
       <section>
         <h2>Open purchase orders</h2>
-        {orders.isPending && <p>Loading…</p>}
-        {receivable?.length === 0 && <p>Nothing awaiting receipt.</p>}
-        <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>
+        {orders.isPending && <Loading />}
+        {receivable?.length === 0 && <EmptyState title="Nothing awaiting receipt." />}
+        <ul className="card-list">
           {receivable?.map((po) => (
-            <li key={po.id} style={{ border: '1px solid #ccc', borderRadius: 6, padding: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <li key={po.id} className="card">
+              <div className="card-row">
                 <strong>
                   {po.poNumber} · {po.vendorName}
                 </strong>
-                <span>
-                  {po.status} · {money(po.totalMinor, po.currency)}
+                <span className="card-meta">
+                  <StatusBadge status={po.status} /> {money(po.totalMinor, po.currency)}
                 </span>
               </div>
-              <div style={{ marginTop: 6 }}>
-                <button type="button" onClick={() => setSelectedId(po.id)}>
+              <div className="card-actions">
+                <Button small onClick={() => setSelectedId(po.id)}>
                   Receive goods
-                </button>
+                </Button>
               </div>
             </li>
           ))}
@@ -125,65 +116,85 @@ export function WarehousePage() {
       {selectedId && detail.data && (
         <section>
           <h2>Receive against {detail.data.poNumber}</h2>
-          <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>
-            {detail.data.lines.map((line) => (
-              <li key={line.id} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <span style={{ flex: 2 }}>{line.description}</span>
-                <span style={{ color: '#555' }}>
-                  ordered {line.quantity} · received {line.receivedQuantity ?? 0} · open{' '}
-                  {line.openQuantity ?? line.quantity}
-                </span>
-                <input
-                  type="number"
-                  min={0}
-                  max={line.openQuantity ?? line.quantity}
-                  placeholder="Qty"
-                  aria-label={`Quantity received for ${line.description}`}
-                  value={quantities[line.id] ?? ''}
-                  onChange={(e) =>
-                    setQuantities((prev) => ({ ...prev, [line.id]: e.target.value }))
-                  }
-                  style={{ width: 90 }}
-                />
-                <input
-                  type="number"
-                  min={0}
-                  placeholder="Damaged"
-                  aria-label={`Damaged units for ${line.description}`}
-                  value={damaged[line.id] ?? ''}
-                  onChange={(e) => setDamaged((prev) => ({ ...prev, [line.id]: e.target.value }))}
-                  style={{ width: 90 }}
-                />
-              </li>
-            ))}
-          </ul>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={submitReceipt} disabled={receive.isPending}>
-              Record receipt
-            </button>
-            <button type="button" onClick={() => setSelectedId(null)}>
-              Close
-            </button>
-          </div>
+          <Card>
+            <ul className="card-list">
+              {detail.data.lines.map((line) => (
+                <li key={line.id} className="form-row">
+                  <span>{line.description}</span>
+                  <span className="card-meta">
+                    ordered {line.quantity} · received {line.receivedQuantity ?? 0} · open{' '}
+                    {line.openQuantity ?? line.quantity}
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={line.openQuantity ?? line.quantity}
+                    placeholder="Qty"
+                    aria-label={`Quantity received for ${line.description}`}
+                    value={quantities[line.id] ?? ''}
+                    onChange={(e) =>
+                      setQuantities((prev) => ({ ...prev, [line.id]: e.target.value }))
+                    }
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="Damaged"
+                    aria-label={`Damaged units for ${line.description}`}
+                    value={damaged[line.id] ?? ''}
+                    onChange={(e) => setDamaged((prev) => ({ ...prev, [line.id]: e.target.value }))}
+                  />
+                </li>
+              ))}
+            </ul>
+            <div className="card-actions">
+              <Button variant="primary" onClick={submitReceipt} disabled={receive.isPending}>
+                Record receipt
+              </Button>
+              <Button variant="ghost" onClick={() => setSelectedId(null)}>
+                Close
+              </Button>
+            </div>
 
-          <h3>Receipt history</h3>
-          {history.data?.length === 0 && <p>No receipts yet.</p>}
-          <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 4 }}>
-            {history.data?.map((grn) => (
-              <li key={grn.id} style={{ fontSize: 14 }}>
-                <strong>{grn.grnNumber}</strong> · {new Date(grn.createdAt).toLocaleString()} ·{' '}
-                {grn.receivedByName} ·{' '}
-                {grn.lines
-                  .map(
-                    (line) =>
-                      `${line.quantity} received${line.damagedQuantity > 0 ? ` (${line.damagedQuantity} damaged)` : ''}`,
-                  )
-                  .join(', ')}
-              </li>
-            ))}
-          </ul>
+            <hr className="divider" />
+
+            <h3>Receipt history</h3>
+            {history.data?.length === 0 && <p className="card-meta">No receipts yet.</p>}
+            {history.data && history.data.length > 0 && (
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>GRN</th>
+                      <th>When</th>
+                      <th>Received by</th>
+                      <th>Quantities</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.data.map((grn) => (
+                      <tr key={grn.id}>
+                        <td>{grn.grnNumber}</td>
+                        <td>{formatDateTime(grn.createdAt)}</td>
+                        <td>{grn.receivedByName}</td>
+                        <td>
+                          {grn.lines
+                            .map((line) =>
+                              line.damagedQuantity > 0
+                                ? `${line.quantity} received (${line.damagedQuantity} damaged)`
+                                : `${line.quantity} received`,
+                            )
+                            .join(', ')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
         </section>
       )}
-    </main>
+    </AppShell>
   );
 }

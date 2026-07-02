@@ -6,8 +6,20 @@ import {
   RequisitionSchema,
 } from '@trimatch/shared';
 import { FormEvent, useState } from 'react';
-import { ApiError, apiFetch } from '../../lib/api';
+import { AppShell } from '../../components/AppShell';
+import {
+  Alert,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  Loading,
+  Pagination,
+  StatusBadge,
+} from '../../components/ui';
+import { ApiError, apiFetch, apiFetchPaged } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
+import { formatDate, formatDateTime, money } from '../../lib/format';
 
 interface LineDraft {
   description: string;
@@ -17,10 +29,6 @@ interface LineDraft {
 }
 
 const EMPTY_LINE: LineDraft = { description: '', category: '', quantity: '1', unitPrice: '' };
-
-function money(minor: number, currency: string): string {
-  return `${(minor / 100).toFixed(2)} ${currency}`;
-}
 
 function toPayload(
   justification: string,
@@ -42,8 +50,9 @@ function toPayload(
 }
 
 export function RequisitionsPage() {
-  const { token, user, logout } = useAuth();
+  const { token } = useAuth();
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [justification, setJustification] = useState('');
   const [neededBy, setNeededBy] = useState('');
@@ -52,8 +61,12 @@ export function RequisitionsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const list = useQuery({
-    queryKey: ['requisitions'],
-    queryFn: () => apiFetch('/api/v1/requisitions', { token, schema: RequisitionListSchema }),
+    queryKey: ['requisitions', page],
+    queryFn: () =>
+      apiFetchPaged(`/api/v1/requisitions?page=${page}&pageSize=20`, {
+        token,
+        schema: RequisitionListSchema,
+      }),
   });
 
   const save = useMutation({
@@ -143,128 +156,124 @@ export function RequisitionsPage() {
   }
 
   return (
-    <main style={{ fontFamily: 'system-ui, sans-serif', maxWidth: 860, margin: '2rem auto' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h1>My requisitions</h1>
-        <span>
-          {user?.fullName} ({user?.role}){' '}
-          <button type="button" onClick={logout}>
-            Sign out
-          </button>
-        </span>
-      </header>
-
+    <AppShell title="My requisitions">
       <section>
         <h2>{editingId ? 'Edit draft' : 'New draft'}</h2>
-        <form onSubmit={onSubmit} style={{ display: 'grid', gap: 8 }}>
-          <label>
-            Justification
-            <input
-              value={justification}
-              onChange={(e) => setJustification(e.target.value)}
-              style={{ width: '100%' }}
-              required
-            />
-          </label>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <label>
-              Needed by
+        <Card>
+          <form onSubmit={onSubmit} className="form-grid">
+            <Field label="Justification">
               <input
-                type="date"
-                value={neededBy}
-                onChange={(e) => setNeededBy(e.target.value)}
+                aria-label="Justification"
+                value={justification}
+                onChange={(e) => setJustification(e.target.value)}
                 required
               />
-            </label>
-            <label>
-              Currency
-              <input
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-                maxLength={3}
-                style={{ width: 60 }}
-                required
-              />
-            </label>
-          </div>
-          {lines.map((line, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8 }}>
-              <input
-                placeholder="Description"
-                value={line.description}
-                onChange={(e) => setLine(i, { description: e.target.value })}
-                style={{ flex: 2 }}
-                required
-              />
-              <input
-                placeholder="Category"
-                value={line.category}
-                onChange={(e) => setLine(i, { category: e.target.value })}
-                style={{ flex: 1 }}
-                required
-              />
-              <input
-                type="number"
-                min={1}
-                step={1}
-                placeholder="Qty"
-                value={line.quantity}
-                onChange={(e) => setLine(i, { quantity: e.target.value })}
-                style={{ width: 70 }}
-                required
-              />
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="Unit price"
-                value={line.unitPrice}
-                onChange={(e) => setLine(i, { unitPrice: e.target.value })}
-                style={{ width: 110 }}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setLines((prev) => prev.filter((_, idx) => idx !== i))}
-                disabled={lines.length === 1}
-              >
-                ✕
-              </button>
+            </Field>
+            <div className="form-row">
+              <Field label="Needed by">
+                <input
+                  type="date"
+                  aria-label="Needed by"
+                  value={neededBy}
+                  onChange={(e) => setNeededBy(e.target.value)}
+                  required
+                />
+              </Field>
+              <Field label="Currency">
+                <input
+                  aria-label="Currency"
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+                  maxLength={3}
+                  required
+                />
+              </Field>
             </div>
-          ))}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={() => setLines((prev) => [...prev, { ...EMPTY_LINE }])}>
-              + Add line
-            </button>
-            <button type="submit" disabled={save.isPending}>
-              {editingId ? 'Save draft' : 'Create draft'}
-            </button>
-            {editingId && (
-              <button type="button" onClick={resetForm}>
-                Cancel
-              </button>
-            )}
-          </div>
-          {error && <p style={{ color: 'crimson' }}>{error}</p>}
-        </form>
+            {lines.map((line, i) => (
+              <div key={i} className="form-row">
+                <input
+                  aria-label="Description"
+                  placeholder="Description"
+                  value={line.description}
+                  onChange={(e) => setLine(i, { description: e.target.value })}
+                  required
+                />
+                <input
+                  aria-label="Category"
+                  placeholder="Category"
+                  value={line.category}
+                  onChange={(e) => setLine(i, { category: e.target.value })}
+                  required
+                />
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  aria-label="Qty"
+                  placeholder="Qty"
+                  value={line.quantity}
+                  onChange={(e) => setLine(i, { quantity: e.target.value })}
+                  required
+                />
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  aria-label="Unit price"
+                  placeholder="Unit price"
+                  value={line.unitPrice}
+                  onChange={(e) => setLine(i, { unitPrice: e.target.value })}
+                  required
+                />
+                <Button
+                  small
+                  variant="danger"
+                  onClick={() => setLines((prev) => prev.filter((_, idx) => idx !== i))}
+                  disabled={lines.length === 1}
+                >
+                  ✕
+                </Button>
+              </div>
+            ))}
+            <div className="card-actions">
+              <Button onClick={() => setLines((prev) => [...prev, { ...EMPTY_LINE }])}>
+                + Add line
+              </Button>
+              <Button type="submit" variant="primary" disabled={save.isPending}>
+                {editingId ? 'Save draft' : 'Create draft'}
+              </Button>
+              {editingId && (
+                <Button variant="ghost" onClick={resetForm}>
+                  Cancel
+                </Button>
+              )}
+            </div>
+            {error && <Alert kind="error">{error}</Alert>}
+          </form>
+        </Card>
       </section>
 
       <section>
         <h2>Drafts</h2>
-        {list.isPending && <p>Loading…</p>}
-        {list.isError && <p style={{ color: 'crimson' }}>Could not load requisitions.</p>}
-        {list.data?.length === 0 && <p>No requisitions yet.</p>}
-        <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>
-          {list.data?.map((req) => (
-            <li key={req.id} style={{ border: '1px solid #ccc', borderRadius: 6, padding: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        {list.isPending && <Loading what="requisitions" />}
+        {list.isError && <Alert kind="error">Could not load requisitions.</Alert>}
+        {list.data?.items.length === 0 && (
+          <EmptyState
+            title="No requisitions yet"
+            hint="Create your first draft with the form above."
+          />
+        )}
+        <ul className="card-list">
+          {list.data?.items.map((req) => (
+            <li key={req.id} className="card">
+              <div className="card-row">
                 <strong>{req.justification}</strong>
                 <span>
-                  {req.status} · {money(req.totalMinor, req.currency)}
+                  <StatusBadge status={req.status} /> {money(req.totalMinor, req.currency)}
                 </span>
               </div>
-              <div style={{ color: '#555', fontSize: 14 }}>
-                needed by {req.neededBy} · {req.lines.length} line(s)
+              <div className="card-meta">
+                needed by {formatDate(req.neededBy)} · {req.lines.length} line(s)
                 {req.status === 'pending_approval' &&
                   req.steps.some((step) => step.status === 'pending') && (
                     <>
@@ -277,66 +286,69 @@ export function RequisitionsPage() {
                   )}
               </div>
               {req.steps.length > 0 && (
-                <ol style={{ margin: '6px 0 0', paddingLeft: 18, color: '#555', fontSize: 13 }}>
+                <ol className="card-meta">
                   {req.steps.map((step) => (
                     <li key={step.id}>
                       round {step.round} · {step.approverName} —{' '}
-                      {step.status === 'pending' ? '⏳ pending' : null}
-                      {step.status === 'approved' ? '✅ approved' : null}
-                      {step.status === 'rejected' ? '❌ rejected' : null}
-                      {step.decidedAt ? ` (${new Date(step.decidedAt).toLocaleString()})` : null}
+                      <StatusBadge status={step.status} />
+                      {step.decidedAt ? ` (${formatDateTime(step.decidedAt)})` : null}
                     </li>
                   ))}
                 </ol>
               )}
               {req.po && (
-                <p style={{ margin: '6px 0 0', color: '#1a6b2f' }}>
-                  📦 Purchase order {req.po.poNumber ?? '(pending number)'} — {req.po.status}
+                <p className="card-meta">
+                  📦 Purchase order {req.po.poNumber ?? '(pending number)'} —{' '}
+                  <StatusBadge status={req.po.status} />
                 </p>
               )}
               {req.steps
                 .filter((step) => step.status === 'rejected' && step.reason)
                 .map((step) => (
-                  <p key={step.id} style={{ color: 'crimson', margin: '6px 0 0' }}>
+                  <Alert key={step.id} kind="error">
                     Rejected by {step.approverName}: “{step.reason}”
-                  </p>
+                  </Alert>
                 ))}
               {req.status === 'rejected' && (
-                <div style={{ marginTop: 6 }}>
-                  <button
-                    type="button"
+                <div className="card-actions">
+                  <Button
+                    small
+                    variant="primary"
                     onClick={() => revise.mutate(req.id)}
                     disabled={revise.isPending}
                   >
                     Revise & edit
-                  </button>
+                  </Button>
                 </div>
               )}
               {req.status === 'draft' && (
-                <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
-                  <button
-                    type="button"
+                <div className="card-actions">
+                  <Button
+                    small
+                    variant="primary"
                     onClick={() => submit.mutate(req.id)}
                     disabled={submit.isPending}
                   >
                     Submit for approval
-                  </button>
-                  <button type="button" onClick={() => startEdit(req)}>
+                  </Button>
+                  <Button small onClick={() => startEdit(req)}>
                     Edit
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
+                    small
+                    variant="danger"
                     onClick={() => remove.mutate(req.id)}
                     disabled={remove.isPending}
                   >
                     Delete
-                  </button>
+                  </Button>
                 </div>
               )}
             </li>
           ))}
         </ul>
+        <Pagination meta={list.data?.meta} onPage={setPage} />
       </section>
-    </main>
+    </AppShell>
   );
 }
