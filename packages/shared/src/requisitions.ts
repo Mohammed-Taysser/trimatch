@@ -62,6 +62,7 @@ export type RequisitionLine = z.infer<typeof RequisitionLineSchema>;
 export const RequisitionSchema = z.object({
   id: z.uuid(),
   requesterId: z.uuid(),
+  requesterName: z.string().optional(),
   status: RequisitionStatusSchema,
   justification: z.string(),
   neededBy: z.iso.date(),
