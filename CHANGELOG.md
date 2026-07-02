@@ -17,6 +17,9 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Over-receipt blocking formalized (FR-303/TC-303)**: receiving beyond the open
+  quantity returns 422 `OVER_RECEIPT_BLOCKED` with full rollback; exact-boundary
+  receipts succeed; multi-line GRNs are atomic (one overflowing line rejects all)
 - **Goods receiving (FR-301/302)**: `grns` + `grn_lines` tables, gapless
   `GRN-YYYY-NNNN` numbers, `POST /receipts` (warehouse role) with per-line
   open-quantity math (I-2, over-receipt refused), PO → partially_received /
