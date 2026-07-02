@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { GrnSchema, PurchaseOrderSchema, VendorSchema } from '@trimatch/shared';
+import { GrnListSchema, GrnSchema, PurchaseOrderSchema, VendorSchema } from '@trimatch/shared';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { setupApp } from '../src/setup-app';
@@ -202,6 +202,46 @@ describe('goods receiving (FR-301/302 · TC-301/TC-302 · TC-204)', () => {
     const po = await poDetail(poId, warehouseToken);
     expect(po.status).toBe('issued'); // untouched
     expect(po.lines.map((l) => l.receivedQuantity)).toEqual([0, 0]);
+  });
+
+  it('TC-601: three receipts (40/30/30) against qty 100 → open qty 0, PO received (FR-601)', async () => {
+    const { poId, poLineId } = await issuedPo();
+
+    const grnNumbers: string[] = [];
+    for (const [index, quantity] of [40, 30, 30].entries()) {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/receipts')
+        .set('Authorization', `Bearer ${warehouseToken}`)
+        .send({ poId, lines: [{ poLineId, quantity }] })
+        .expect(201);
+      grnNumbers.push(GrnSchema.parse(res.body.data).grnNumber);
+
+      const po = await poDetail(poId, warehouseToken);
+      const receivedSoFar = [40, 70, 100][index];
+      expect(po.lines[0]).toMatchObject({
+        receivedQuantity: receivedSoFar,
+        openQuantity: 100 - receivedSoFar,
+      });
+      expect(po.status).toBe(index < 2 ? 'partially_received' : 'received');
+    }
+
+    // FR-601: the receipt history lists every GRN, oldest first.
+    const history = await request(app.getHttpServer())
+      .get(`/api/v1/receipts?poId=${poId}&pageSize=100`)
+      .set('Authorization', `Bearer ${warehouseToken}`)
+      .expect(200);
+    const grns = GrnListSchema.parse(history.body.data);
+    expect(grns.map((grn) => grn.grnNumber)).toEqual(grnNumbers);
+    expect(grns.map((grn) => grn.lines[0].quantity)).toEqual([40, 30, 30]);
+    expect(history.body.meta).toMatchObject({ total: 3, page: 1 });
+
+    // a fourth receipt against the completed PO is refused
+    const closed = await request(app.getHttpServer())
+      .post('/api/v1/receipts')
+      .set('Authorization', `Bearer ${warehouseToken}`)
+      .send({ poId, lines: [{ poLineId, quantity: 1 }] })
+      .expect(409);
+    expect(closed.body.code).toBe('INVALID_TRANSITION');
   });
 
   it('TC-304: 40 good + 5 damaged → open qty decreases by 40 only; damage queryable', async () => {

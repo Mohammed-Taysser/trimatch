@@ -33,3 +33,11 @@ export const GrnSchema = z.object({
 });
 export type Grn = z.infer<typeof GrnSchema>;
 export const GrnListSchema = z.array(GrnSchema);
+
+// FR-601: receipt history — every GRN recorded against one purchase order.
+export const GrnListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(20),
+  poId: z.uuid(),
+});
+export type GrnListQuery = z.infer<typeof GrnListQuerySchema>;
