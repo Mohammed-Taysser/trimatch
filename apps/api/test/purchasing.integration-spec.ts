@@ -207,6 +207,68 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
     expect(res.body.code).toBe('VENDOR_INACTIVE');
   });
 
+  describe('issuing claims gapless numbers (FR-203 · I-6 · TC-203)', () => {
+    async function draftPo(): Promise<string> {
+      const reqId = await approvedRequisition();
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/purchase-orders/from-requisition')
+        .set('Authorization', `Bearer ${purchasingToken}`)
+        .send({ requisitionId: reqId, vendorId })
+        .expect(201);
+      return res.body.id as string;
+    }
+
+    it('TC-203: 3 concurrent issues → consecutive PO-YYYY-NNNN, no gaps or duplicates', async () => {
+      const ids = [await draftPo(), await draftPo(), await draftPo()];
+      const responses = await Promise.all(
+        ids.map((id) =>
+          request(app.getHttpServer())
+            .post(`/api/v1/purchase-orders/${id}/issue`)
+            .set('Authorization', `Bearer ${purchasingToken}`)
+            .expect(200),
+        ),
+      );
+      const numbers = responses.map((r) => PurchaseOrderSchema.parse(r.body).poNumber);
+      const year = new Date().getUTCFullYear();
+      for (const n of numbers) {
+        expect(n).toMatch(new RegExp(`^PO-${year}-\\d{4}$`));
+      }
+      const suffixes = numbers
+        .map((n) => Number((n as string).split('-')[2]))
+        .sort((a, b) => a - b);
+      expect(new Set(suffixes).size).toBe(3); // no duplicates
+      expect(suffixes[2] - suffixes[0]).toBe(2); // no gaps
+      expect(responses.every((r) => r.body.status === 'issued')).toBe(true);
+    });
+
+    it('I-8: PO total equals the exact sum of line totals in minor units', async () => {
+      const id = await draftPo();
+      const res = await request(app.getHttpServer())
+        .get(`/api/v1/purchase-orders/${id}`)
+        .set('Authorization', `Bearer ${purchasingToken}`)
+        .expect(200);
+      const po = PurchaseOrderSchema.parse(res.body);
+      const sum = po.lines.reduce((acc, l) => acc + l.lineTotalMinor, 0);
+      expect(po.totalMinor).toBe(sum);
+      for (const line of po.lines) {
+        expect(line.lineTotalMinor).toBe(line.quantity * line.unitPriceMinor);
+      }
+    });
+
+    it('issuing a non-draft PO → 409 INVALID_TRANSITION', async () => {
+      const id = await draftPo();
+      await request(app.getHttpServer())
+        .post(`/api/v1/purchase-orders/${id}/issue`)
+        .set('Authorization', `Bearer ${purchasingToken}`)
+        .expect(200);
+      const again = await request(app.getHttpServer())
+        .post(`/api/v1/purchase-orders/${id}/issue`)
+        .set('Authorization', `Bearer ${purchasingToken}`)
+        .expect(409);
+      expect(again.body.code).toBe('INVALID_TRANSITION');
+    });
+  });
+
   it('a requester role cannot convert → 403', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/purchase-orders/from-requisition')

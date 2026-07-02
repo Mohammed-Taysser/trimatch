@@ -17,6 +17,7 @@ describe('purchase order endpoints delegate with the authenticated officer', () 
     findAll: jest.fn().mockResolvedValue([]),
     findOne: jest.fn().mockResolvedValue({ id: PO_ID }),
     updateLines: jest.fn().mockResolvedValue({ id: PO_ID }),
+    issue: jest.fn().mockResolvedValue({ id: PO_ID, status: 'issued' }),
   } as unknown as PurchasingService;
   const controller = new PurchasingController(service);
   const lines = [
@@ -26,6 +27,11 @@ describe('purchase order endpoints delegate with the authenticated officer', () 
   it('convert passes requisition, vendor and actor', async () => {
     await controller.convert(user, { requisitionId: REQ_ID, vendorId: VENDOR_ID });
     expect(service.convert).toHaveBeenCalledWith(REQ_ID, VENDOR_ID, user.sub);
+  });
+
+  it('issue passes the acting officer', async () => {
+    await controller.issue(user, PO_ID);
+    expect(service.issue).toHaveBeenCalledWith(PO_ID, user.sub);
   });
 
   it('list/get/updateLines delegate', async () => {

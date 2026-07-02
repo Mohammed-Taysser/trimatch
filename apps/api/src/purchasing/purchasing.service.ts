@@ -3,11 +3,13 @@ import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import { PoLineInput, PurchaseOrder as PoView, PurchaseOrderSchema } from '@trimatch/shared';
 import { Sequelize } from 'sequelize-typescript';
 import { AuditService } from '../audit/audit.service';
+import { formatDocNumber, SequencesService } from '../common/sequences.service';
 import { requisitionLifecycle } from '../requisitions/requisition.lifecycle';
 import { Requisition, RequisitionLine } from '../requisitions/requisition.model';
 import { computeTotals } from '../requisitions/requisition.totals';
 import { Vendor } from '../vendors/vendor.model';
 import { VendorsService } from '../vendors/vendors.service';
+import { poLifecycle } from './po.lifecycle';
 import { PoLine, PurchaseOrder } from './purchase-order.model';
 
 @Injectable()
@@ -18,7 +20,40 @@ export class PurchasingService {
     @InjectConnection() private readonly sequelize: Sequelize,
     private readonly vendors: VendorsService,
     private readonly audit: AuditService,
+    private readonly sequences: SequencesService,
   ) {}
+
+  // FR-203 / I-6 / TC-203: draft → issued claims PO-YYYY-NNNN inside the same
+  // transaction — gapless per year, safe under concurrency.
+  async issue(id: string, actorId: string): Promise<PoView> {
+    await this.sequelize.transaction(async (transaction) => {
+      const po = await this.orders.findByPk(id, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!po) {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'Purchase order not found' });
+      }
+      poLifecycle.assertCanTransition(po.status, 'issued');
+      const year = new Date().getUTCFullYear();
+      const sequence = await this.sequences.claim('PO', year, transaction);
+      const poNumber = formatDocNumber('PO', year, sequence);
+      await po.update({ status: 'issued', poNumber }, { transaction });
+      await this.audit.record(
+        {
+          entityType: 'purchase_order',
+          entityId: id,
+          actorId,
+          action: 'po.issued',
+          fromState: 'draft',
+          toState: 'issued',
+          comment: poNumber,
+        },
+        transaction,
+      );
+    });
+    return this.findOne(id);
+  }
 
   // FR-201 / TC-201: approved REQ → converted; a PO draft for exactly one
   // vendor inherits the requisition lines — one atomic transaction.
