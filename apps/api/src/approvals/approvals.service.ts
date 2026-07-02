@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import { InboxItem, InboxSchema, PaginationQuery } from '@trimatch/shared';
-import { Transaction } from 'sequelize';
+import { literal, Op, Transaction } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { AuditService } from '../audit/audit.service';
 import { PagedResult, pageMeta, pageOffset } from '../common/paged';
@@ -25,9 +25,24 @@ export class ApprovalsService {
   ) {}
 
   async inbox(approverId: string, query: PaginationQuery): Promise<PagedResult<InboxItem>> {
+    // FR-502: an approver sees a step only when it is their turn — the
+    // lowest pending step_no of the requisition's current round, and only
+    // while the requisition is still pending approval.
     const { rows, count } = await this.steps.findAndCountAll({
-      where: { approverId, status: 'pending' },
-      include: [{ model: Requisition, include: [User] }],
+      where: {
+        approverId,
+        status: 'pending',
+        [Op.and]: [
+          literal(`"ApprovalStep"."step_no" = (
+            SELECT MIN(s2.step_no) FROM approval_steps s2
+            WHERE s2.requisition_id = "ApprovalStep"."requisition_id"
+              AND s2.round = "ApprovalStep"."round" AND s2.status = 'pending')`),
+          literal(`"ApprovalStep"."round" = (
+            SELECT MAX(s3.round) FROM approval_steps s3
+            WHERE s3.requisition_id = "ApprovalStep"."requisition_id")`),
+        ],
+      },
+      include: [{ model: Requisition, include: [User], where: { status: 'pending_approval' } }],
       order: [['createdAt', 'ASC']],
       distinct: true,
       ...pageOffset(query),
@@ -91,6 +106,22 @@ export class ApprovalsService {
         throw new ConflictException({
           code: 'INVALID_TRANSITION',
           message: 'This approval step has already been decided',
+        });
+      }
+      // FR-502: steps execute strictly in order.
+      const earlier = await this.steps.count({
+        where: {
+          requisitionId: step.requisitionId,
+          round: step.round,
+          status: 'pending',
+          stepNo: { [Op.lt]: step.stepNo },
+        },
+        transaction,
+      });
+      if (earlier > 0) {
+        throw new ConflictException({
+          code: 'STEP_NOT_CURRENT',
+          message: 'An earlier step in this approval chain is still pending',
         });
       }
 

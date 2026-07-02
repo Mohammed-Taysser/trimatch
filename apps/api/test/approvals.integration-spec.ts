@@ -180,6 +180,117 @@ describe('approver inbox and decisions (FR-104 · TC-105)', () => {
     expect(res.body.code).toBe('FORBIDDEN');
   });
 
+  describe('sequential multi-step chains (FR-502 · TC-503)', () => {
+    // $600 → R2: [Team Lead, Department Head]
+    const R2_DRAFT = {
+      justification: 'Sequential chain test requisition',
+      neededBy: '2026-12-20',
+      currency: 'USD',
+      lines: [
+        { description: 'Desk pod', category: 'Furniture', quantity: 4, unitPriceMinor: 150_00 },
+      ],
+    };
+    let headToken: string;
+
+    beforeAll(async () => {
+      headToken = await login('head@demo');
+    });
+
+    async function submitR2(): Promise<string> {
+      const created = await request(app.getHttpServer())
+        .post('/api/v1/requisitions')
+        .set('Authorization', `Bearer ${requesterToken}`)
+        .send(R2_DRAFT)
+        .expect(201);
+      const reqId = created.body.data.id as string;
+      await request(app.getHttpServer())
+        .post(`/api/v1/requisitions/${reqId}/submit`)
+        .set('Authorization', `Bearer ${requesterToken}`)
+        .expect(200);
+      return reqId;
+    }
+
+    async function inboxItem(token: string, reqId: string) {
+      return findAcrossPages(
+        async (page) => {
+          const res = await request(app.getHttpServer())
+            .get(`/api/v1/approvals/inbox?page=${page}&pageSize=100`)
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200);
+          return { items: InboxSchema.parse(res.body.data), totalPages: res.body.meta.totalPages };
+        },
+        (i) => i.requisition.id === reqId,
+      );
+    }
+
+    it('step 2 is invisible and undecidable until step 1 approves', async () => {
+      const reqId = await submitR2();
+      // head (step 2) sees nothing yet
+      expect(await inboxItem(headToken, reqId)).toBeUndefined();
+      // lead (step 1) sees it
+      const step1 = await inboxItem(leadToken, reqId);
+      expect(step1?.stepNo).toBe(1);
+
+      // approve step 1 → step 2 appears for head
+      await request(app.getHttpServer())
+        .post(`/api/v1/approvals/steps/${step1?.stepId}/approve`)
+        .set('Authorization', `Bearer ${leadToken}`)
+        .expect(204);
+      const step2 = await inboxItem(headToken, reqId);
+      expect(step2?.stepNo).toBe(2);
+
+      // final approval → approved
+      await request(app.getHttpServer())
+        .post(`/api/v1/approvals/steps/${step2?.stepId}/approve`)
+        .set('Authorization', `Bearer ${headToken}`)
+        .expect(204);
+      const view = await request(app.getHttpServer())
+        .get(`/api/v1/requisitions/${reqId}`)
+        .set('Authorization', `Bearer ${requesterToken}`)
+        .expect(200);
+      expect(view.body.data.status).toBe('approved');
+    });
+
+    it('TC-503: step 1 approved, step 2 rejects → requisition rejected, chain stops', async () => {
+      const reqId = await submitR2();
+      const step1 = await inboxItem(leadToken, reqId);
+      await request(app.getHttpServer())
+        .post(`/api/v1/approvals/steps/${step1?.stepId}/approve`)
+        .set('Authorization', `Bearer ${leadToken}`)
+        .expect(204);
+      const step2 = await inboxItem(headToken, reqId);
+      await request(app.getHttpServer())
+        .post(`/api/v1/approvals/steps/${step2?.stepId}/reject`)
+        .set('Authorization', `Bearer ${headToken}`)
+        .send({ reason: 'Budget line exhausted for furniture' })
+        .expect(204);
+
+      const view = await request(app.getHttpServer())
+        .get(`/api/v1/requisitions/${reqId}`)
+        .set('Authorization', `Bearer ${requesterToken}`)
+        .expect(200);
+      expect(view.body.data.status).toBe('rejected');
+      // chain stopped: nothing remains in anyone's inbox for this requisition
+      expect(await inboxItem(leadToken, reqId)).toBeUndefined();
+      expect(await inboxItem(headToken, reqId)).toBeUndefined();
+    });
+
+    it('acting out of turn → 409 STEP_NOT_CURRENT', async () => {
+      const reqId = await submitR2();
+      // find head's step id directly from the requisition view (not the inbox)
+      const view = await request(app.getHttpServer())
+        .get(`/api/v1/requisitions/${reqId}`)
+        .set('Authorization', `Bearer ${requesterToken}`)
+        .expect(200);
+      const step2 = view.body.data.steps.find((s: { stepNo: number }) => s.stepNo === 2);
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/approvals/steps/${step2.id}/approve`)
+        .set('Authorization', `Bearer ${headToken}`)
+        .expect(409);
+      expect(res.body.code).toBe('STEP_NOT_CURRENT');
+    });
+  });
+
   describe('revise & resubmit (FR-105 · TC-106)', () => {
     it('TC-106: revise + resubmit → new round, previous round preserved in history', async () => {
       const { reqId, stepId } = await submittedRequisition();
