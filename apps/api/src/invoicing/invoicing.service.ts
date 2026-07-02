@@ -155,6 +155,41 @@ export class InvoicingService {
     return this.findOne(id);
   }
 
+  // FR-406 / I-4 / TC-405 — the hard payable gate: nothing becomes payable
+  // without a matched or variance_accepted match record.
+  async markPayable(id: string, actorId: string): Promise<InvoiceView> {
+    await this.sequelize.transaction(async (transaction) => {
+      const invoice = await this.invoices.findByPk(id, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!invoice) {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'Invoice not found' });
+      }
+      if (invoice.status === 'entered') {
+        throw new ConflictException({
+          code: 'MATCH_REQUIRED',
+          message: 'Run the 3-way match first — nothing is payable without a match record (I-4)',
+        });
+      }
+      invoiceLifecycle.assertCanTransition(invoice.status, 'payable');
+      const from = invoice.status;
+      await invoice.update({ status: 'payable' }, { transaction });
+      await this.audit.record(
+        {
+          entityType: 'invoice',
+          entityId: id,
+          actorId,
+          action: 'invoice.payable',
+          fromState: from,
+          toState: 'payable',
+        },
+        transaction,
+      );
+    });
+    return this.findOne(id);
+  }
+
   async findAll(query: PaginationQuery): Promise<PagedResult<InvoiceView>> {
     const { rows, count } = await this.invoices.findAndCountAll({
       include: [InvoiceLine, Vendor, PurchaseOrder],

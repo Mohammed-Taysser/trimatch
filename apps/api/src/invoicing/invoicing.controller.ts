@@ -46,6 +46,15 @@ export class InvoicingController {
     return this.invoicing.resolve(id, 'rejected', user.sub, body.reason);
   }
 
+  @Post(':id/payable')
+  @HttpCode(200)
+  markPayable(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<Invoice> {
+    return this.invoicing.markPayable(id, user.sub);
+  }
+
   @Get()
   list(@Query() query: PaginationQueryDto): Promise<PagedResult<Invoice>> {
     return this.invoicing.findAll(query);

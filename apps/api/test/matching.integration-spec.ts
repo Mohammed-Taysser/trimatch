@@ -317,6 +317,47 @@ describe('the 3-way match end to end (FR-402/403/405/406)', () => {
     expect(again.body.code).toBe('INVALID_TRANSITION');
   });
 
+  it('TC-405: an unmatched invoice cannot be marked payable → 409 MATCH_REQUIRED (I-4)', async () => {
+    const { poId, poLineId } = await receivedPo(100);
+    const invoiceId = await enterInvoice(poId, poLineId, { qty: 100, priceMinor: 50_00 });
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/payable`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(409);
+    expect(res.body.code).toBe('MATCH_REQUIRED');
+  });
+
+  it('an accepted variance can be marked payable (FR-406 accepted-variance path)', async () => {
+    const { poId, poLineId } = await receivedPo(100);
+    const invoiceId = await enterInvoice(poId, poLineId, { qty: 100, priceMinor: 55_00 });
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/accept-variance`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .send({ reason: 'Approved by finance director' })
+      .expect(200);
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/payable`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    expect(res.body.data.status).toBe('payable');
+  });
+
+  it('TC-404: match records refuse DELETE as well as UPDATE', async () => {
+    const { poId, poLineId } = await receivedPo(100);
+    const invoiceId = await enterInvoice(poId, poLineId, { qty: 100, priceMinor: 50_00 });
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    await expect(
+      app.get(Sequelize).query(`DELETE FROM match_records WHERE id = '${res.body.data.id}'`),
+    ).rejects.toThrow(/append-only/);
+  });
+
   it('match records are immutable (FR-405) and re-matching is refused', async () => {
     const { poId, poLineId } = await receivedPo(100);
     const invoiceId = await enterInvoice(poId, poLineId, { qty: 100, priceMinor: 50_00 });

@@ -9,6 +9,10 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Hard payable gate (FR-406/I-4/TC-405)**: `POST /invoices/:id/payable` — an
+  unmatched invoice answers 409 `MATCH_REQUIRED`; accepted variances advance to
+  payable; TC-404 completed (match-record DELETE refused like UPDATE); web
+  Mark-payable button
 - **Exception resolution (FR-404/TC-403)**: `accept-variance` (reason mandatory →
   `variance_accepted`, reason verbatim in audit), `request-credit-note` (invoice
   held in `awaiting_credit_note`), `reject` (returned to vendor); invoice
