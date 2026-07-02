@@ -265,7 +265,30 @@ export function RequisitionsPage() {
               </div>
               <div style={{ color: '#555', fontSize: 14 }}>
                 needed by {req.neededBy} · {req.lines.length} line(s)
+                {req.status === 'pending_approval' &&
+                  req.steps.some((step) => step.status === 'pending') && (
+                    <>
+                      {' · '}
+                      <strong>
+                        pending with{' '}
+                        {req.steps.find((step) => step.status === 'pending')?.approverName}
+                      </strong>
+                    </>
+                  )}
               </div>
+              {req.steps.length > 0 && (
+                <ol style={{ margin: '6px 0 0', paddingLeft: 18, color: '#555', fontSize: 13 }}>
+                  {req.steps.map((step) => (
+                    <li key={step.id}>
+                      round {step.round} · {step.approverName} —{' '}
+                      {step.status === 'pending' ? '⏳ pending' : null}
+                      {step.status === 'approved' ? '✅ approved' : null}
+                      {step.status === 'rejected' ? '❌ rejected' : null}
+                      {step.decidedAt ? ` (${new Date(step.decidedAt).toLocaleString()})` : null}
+                    </li>
+                  ))}
+                </ol>
+              )}
               {req.steps
                 .filter((step) => step.status === 'rejected' && step.reason)
                 .map((step) => (

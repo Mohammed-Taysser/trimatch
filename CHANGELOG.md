@@ -9,6 +9,8 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Status tracking (FR-107)**: requisition cards show "pending with `approver`" and
+  a per-round chain timeline (approver, decision, timestamp); TC-108 assertions
 - **Structured request logging** (nestjs-pino): one JSON line per request on stdout
   with `X-Request-Id` (honored or generated, echoed as response header),
   `Authorization` redacted, health checks excluded, pretty dev output (runbook §4)
