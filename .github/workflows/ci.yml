@@ -36,6 +36,8 @@ jobs:
       API_PORT: '3000'
       DATABASE_URL: postgres://trimatch:trimatch@localhost:5432/trimatch
       REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-only-secret-not-a-real-deployment-key
+      JWT_EXPIRES_IN: 1h
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -53,6 +55,8 @@ jobs:
         run: pnpm typecheck
       - name: Unit tests (coverage gate 80%)
         run: pnpm test:cov
+      - name: Migrate & seed
+        run: pnpm --filter @trimatch/api migrate && pnpm --filter @trimatch/api seed
       - name: Integration tests
         run: pnpm test:integration
       - name: Build

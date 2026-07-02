@@ -7,6 +7,8 @@ export const envSchema = z.object({
   API_PORT: z.coerce.number().int().min(1).max(65535),
   DATABASE_URL: z.string().startsWith('postgres', 'must be a postgres:// connection URL'),
   REDIS_URL: z.string().startsWith('redis', 'must be a redis:// connection URL'),
+  JWT_SECRET: z.string().min(16, 'must be at least 16 characters'),
+  JWT_EXPIRES_IN: z.string().min(1),
 });
 
 export type Env = z.infer<typeof envSchema>;

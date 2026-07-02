@@ -31,12 +31,21 @@ and what's next. Run its §5 checklist at the start of every session.
   docker-compose uses `${VAR:?message}` (never `${VAR:-default}`), the api's zod
   env schema has no `.default()`s, the web validates `import.meta.env`. Every new
   variable goes into `.env.example` with a comment.
-- Docs-first: update docs/ADRs before or with code, not after.
+- **Dependencies: verify latest + current usage before adding.** Check the live
+  registry (`npm view <pkg> dist-tags peerDependencies`) for the latest stable and
+  what integrations actually support; read the package's current docs — ecosystems
+  rename/merge (e.g. Sequelize v7 = `@sequelize/core`, absorbing
+  `sequelize-typescript`; still alpha as of 2026-07, so stay on sequelize 6 +
+  `@nestjs/sequelize` until v7 is stable and supported). Skip deprecated `@types/*`
+  stubs when a package bundles its own types.
 - Conventional Commits; update [CHANGELOG.md](CHANGELOG.md) per release; tag `vX.Y.Z`.
 - **Commit messages: one single line** (`type(scope): what was done`) — no long
   bodies, and **never a `Co-Authored-By`** or any AI-attribution trailer.
 - Branches: `feat/<scope>-<desc>`. Acceptance criteria become test names.
 - Out-of-scope discoveries → new ClickUp backlog task, never scope creep.
+- **Every user-requested task or change gets a ClickUp ticket** (in the owning
+  epic's list) so it can be followed up — create it when the request arrives,
+  even for small changes.
 - Remote: `origin` → <https://github.com/Mohammed-Taysser/trimatch> (SSH URL;
   HTTPS auth doesn't work here and `gh` CLI is not installed). Push branches,
   open PRs on the GitHub web UI — self-review counts until CI exists.

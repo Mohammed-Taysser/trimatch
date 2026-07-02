@@ -5,6 +5,8 @@ const validEnv = {
   API_PORT: '3000',
   DATABASE_URL: 'postgres://trimatch:trimatch@localhost:5432/trimatch',
   REDIS_URL: 'redis://localhost:6379',
+  JWT_SECRET: 'test-secret-at-least-16-chars',
+  JWT_EXPIRES_IN: '1h',
 };
 
 describe('app refuses to boot with invalid env config (AC 3)', () => {
@@ -46,5 +48,14 @@ describe('app refuses to boot with invalid env config (AC 3)', () => {
 
   it('reports a root-level error when config is not an object', () => {
     expect(() => validateEnv(null as unknown as Record<string, unknown>)).toThrow(/\(root\)/);
+  });
+
+  it('throws when JWT_SECRET is missing — no silent defaults', () => {
+    const { JWT_SECRET, ...rest } = validEnv;
+    expect(() => validateEnv(rest)).toThrow(/JWT_SECRET/);
+  });
+
+  it('throws when JWT_SECRET is shorter than 16 characters', () => {
+    expect(() => validateEnv({ ...validEnv, JWT_SECRET: 'short' })).toThrow(/JWT_SECRET/);
   });
 });

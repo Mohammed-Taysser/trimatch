@@ -9,6 +9,12 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Identity & database foundation**: Sequelize wired via `@nestjs/sequelize`
+  (hand-written migrations, sequelize-cli `migrate`/`seed` scripts), `users` table
+  with 7-demo-user seed (runbook §1), JWT auth (`POST /api/v1/auth/login`,
+  `GET /api/v1/auth/me`), global `JwtAuthGuard`/`RolesGuard` with `@Public()`/
+  `@Roles()`, zod-validated bodies (422 `VALIDATION_ERROR`), real integration
+  suite against Postgres in CI (migrate+seed step)
 - **Guardrails & CI**: husky hooks (pre-commit lint-staged, commit-msg commitlint
   conventional), ESLint 9 flat config (typescript-eslint strict + stylistic,
   react-hooks) + Prettier, GitHub Actions pipeline

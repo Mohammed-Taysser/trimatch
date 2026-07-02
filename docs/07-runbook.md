@@ -13,27 +13,23 @@
 cp .env.example .env        # api validates env at startup; refuses to boot if invalid
 pnpm install
 docker compose up -d        # postgres:16, redis:7
+pnpm --filter @trimatch/api migrate   # sequelize-cli migrations
+pnpm --filter @trimatch/api seed      # demo org: 7 users per role (matrix + categories later)
 pnpm dev                    # api :3000 (/api/v1), web :5173
 ```
 
-⏳ Coming with Epic 1 (DB wiring):
-
-```bash
-pnpm --filter @trimatch/api migrate   # sequelize-cli migrations
-pnpm --filter @trimatch/api seed      # demo org: users per role, matrix R1-R5, categories
-```
-
 Demo logins (after seed): `requester@demo`, `lead@demo`, `head@demo`, `purchasing@demo`,
-`warehouse@demo`, `ap@demo`, `admin@demo` — password documented in the seed script.
+`warehouse@demo`, `ap@demo`, `admin@demo` — password documented in the seed script
+(`apps/api/seeders/`). Login: `POST /api/v1/auth/login {email, password}` → JWT.
 
-## 2. Migrations ⏳
+## 2. Migrations
 
-- Create: `pnpm --filter api migration:new <name>` (hand-written up/down — ADR-0001).
+- Create: `pnpm --filter @trimatch/api migration:new <name>` (hand-written up/down — ADR-0001).
 - Apply: `migrate` (local) / explicit `migrate deploy` step in the pipeline (playbook §6).
 - **Never** `sequelize.sync()` outside tests.
 - Rollback: every migration's `down` is tested in CI against a seeded DB.
 
-## 3. Seeds & fixtures ⏳
+## 3. Seeds & fixtures
 
 - `seed` = minimal demo org (idempotent, safe to re-run).
 - Test fixtures live with the tests; TC data mirrors PRD §5 examples exactly.

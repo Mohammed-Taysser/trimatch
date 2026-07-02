@@ -49,4 +49,25 @@ describe('readiness endpoint returns 503 when degraded', () => {
     } as unknown as HealthService);
     await expect(controller.readiness()).rejects.toThrow(ServiceUnavailableException);
   });
+
+  it('liveness endpoint returns the service liveness payload', () => {
+    const liveness = {
+      status: 'ok' as const,
+      service: 'trimatch-api' as const,
+      uptimeSeconds: 1,
+      timestamp: '2026-07-02T12:00:00.000Z',
+    };
+    const controller = new HealthController({
+      liveness: () => liveness,
+    } as unknown as HealthService);
+    expect(controller.liveness()).toEqual(liveness);
+  });
+
+  it('readiness endpoint passes through an ok result', async () => {
+    const ok = { status: 'ok' as const, checks: { postgres: true, redis: true } };
+    const controller = new HealthController({
+      readiness: () => Promise.resolve(ok),
+    } as unknown as HealthService);
+    await expect(controller.readiness()).resolves.toEqual(ok);
+  });
 });
