@@ -61,3 +61,9 @@ jobs:
         run: pnpm test:integration
       - name: Build
         run: pnpm build
+      - name: Export OpenAPI
+        run: pnpm --filter @trimatch/api openapi:export
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openapi
+          path: docs/api/openapi.json

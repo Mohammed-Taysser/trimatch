@@ -9,6 +9,9 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **OpenAPI & DTO bridge (ADR-0003)**: nestjs-zod `createZodDto` over the shared zod
+  schemas + global validation pipe (same 422 `VALIDATION_ERROR` contract); Swagger UI
+  at `/api/docs`, `openapi.json` export script + CI artifact
 - **Identity & database foundation**: Sequelize wired via `@nestjs/sequelize`
   (hand-written migrations, sequelize-cli `migrate`/`seed` scripts), `users` table
   with 7-demo-user seed (runbook §1), JWT auth (`POST /api/v1/auth/login`,

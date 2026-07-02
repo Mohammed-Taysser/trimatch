@@ -13,7 +13,8 @@
     "migrate": "sequelize-cli db:migrate",
     "migrate:undo": "sequelize-cli db:migrate:undo",
     "migration:new": "sequelize-cli migration:generate --name",
-    "seed": "sequelize-cli db:seed:all"
+    "seed": "sequelize-cli db:seed:all",
+    "openapi:export": "node dist/export-openapi.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
@@ -22,9 +23,11 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/sequelize": "^11.0.1",
+    "@nestjs/swagger": "^11.4.5",
     "@trimatch/shared": "workspace:*",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
+    "nestjs-zod": "^5.4.0",
     "pg": "^8.22.0",
     "pg-hstore": "^2.3.4",
     "reflect-metadata": "^0.2.2",

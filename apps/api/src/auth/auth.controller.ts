@@ -1,8 +1,8 @@
 import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
-import { AuthUser, LoginRequest, LoginRequestSchema, LoginResponse } from '@trimatch/shared';
-import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import { AuthUser, LoginResponse } from '@trimatch/shared';
 import { AuthService } from './auth.service';
 import { CurrentUser, JwtPayload, Public } from './decorators';
+import { LoginRequestDto } from './dto';
 
 @Controller('auth')
 export class AuthController {
@@ -11,9 +11,7 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(200)
-  login(
-    @Body(new ZodValidationPipe(LoginRequestSchema)) body: LoginRequest,
-  ): Promise<LoginResponse> {
+  login(@Body() body: LoginRequestDto): Promise<LoginResponse> {
     return this.auth.login(body.email, body.password);
   }
 
