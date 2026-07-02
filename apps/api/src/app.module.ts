@@ -14,6 +14,7 @@ import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { IdentityModule } from './identity/identity.module';
 import { RequisitionsModule } from './requisitions/requisitions.module';
+import { VendorsModule } from './vendors/vendors.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { RequisitionsModule } from './requisitions/requisitions.module';
     AuthModule,
     RequisitionsModule,
     ApprovalsModule,
+    VendorsModule,
     HealthModule,
   ],
   providers: [
