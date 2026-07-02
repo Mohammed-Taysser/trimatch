@@ -27,6 +27,9 @@ export default defineConfig(
         __dirname: 'readonly',
       },
     },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
   },
   {
     files: ['apps/web/src/**/*.{ts,tsx}'],
