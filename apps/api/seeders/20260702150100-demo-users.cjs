@@ -15,6 +15,13 @@ const USERS = [
     managerId: '019787c8-0000-4000-8000-000000000002',
   },
   {
+    id: '019787c8-0000-4000-8000-000000000008',
+    email: 'requester2@demo',
+    fullName: 'Robin Requester',
+    role: 'requester',
+    managerId: '019787c8-0000-4000-8000-000000000002',
+  },
+  {
     id: '019787c8-0000-4000-8000-000000000002',
     email: 'lead@demo',
     fullName: 'Lee Lead',

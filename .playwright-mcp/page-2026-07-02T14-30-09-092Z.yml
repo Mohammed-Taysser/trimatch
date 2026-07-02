@@ -1,0 +1,56 @@
+- main [ref=f2e3]:
+    - generic [ref=f2e4]:
+        - heading "My requisitions" [level=1] [ref=f2e5]
+        - generic [ref=f2e6]:
+            - text: Riley Requester (requester)
+            - button "Sign out" [ref=f2e7]
+    - generic [ref=f2e8]:
+        - heading "Edit draft" [level=2] [ref=f2e55]
+        - generic [ref=f2e10]:
+            - generic [ref=f2e11]:
+                - text: Justification
+                - textbox "Justification" [ref=f2e12]: Standing desk for new hire
+            - generic [ref=f2e13]:
+                - generic [ref=f2e14]:
+                    - text: Needed by
+                    - textbox "Needed by" [ref=f2e15]: 2026-08-15
+                - generic [ref=f2e16]:
+                    - text: Currency
+                    - textbox "Currency" [ref=f2e17]: USD
+            - generic [ref=f2e18]:
+                - textbox "Description" [ref=f2e19]: Standing desk 160cm
+                - textbox "Category" [ref=f2e20]: Furniture
+                - spinbutton "Qty" [ref=f2e21]: '2'
+                - spinbutton "Unit price" [ref=f2e22]: '349.99'
+                - button "✕" [disabled] [ref=f2e23]
+            - generic [ref=f2e24]:
+                - button "+ Add line" [ref=f2e25]
+                - button "Save draft" [ref=f2e56]
+                - button "Cancel" [ref=f2e57]
+    - generic [ref=f2e27]:
+        - heading "Drafts" [level=2] [ref=f2e28]
+        - list [ref=f2e30]:
+            - listitem [ref=f2e31]:
+                - generic [ref=f2e32]:
+                    - strong [ref=f2e33]: Standing desk for new hire
+                    - generic [ref=f2e34]: draft · 699.98 USD
+                - generic [ref=f2e35]: needed by 2026-08-15 · 1 line(s)
+                - generic [ref=f2e36]:
+                    - button "Edit" [active] [ref=f2e37]
+                    - button "Delete" [ref=f2e38]
+            - listitem [ref=f2e39]:
+                - generic [ref=f2e40]:
+                    - strong [ref=f2e41]: Two new monitors for the design team
+                    - generic [ref=f2e42]: draft · 59.97 USD
+                - generic [ref=f2e43]: needed by 2026-08-01 · 2 line(s)
+                - generic [ref=f2e44]:
+                    - button "Edit" [ref=f2e45]
+                    - button "Delete" [ref=f2e46]
+            - listitem [ref=f2e47]:
+                - generic [ref=f2e48]:
+                    - strong [ref=f2e49]: Two new monitors for the design team
+                    - generic [ref=f2e50]: draft · 59.97 USD
+                - generic [ref=f2e51]: needed by 2026-08-01 · 2 line(s)
+                - generic [ref=f2e52]:
+                    - button "Edit" [ref=f2e53]
+                    - button "Delete" [ref=f2e54]

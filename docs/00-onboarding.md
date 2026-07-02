@@ -79,9 +79,10 @@ Run these before doing work in a new session:
 
 ## 6. What's next (in order)
 
-1. **Epic 1 first vertical slice**: draft requisition create/edit (FR-101/102, TC-101..103)
-   — thinnest end-to-end path including one React screen.
-2. Then follow the board.
+1. **Epic 1 / "submit my requisition so approval starts"** (FR-103, TC-104): submit
+   transition, chain snapshot (MVP: requester's manager), audit row — first use of the
+   state-machine base.
+2. Then follow the board (approver inbox FR-104, revise/resubmit FR-105, …).
 
 Every release: update [CHANGELOG](../CHANGELOG.md), tag `vX.Y.Z`
 (semantic-release takes over once CI exists).

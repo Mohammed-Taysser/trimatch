@@ -9,6 +9,11 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Draft requisitions (FR-101/102)**: `requisitions` + `requisition_lines` tables,
+  CRUD under `/api/v1/requisitions` with ownership checks (403 `FORBIDDEN`),
+  draft-only edit/delete (409 `INVALID_TRANSITION`), pure totals function in integer
+  minor units (I-8); web login + "My requisitions" screen (create/edit/delete drafts,
+  TanStack Query + shared schemas); integration tests mirror TC-101..103
 - **OpenAPI & DTO bridge (ADR-0003)**: nestjs-zod `createZodDto` over the shared zod
   schemas + global validation pipe (same 422 `VALIDATION_ERROR` contract); Swagger UI
   at `/api/docs`, `openapi.json` export script + CI artifact
