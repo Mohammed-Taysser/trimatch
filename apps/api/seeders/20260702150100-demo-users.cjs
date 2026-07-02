@@ -69,23 +69,26 @@ const USERS = [
 module.exports = {
   async up(queryInterface) {
     const passwordHash = bcrypt.hashSync(DEMO_PASSWORD, 10);
-    const now = new Date();
-    // Idempotent: replace the demo rows wholesale (fixed ids), managers second
-    // pass to satisfy the self-referencing FK.
-    await queryInterface.bulkDelete('users', { email: USERS.map((u) => u.email) });
-    await queryInterface.bulkInsert(
-      'users',
-      USERS.map((u) => ({
-        id: u.id,
-        email: u.email,
-        full_name: u.fullName,
-        password_hash: passwordHash,
-        role: u.role,
-        manager_id: null,
-        created_at: now,
-        updated_at: now,
-      })),
-    );
+    // Idempotent via upsert — audit rows reference users, so deleting and
+    // re-inserting is no longer possible. Managers in a second pass to satisfy
+    // the self-referencing FK.
+    for (const u of USERS) {
+      await queryInterface.sequelize.query(
+        `INSERT INTO users (id, email, full_name, password_hash, role, manager_id, created_at, updated_at)
+         VALUES (:id, :email, :fullName, :passwordHash, :role, NULL, now(), now())
+         ON CONFLICT (id) DO UPDATE
+         SET email = :email, full_name = :fullName, password_hash = :passwordHash, role = :role`,
+        {
+          replacements: {
+            id: u.id,
+            email: u.email,
+            fullName: u.fullName,
+            passwordHash,
+            role: u.role,
+          },
+        },
+      );
+    }
     for (const u of USERS.filter((x) => x.managerId)) {
       await queryInterface.bulkUpdate('users', { manager_id: u.managerId }, { id: u.id });
     }
