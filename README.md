@@ -1,6 +1,6 @@
 # TriMatch — Procurement & Purchase Orders with 3-Way Matching
 
-> **Status:** `scaffold` (0.1.0-dev) · **Stage:** monorepo scaffold — Epic 0
+> **Status:** `v0.1.0` — MVP requisition flow shipped · **Stage:** Epic 2 (purchase orders)
 > **Stack (decided, see ADR-0001):** NestJS · PostgreSQL · Sequelize · React · Redis/BullMQ
 
 ## Getting started

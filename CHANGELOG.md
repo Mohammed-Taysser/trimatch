@@ -7,6 +7,19 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Planned (next)
+
+- Epic 2 — purchase orders: vendors registry (FR-202), convert approved REQ → PO
+  (FR-201), gapless PO numbering (I-6), issue/cancel/close lifecycle
+
+## [0.1.0] — 2026-07-02
+
+MVP requisition flow, end to end: a requester drafts and submits, the manager
+approves or rejects with a reason, rejections can be revised into a new approval
+round, and every transition is captured in a tamper-proof audit trail — behind a
+JWT-authenticated API with Swagger docs, structured logging, an 80%-gated CI
+pipeline, and a React front end for both roles.
+
 ### Added
 
 - **Immutable audit trail (FR-106/I-7)**: database trigger refuses UPDATE/DELETE on
@@ -62,10 +75,6 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 - **Onboarding & session handoff** (`docs/00-onboarding.md`): current state, locked
   decisions, ClickUp IDs and workflow-simulation rules, session-start validation
   checklist, and the kickoff prompt for continuing work in a new session
-
-### Planned (next)
-
-- Epic 1 first vertical slice: create → submit → approve a requisition (FR-101..107)
 
 ## [0.0.1] — 2026-07-02
 
