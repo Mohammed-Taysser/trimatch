@@ -10,6 +10,7 @@ describe('vendor endpoints delegate to the vendors service', () => {
     update: jest.fn().mockResolvedValue({ id: VENDOR_ID }),
   } as unknown as VendorsService;
   const controller = new VendorsController(service);
+  const page = { page: 1, pageSize: 20 };
   const input = {
     name: 'ACME',
     contactEmail: 'a@acme.example',
@@ -25,9 +26,9 @@ describe('vendor endpoints delegate to the vendors service', () => {
   });
 
   it('list maps the active query flag', async () => {
-    await controller.list('true');
-    expect(service.findAll).toHaveBeenCalledWith(true);
-    await controller.list(undefined);
-    expect(service.findAll).toHaveBeenCalledWith(false);
+    await controller.list(page, 'true');
+    expect(service.findAll).toHaveBeenCalledWith(true, page);
+    await controller.list(page, undefined);
+    expect(service.findAll).toHaveBeenCalledWith(false, page);
   });
 });

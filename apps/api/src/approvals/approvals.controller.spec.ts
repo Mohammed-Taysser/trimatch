@@ -15,10 +15,11 @@ describe('approval endpoints delegate with the authenticated approver', () => {
     decide: jest.fn().mockResolvedValue(undefined),
   } as unknown as ApprovalsService;
   const controller = new ApprovalsController(service);
+  const page = { page: 1, pageSize: 20 };
 
   it('inbox is scoped to the current approver', async () => {
-    await controller.inbox(approver);
-    expect(service.inbox).toHaveBeenCalledWith(approver.sub);
+    await controller.inbox(approver, page);
+    expect(service.inbox).toHaveBeenCalledWith(approver.sub, page);
   });
 
   it('approve and reject pass the decision and reason through', async () => {

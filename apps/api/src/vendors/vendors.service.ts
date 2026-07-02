@@ -1,7 +1,9 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Vendor as VendorView, VendorCreate, VendorSchema, VendorUpdate } from '@trimatch/shared';
+import { PaginationQuery } from '@trimatch/shared';
 import { UniqueConstraintError } from 'sequelize';
+import { PagedResult, pageMeta, pageOffset } from '../common/paged';
 import { Vendor } from './vendor.model';
 
 @Injectable()
@@ -23,12 +25,16 @@ export class VendorsService {
     }
   }
 
-  async findAll(activeOnly: boolean): Promise<VendorView[]> {
-    const rows = await this.vendors.findAll({
+  async findAll(activeOnly: boolean, query: PaginationQuery): Promise<PagedResult<VendorView>> {
+    const { rows, count } = await this.vendors.findAndCountAll({
       where: activeOnly ? { active: true } : undefined,
       order: [['name', 'ASC']],
+      ...pageOffset(query),
     });
-    return rows.map((row) => this.toView(row));
+    return new PagedResult(
+      rows.map((row) => this.toView(row)),
+      pageMeta(query, count),
+    );
   }
 
   async update(id: string, input: VendorUpdate): Promise<VendorView> {

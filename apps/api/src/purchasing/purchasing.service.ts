@@ -1,8 +1,14 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
-import { PoLineInput, PurchaseOrder as PoView, PurchaseOrderSchema } from '@trimatch/shared';
+import {
+  PaginationQuery,
+  PoLineInput,
+  PurchaseOrder as PoView,
+  PurchaseOrderSchema,
+} from '@trimatch/shared';
 import { Sequelize } from 'sequelize-typescript';
 import { AuditService } from '../audit/audit.service';
+import { PagedResult, pageMeta, pageOffset } from '../common/paged';
 import { formatDocNumber, SequencesService } from '../common/sequences.service';
 import { requisitionLifecycle } from '../requisitions/requisition.lifecycle';
 import { Requisition, RequisitionLine } from '../requisitions/requisition.model';
@@ -116,12 +122,17 @@ export class PurchasingService {
     return this.findOne(poId);
   }
 
-  async findAll(): Promise<PoView[]> {
-    const rows = await this.orders.findAll({
+  async findAll(query: PaginationQuery): Promise<PagedResult<PoView>> {
+    const { rows, count } = await this.orders.findAndCountAll({
       include: [PoLine, Vendor],
       order: [['createdAt', 'DESC']],
+      distinct: true,
+      ...pageOffset(query),
     });
-    return rows.map((row) => this.toView(row));
+    return new PagedResult(
+      rows.map((row) => this.toView(row)),
+      pageMeta(query, count),
+    );
   }
 
   async findOne(id: string): Promise<PoView> {

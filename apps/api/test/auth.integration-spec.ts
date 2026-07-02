@@ -27,7 +27,7 @@ describe('demo users authenticate against the seeded database (AC 2/3)', () => {
       .post('/api/v1/auth/login')
       .send(DEMO)
       .expect(200);
-    const parsed = LoginResponseSchema.parse(res.body);
+    const parsed = LoginResponseSchema.parse(res.body.data);
     expect(parsed.user.email).toBe(DEMO.email);
     expect(parsed.user.role).toBe('requester');
   });
@@ -58,11 +58,11 @@ describe('demo users authenticate against the seeded database (AC 2/3)', () => {
       .post('/api/v1/auth/login')
       .send(DEMO)
       .expect(200);
-    const token = LoginResponseSchema.parse(login.body).accessToken;
+    const token = LoginResponseSchema.parse(login.body.data).accessToken;
     const res = await request(app.getHttpServer())
       .get('/api/v1/auth/me')
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
-    expect(AuthUserSchema.parse(res.body).email).toBe(DEMO.email);
+    expect(AuthUserSchema.parse(res.body.data).email).toBe(DEMO.email);
   });
 });

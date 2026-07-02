@@ -6,6 +6,7 @@ import { Sequelize } from 'sequelize-typescript';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { setupApp } from '../src/setup-app';
+import { findAcrossPages } from './helpers';
 
 // Real infrastructure required: docker compose up -d && migrate && seed.
 const PASSWORD = 'Demo123!';
@@ -27,15 +28,20 @@ describe('immutable audit trail (FR-106 · NFR-01 · TC-901)', () => {
       .post('/api/v1/auth/login')
       .send({ email, password: PASSWORD })
       .expect(200);
-    return res.body.accessToken as string;
+    return res.body.data.accessToken as string;
   }
 
   async function stepFor(reqId: string): Promise<string> {
-    const inbox = await request(app.getHttpServer())
-      .get('/api/v1/approvals/inbox')
-      .set('Authorization', `Bearer ${leadToken}`)
-      .expect(200);
-    const item = InboxSchema.parse(inbox.body).find((i) => i.requisition.id === reqId);
+    const item = await findAcrossPages(
+      async (page) => {
+        const res = await request(app.getHttpServer())
+          .get(`/api/v1/approvals/inbox?page=${page}&pageSize=100`)
+          .set('Authorization', `Bearer ${leadToken}`)
+          .expect(200);
+        return { items: InboxSchema.parse(res.body.data), totalPages: res.body.meta.totalPages };
+      },
+      (i) => i.requisition.id === reqId,
+    );
     if (!item) throw new Error('step not found in inbox');
     return item.stepId;
   }
@@ -60,7 +66,7 @@ describe('immutable audit trail (FR-106 · NFR-01 · TC-901)', () => {
       .set(auth)
       .send(DRAFT)
       .expect(201);
-    const reqId = created.body.id as string;
+    const reqId = created.body.data.id as string;
 
     // submit → reject → revise → resubmit → approve
     await request(app.getHttpServer())

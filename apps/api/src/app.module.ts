@@ -2,12 +2,14 @@ import { randomUUID } from 'node:crypto';
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 import { ApprovalsModule } from './approvals/approvals.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
+import { HttpExceptionFilter } from './common/http-exception.filter';
+import { ResponseEnvelopeInterceptor } from './common/response.interceptor';
 import { AppZodValidationPipe } from './common/zod-validation.pipe';
 import { validateEnv } from './config/env';
 import { DatabaseModule } from './database/database.module';
@@ -67,6 +69,9 @@ import { VendorsModule } from './vendors/vendors.module';
     { provide: APP_GUARD, useClass: RolesGuard },
     // Validates every createZodDto-typed param — 422 VALIDATION_ERROR (ADR-0003).
     { provide: APP_PIPE, useClass: AppZodValidationPipe },
+    // Fixed response envelope on success and errors (CLAUDE.md API contract).
+    { provide: APP_INTERCEPTOR, useClass: ResponseEnvelopeInterceptor },
+    { provide: APP_FILTER, useClass: HttpExceptionFilter },
   ],
 })
 export class AppModule {}

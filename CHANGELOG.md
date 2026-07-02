@@ -7,6 +7,14 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Changed
+
+- **API contract**: every success response now uses the fixed envelope
+  `{ data, meta?, message, timestamp, requestId }` and every error
+  `{ code, message, details?, timestamp, requestId, path }`; all list endpoints
+  are paginated (`?page=&pageSize=`, defaults 1/20, max 100) with
+  `meta { page, pageSize, total, totalPages }` — web client unwraps centrally
+
 ### Added
 
 - **Gapless PO numbering on issue (FR-203/I-6)**: `sequences` table + claim upsert
