@@ -9,6 +9,9 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Immutable audit trail (FR-106/I-7)**: database trigger refuses UPDATE/DELETE on
+  `audit_log`; TC-901 suite walks the full lifecycle asserting exactly one row per
+  transition (who/when/from/to/comment)
 - **Status tracking (FR-107)**: requisition cards show "pending with `approver`" and
   a per-round chain timeline (approver, decision, timestamp); TC-108 assertions
 - **Structured request logging** (nestjs-pino): one JSON line per request on stdout
