@@ -12,14 +12,18 @@ requisition → approval matrix → purchase order → goods receipt → vendor 
 **3-way match** → payable. Built solo but run with multinational-team process
 ([Enterprise Playbook](../../ENTERPRISE_PLAYBOOK.md)).
 
-## 2. Current state (scaffold merged — 0.1.0-dev)
+## 2. Current state (v0.1.0 — Epic 0 + Epic 1 complete)
 
-- Git repo at `/mnt/dev/side-projects/trimatch/`, branch `main`, tag `v0.0.1`,
-  clean tree; remote `origin` → <https://github.com/Mohammed-Taysser/trimatch>.
-  **Monorepo scaffold shipped 2026-07-02** (ClickUp `869dz0ff5`):
-  `pnpm install && docker compose up -d && pnpm dev` → api :3000 (`/api/v1`),
-  web :5173. Host ports overridable via `.env` (`POSTGRES_HOST_PORT`/`REDIS_HOST_PORT`)
-  when 5432/6379 are taken. Root `CLAUDE.md` exists for Claude Code sessions.
+- Git repo at `/mnt/dev/side-projects/trimatch/`, branch `main`, tags `v0.0.1` +
+  `v0.1.0`; remote `origin` → <https://github.com/Mohammed-Taysser/trimatch>
+  (PR-per-task flow — see `CLAUDE.md`). **v0.1.0 shipped 2026-07-02**: full MVP
+  requisition flow (draft → submit → approve/reject with reason → revise/resubmit
+  rounds → immutable audit trail), JWT auth + RBAC, Swagger at `/api/docs`,
+  nestjs-pino request logging, React screens for requester + approver.
+  `pnpm install && docker compose up -d && migrate && seed && pnpm dev` →
+  api :3000, web :5173 (ports overridable via `.env`). Root `CLAUDE.md` carries
+  the working rules (no env defaults, single-line commits, ticket per request,
+  registry-verified deps).
 - Full docs pack exists — see the [README index](../README.md). Key contracts:
   - Business rules with worked numbers: [PRD §5](01-prd.md) (matrix R1–R5, tolerance cases A–H)
   - Invariants I-1..I-8: [domain doc §4](03-domain.md)
@@ -79,10 +83,9 @@ Run these before doing work in a new session:
 
 ## 6. What's next (in order)
 
-1. **Epic 1 / "submit my requisition so approval starts"** (FR-103, TC-104): submit
-   transition, chain snapshot (MVP: requester's manager), audit row — first use of the
-   state-machine base.
-2. Then follow the board (approver inbox FR-104, revise/resubmit FR-105, …).
+1. **Epic 2 — purchase orders (MVP)**: vendors registry (FR-202), convert approved
+   REQ → PO (FR-201), gapless numbering (I-6), PO lifecycle.
+2. Then follow the board (Epic 3 receiving, then v1 epics).
 
 Every release: update [CHANGELOG](../CHANGELOG.md), tag `vX.Y.Z`
 (semantic-release takes over once CI exists).
