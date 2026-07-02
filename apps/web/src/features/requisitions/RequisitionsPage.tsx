@@ -83,6 +83,17 @@ export function RequisitionsPage() {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['requisitions'] }),
   });
 
+  const submit = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/v1/requisitions/${id}/submit`, {
+        method: 'POST',
+        token,
+        schema: RequisitionSchema,
+      }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['requisitions'] }),
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Submit failed'),
+  });
+
   function resetForm() {
     setEditingId(null);
     setJustification('');
@@ -241,18 +252,27 @@ export function RequisitionsPage() {
               <div style={{ color: '#555', fontSize: 14 }}>
                 needed by {req.neededBy} · {req.lines.length} line(s)
               </div>
-              <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
-                <button type="button" onClick={() => startEdit(req)}>
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => remove.mutate(req.id)}
-                  disabled={remove.isPending}
-                >
-                  Delete
-                </button>
-              </div>
+              {req.status === 'draft' && (
+                <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => submit.mutate(req.id)}
+                    disabled={submit.isPending}
+                  >
+                    Submit for approval
+                  </button>
+                  <button type="button" onClick={() => startEdit(req)}>
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => remove.mutate(req.id)}
+                    disabled={remove.isPending}
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
             </li>
           ))}
         </ul>

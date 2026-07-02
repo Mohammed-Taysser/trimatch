@@ -9,6 +9,11 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Submit for approval (FR-103)**: `POST /requisitions/:id/submit` — state-machine
+  base (`common/state-machine`, lifecycle per domain §3.1, 409 `INVALID_TRANSITION`),
+  approval-chain snapshot (`approval_steps` with rounds, MVP approver = requester's
+  manager), append-only `audit_log` row — one atomic transaction; web Submit button,
+  non-drafts read-only
 - **Draft requisitions (FR-101/102)**: `requisitions` + `requisition_lines` tables,
   CRUD under `/api/v1/requisitions` with ownership checks (403 `FORBIDDEN`),
   draft-only edit/delete (409 `INVALID_TRANSITION`), pure totals function in integer

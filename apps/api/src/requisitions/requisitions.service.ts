@@ -12,6 +12,10 @@ import {
   RequisitionUpdate,
 } from '@trimatch/shared';
 import { Sequelize } from 'sequelize-typescript';
+import { AuditService } from '../audit/audit.service';
+import { UsersService } from '../identity/users.service';
+import { ApprovalStep } from './approval-step.model';
+import { requisitionLifecycle } from './requisition.lifecycle';
 import { Requisition, RequisitionLine } from './requisition.model';
 import { computeTotals } from './requisition.totals';
 
@@ -20,8 +24,68 @@ export class RequisitionsService {
   constructor(
     @InjectModel(Requisition) private readonly requisitions: typeof Requisition,
     @InjectModel(RequisitionLine) private readonly lines: typeof RequisitionLine,
+    @InjectModel(ApprovalStep) private readonly steps: typeof ApprovalStep,
     @InjectConnection() private readonly sequelize: Sequelize,
+    private readonly users: UsersService,
+    private readonly audit: AuditService,
   ) {}
+
+  // FR-103 / TC-104: draft → pending_approval, chain snapshotted (MVP: the
+  // requester's manager — ADR-0002), audit row — all in one transaction.
+  async submit(id: string, requesterId: string): Promise<RequisitionView> {
+    await this.sequelize.transaction(async (transaction) => {
+      const row = await this.requisitions.findByPk(id, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!row) {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'Requisition not found' });
+      }
+      if (row.requesterId !== requesterId) {
+        throw new ForbiddenException({
+          code: 'FORBIDDEN',
+          message: 'Only the requester may submit this requisition',
+        });
+      }
+      requisitionLifecycle.assertCanTransition(row.status, 'pending_approval');
+
+      const requester = await this.users.findById(requesterId);
+      if (!requester?.managerId) {
+        throw new ConflictException({
+          code: 'NO_APPROVER',
+          message: 'The requester has no manager to approve this requisition',
+        });
+      }
+
+      const previousRounds = (await this.steps.max('round', {
+        where: { requisitionId: id },
+        transaction,
+      })) as number | null;
+      await this.steps.create(
+        {
+          requisitionId: id,
+          round: (previousRounds ?? 0) + 1,
+          stepNo: 1,
+          approverId: requester.managerId,
+          status: 'pending',
+        },
+        { transaction },
+      );
+      await row.update({ status: 'pending_approval' }, { transaction });
+      await this.audit.record(
+        {
+          entityType: 'requisition',
+          entityId: id,
+          actorId: requesterId,
+          action: 'requisition.submitted',
+          fromState: 'draft',
+          toState: 'pending_approval',
+        },
+        transaction,
+      );
+    });
+    return this.findOwn(id, requesterId);
+  }
 
   async create(requesterId: string, input: RequisitionCreate): Promise<RequisitionView> {
     const totals = computeTotals(input.lines);

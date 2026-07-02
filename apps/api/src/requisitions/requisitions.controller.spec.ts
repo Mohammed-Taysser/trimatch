@@ -16,6 +16,7 @@ describe('requisition endpoints delegate with the authenticated requester', () =
     findOwn: jest.fn().mockResolvedValue({ id: REQ_ID }),
     update: jest.fn().mockResolvedValue({ id: REQ_ID }),
     remove: jest.fn().mockResolvedValue(undefined),
+    submit: jest.fn().mockResolvedValue({ id: REQ_ID, status: 'pending_approval' }),
   } as unknown as RequisitionsService;
   const controller = new RequisitionsController(service);
   const body = {
@@ -28,6 +29,11 @@ describe('requisition endpoints delegate with the authenticated requester', () =
   it('create passes the token subject as requester', async () => {
     await controller.create(user, body);
     expect(service.create).toHaveBeenCalledWith(user.sub, body);
+  });
+
+  it('submit passes the token subject as requester', async () => {
+    await controller.submit(user, REQ_ID);
+    expect(service.submit).toHaveBeenCalledWith(REQ_ID, user.sub);
   });
 
   it('list/get/update/remove are scoped to the current user', async () => {
