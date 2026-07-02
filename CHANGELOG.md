@@ -9,6 +9,10 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Sequential multi-step chains (FR-502/TC-503)**: an approver sees a step only
+  when it is their turn (lowest pending step of the current round, requisition
+  still pending); out-of-turn decisions → 409 `STEP_NOT_CURRENT`; a rejection at
+  any step stops the chain
 - **Matrix chain computation (FR-501/TC-501/TC-502)**: submission now computes the
   approval chain from the active ruleset — most-specific base rule + matching
   append rules (pure `computeChain`, PRD §5.1 examples reproduced exactly incl.
