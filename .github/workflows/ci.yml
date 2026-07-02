@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: trimatch
+          POSTGRES_PASSWORD: trimatch
+          POSTGRES_DB: trimatch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U trimatch -d trimatch"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      API_PORT: '3000'
+      DATABASE_URL: postgres://trimatch:trimatch@localhost:5432/trimatch
+      REDIS_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Format check
+        run: pnpm format:check
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Unit tests (coverage gate 80%)
+        run: pnpm test:cov
+      - name: Integration tests
+        run: pnpm test:integration
+      - name: Build
+        run: pnpm build

@@ -9,6 +9,11 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Guardrails & CI**: husky hooks (pre-commit lint-staged, commit-msg commitlint
+  conventional), ESLint 9 flat config (typescript-eslint strict + stylistic,
+  react-hooks) + Prettier, GitHub Actions pipeline
+  lint→format→typecheck→unit(80% coverage gate)→integration→build with
+  postgres/redis services; multer security override
 - **Monorepo scaffold** (pnpm workspaces): `apps/api` (NestJS 11, zod-validated env —
   refuses to boot on invalid config, `/api/v1/health/liveness|readiness`),
   `apps/web` (React 19 + Vite 7 + TanStack Query health dashboard),
@@ -24,8 +29,6 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Planned (next)
 
-- Guardrails + CI: husky + commitlint, ESLint/Prettier strict, GitHub Actions
-  lint→typecheck→unit→integration→build, coverage gate (ClickUp Epic 0)
 - Epic 1 first vertical slice: create → submit → approve a requisition (FR-101..107)
 
 ## [0.0.1] — 2026-07-02

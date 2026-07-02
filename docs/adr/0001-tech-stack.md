@@ -12,10 +12,10 @@ and a learning goal: the owner is actively learning NestJS and wants deep practi
 
 ## Options considered
 
-| Option | Trade-off |
-| --- | --- |
-| **Prisma** | Best TypeScript DX and migration story; but query-builder abstraction hides SQL, and interactive transactions are less natural for row-locking patterns (sequence claims, chain snapshots) |
-| **TypeORM** | Most common in NestJS docs; ActiveRecord/DataMapper both possible; migration DX and maintenance history are weak points |
+| Option           | Trade-off                                                                                                                                                                                                                                                                                                  |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Prisma**       | Best TypeScript DX and migration story; but query-builder abstraction hides SQL, and interactive transactions are less natural for row-locking patterns (sequence claims, chain snapshots)                                                                                                                 |
+| **TypeORM**      | Most common in NestJS docs; ActiveRecord/DataMapper both possible; migration DX and maintenance history are weak points                                                                                                                                                                                    |
 | **Sequelize** ✅ | Mature, battle-tested; explicit `transaction` objects fit the invariant-heavy writes; `sequelize-typescript` + `@nestjs/sequelize` give first-class Nest integration; migrations via `sequelize-cli`/umzug are explicit (up/down) — closer to how enterprise teams manage schema than auto-generated diffs |
 
 ## Decision

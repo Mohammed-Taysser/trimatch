@@ -6,18 +6,18 @@
 
 ## 1. Glossary
 
-| Term | Meaning |
-| --- | --- |
-| **Requisition (REQ)** | An employee's request to buy something; not yet a commitment |
-| **Approval chain** | Ordered approver steps computed from the matrix at submission |
-| **Purchase order (PO)** | The company's binding order to one vendor |
-| **Goods receipt (GRN)** | Warehouse record of what physically arrived against a PO |
-| **Vendor invoice (INV)** | The vendor's bill against a PO |
-| **3-way match** | Comparison PO ↔ GRN ↔ INV within tolerances; gate to payment |
-| **Exception** | A failed match routed to AP for resolution |
-| **Open quantity** | PO line qty ordered − qty received (drives receiving) |
-| **Payable** | Invoice cleared for payment (matched or variance accepted) |
-| **Tolerance** | Allowed variance (basis points or absolute) per match dimension |
+| Term                     | Meaning                                                         |
+| ------------------------ | --------------------------------------------------------------- |
+| **Requisition (REQ)**    | An employee's request to buy something; not yet a commitment    |
+| **Approval chain**       | Ordered approver steps computed from the matrix at submission   |
+| **Purchase order (PO)**  | The company's binding order to one vendor                       |
+| **Goods receipt (GRN)**  | Warehouse record of what physically arrived against a PO        |
+| **Vendor invoice (INV)** | The vendor's bill against a PO                                  |
+| **3-way match**          | Comparison PO ↔ GRN ↔ INV within tolerances; gate to payment    |
+| **Exception**            | A failed match routed to AP for resolution                      |
+| **Open quantity**        | PO line qty ordered − qty received (drives receiving)           |
+| **Payable**              | Invoice cleared for payment (matched or variance accepted)      |
+| **Tolerance**            | Allowed variance (basis points or absolute) per match dimension |
 
 ## 2. Entities & relationships
 

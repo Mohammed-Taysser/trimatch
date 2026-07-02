@@ -41,8 +41,10 @@ describe('app refuses to boot with invalid env config (AC 3)', () => {
   });
 
   it('throws when API_PORT is not a number', () => {
-    expect(() => validateEnv({ ...validEnv, API_PORT: 'not-a-port' })).toThrow(
-      /API_PORT/,
-    );
+    expect(() => validateEnv({ ...validEnv, API_PORT: 'not-a-port' })).toThrow(/API_PORT/);
+  });
+
+  it('reports a root-level error when config is not an object', () => {
+    expect(() => validateEnv(null as unknown as Record<string, unknown>)).toThrow(/\(root\)/);
   });
 });

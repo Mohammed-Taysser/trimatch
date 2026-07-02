@@ -21,14 +21,14 @@ invoice agree within tolerances. TriMatch implements this chain.
 
 ## 2. Users & roles
 
-| Role | Cares about | Main screens |
-| --- | --- | --- |
-| **Requester** (any employee) | "I need a laptop — get it approved fast" | New requisition, My requests |
-| **Approver** (lead/head/finance) | "Approve in seconds, with context" | Approval inbox |
-| **Purchasing officer** | "Turn approvals into POs with the right vendor" | Requisition queue, PO builder, Vendors |
-| **Warehouse staff** | "Record what actually arrived" | Receiving screen |
-| **AP clerk** (accounts payable) | "Pay only what matches; resolve what doesn't" | Invoice entry, Match exceptions queue |
-| **Admin** | Configure matrix, tolerances, categories, users | Settings |
+| Role                             | Cares about                                     | Main screens                           |
+| -------------------------------- | ----------------------------------------------- | -------------------------------------- |
+| **Requester** (any employee)     | "I need a laptop — get it approved fast"        | New requisition, My requests           |
+| **Approver** (lead/head/finance) | "Approve in seconds, with context"              | Approval inbox                         |
+| **Purchasing officer**           | "Turn approvals into POs with the right vendor" | Requisition queue, PO builder, Vendors |
+| **Warehouse staff**              | "Record what actually arrived"                  | Receiving screen                       |
+| **AP clerk** (accounts payable)  | "Pay only what matches; resolve what doesn't"   | Invoice entry, Match exceptions queue  |
+| **Admin**                        | Configure matrix, tolerances, categories, users | Settings                               |
 
 ## 3. The chain (happy path)
 
@@ -119,13 +119,13 @@ and ClickUp stories. Grouped by epic.
 
 Default ruleset shipped as seed data (amounts in USD-equivalent at requisition time):
 
-| # | Amount range | Department | Category | Approval chain (in order) |
-| --- | --- | --- | --- | --- |
-| R1 | ≤ 500 | any | any | Team Lead |
-| R2 | 500.01 – 5,000 | any | any | Team Lead → Department Head |
-| R3 | 5,000.01 – 25,000 | any | any | Team Lead → Department Head → Finance Director |
-| R4 | > 25,000 | any | any | Team Lead → Department Head → Finance Director → CEO |
-| R5 | any | IT | Software licenses | + CISO appended to the chain from R1–R4 |
+| #   | Amount range      | Department | Category          | Approval chain (in order)                            |
+| --- | ----------------- | ---------- | ----------------- | ---------------------------------------------------- |
+| R1  | ≤ 500             | any        | any               | Team Lead                                            |
+| R2  | 500.01 – 5,000    | any        | any               | Team Lead → Department Head                          |
+| R3  | 5,000.01 – 25,000 | any        | any               | Team Lead → Department Head → Finance Director       |
+| R4  | > 25,000          | any        | any               | Team Lead → Department Head → Finance Director → CEO |
+| R5  | any               | IT         | Software licenses | + CISO appended to the chain from R1–R4              |
 
 **Worked examples:**
 
@@ -139,24 +139,24 @@ Default ruleset shipped as seed data (amounts in USD-equivalent at requisition t
 
 Defaults (admin-configurable per category; stored on the match record when applied):
 
-| Dimension | Tolerance | Compared |
-| --- | --- | --- |
-| **Quantity** | invoiced ≤ received, and within **−2%** under-delivery of ordered | per line, cumulative |
-| **Price** | invoice unit price within **±1%** of PO unit price | per line |
-| **Total** | invoice total within **±$25 absolute** of (received qty × PO price) + tax | per invoice |
+| Dimension    | Tolerance                                                                 | Compared             |
+| ------------ | ------------------------------------------------------------------------- | -------------------- |
+| **Quantity** | invoiced ≤ received, and within **−2%** under-delivery of ordered         | per line, cumulative |
+| **Price**    | invoice unit price within **±1%** of PO unit price                        | per line             |
+| **Total**    | invoice total within **±$25 absolute** of (received qty × PO price) + tax | per invoice          |
 
 **Worked examples** (PO line: 100 units @ $50.00 = $5,000.00):
 
-| Case | Received | Invoiced | Invoice price | Result | Why |
-| --- | --- | --- | --- | --- | --- |
-| A | 100 | 100 | $50.00 | ✅ matched | exact |
-| B | 100 | 100 | $50.49 | ✅ matched | price +0.98% ≤ 1% |
-| C | 100 | 100 | $50.51 | ❌ exception `PRICE_VARIANCE` | +1.02% > 1% |
-| D | 98 | 98 | $50.00 | ✅ matched | qty −2% within tolerance, invoiced = received |
-| E | 97 | 97 | $50.00 | ❌ exception `QTY_UNDER_DELIVERY` | −3% > 2% under-delivery |
-| F | 100 | 102 | $50.00 | ❌ exception `QTY_OVER_INVOICED` | invoiced > received — never allowed |
-| G | 50 | 50 | $50.00 (partial, FR-602) | ✅ matched | cumulative invoiced ≤ cumulative received |
-| H | 100 | 100 | $50.00 + $30 shipping not on PO | ❌ exception `TOTAL_VARIANCE` | +$30 > $25 absolute |
+| Case | Received | Invoiced | Invoice price                   | Result                            | Why                                           |
+| ---- | -------- | -------- | ------------------------------- | --------------------------------- | --------------------------------------------- |
+| A    | 100      | 100      | $50.00                          | ✅ matched                        | exact                                         |
+| B    | 100      | 100      | $50.49                          | ✅ matched                        | price +0.98% ≤ 1%                             |
+| C    | 100      | 100      | $50.51                          | ❌ exception `PRICE_VARIANCE`     | +1.02% > 1%                                   |
+| D    | 98       | 98       | $50.00                          | ✅ matched                        | qty −2% within tolerance, invoiced = received |
+| E    | 97       | 97       | $50.00                          | ❌ exception `QTY_UNDER_DELIVERY` | −3% > 2% under-delivery                       |
+| F    | 100      | 102      | $50.00                          | ❌ exception `QTY_OVER_INVOICED`  | invoiced > received — never allowed           |
+| G    | 50       | 50       | $50.00 (partial, FR-602)        | ✅ matched                        | cumulative invoiced ≤ cumulative received     |
+| H    | 100      | 100      | $50.00 + $30 shipping not on PO | ❌ exception `TOTAL_VARIANCE`     | +$30 > $25 absolute                           |
 
 Rounding: all comparisons in integer minor units; percentage thresholds evaluated as
 `abs(delta) * 10000 ≤ threshold_bp * base` (basis points, no floats).

@@ -6,7 +6,12 @@ import './lib/env';
 
 const queryClient = new QueryClient();
 
-createRoot(document.getElementById('root')!).render(
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error('index.html is missing the #root element');
+}
+
+createRoot(rootElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <App />

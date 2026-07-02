@@ -11,16 +11,16 @@ to rule edits (FR-504) — an auditor asks "which rule routed this?" months late
 
 ## Options considered
 
-| Option | Trade-off |
-| --- | --- |
-| Rules in code (strategy per range) | Type-safe but every policy change is a deployment; violates the admin-editable requirement |
-| Generic rules engine / DSL library | Overkill; opaque evaluation, hard to validate gaps/overlaps |
+| Option                                       | Trade-off                                                                                                                |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Rules in code (strategy per range)           | Type-safe but every policy change is a deployment; violates the admin-editable requirement                               |
+| Generic rules engine / DSL library           | Overkill; opaque evaluation, hard to validate gaps/overlaps                                                              |
 | **Rules as DB rows + snapshot on submit** ✅ | Admin-editable, validatable (no gaps/overlaps per department), and snapshotting gives audit-proof in-flight immutability |
 
 ## Decision
 
 - `approval_matrix_rules` table: `(amount_min_minor, amount_max_minor, department_id?,
-  category_id?, chain JSONB [ordered role list], priority, active)`.
+category_id?, chain JSONB [ordered role list], priority, active)`.
 - Evaluation: most-specific active rule wins (category+department > department > generic);
   appended-role rules (like R5/CISO) compose on top.
 - On submit, the computed chain is **copied** into `approval_chains`/`approval_steps`
