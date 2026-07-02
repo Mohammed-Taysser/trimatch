@@ -48,13 +48,13 @@ export class PurchasingController {
   }
 
   @Get()
-  @Roles('purchasing', 'admin', 'warehouse')
+  @Roles('purchasing', 'admin', 'warehouse', 'ap')
   list(@Query() query: PaginationQueryDto): Promise<PagedResult<PurchaseOrder>> {
     return this.purchasing.findAll(query);
   }
 
   @Get(':id')
-  @Roles('purchasing', 'admin', 'warehouse')
+  @Roles('purchasing', 'admin', 'warehouse', 'ap')
   get(@Param('id', ParseUUIDPipe) id: string): Promise<PurchaseOrder> {
     return this.purchasing.findOne(id);
   }
