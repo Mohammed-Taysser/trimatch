@@ -33,6 +33,13 @@ export class RequisitionsController {
     return this.requisitions.findAllOwn(user.sub);
   }
 
+  // Declared before :id so the literal segment wins the route match.
+  @Get('approved')
+  @Roles('purchasing', 'admin')
+  approvedQueue(): Promise<Requisition[]> {
+    return this.requisitions.findApproved();
+  }
+
   @Post(':id/submit')
   @Roles('requester')
   @HttpCode(200)

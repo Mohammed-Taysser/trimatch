@@ -16,7 +16,8 @@ export default defineConfig(
     },
   },
   {
-    files: ['**/*.cjs'],
+    // .cjs files plus CLI-generated migrations/seeders (CommonJS .js).
+    files: ['**/*.cjs', 'apps/api/migrations/**/*.js', 'apps/api/seeders/**/*.js'],
     languageOptions: {
       sourceType: 'commonjs',
       globals: {

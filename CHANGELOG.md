@@ -9,6 +9,12 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Convert requisition → PO draft (FR-201)**: `purchase_orders` + `po_lines` tables
+  (CLI-generated migration), PO lifecycle map per FR-204,
+  `POST /purchase-orders/from-requisition` — approved REQ → `converted` + PO draft
+  inheriting lines, vendor must be active; draft line edits (price/SKU/qty) audit-log
+  the delta; `GET /requisitions/approved` purchasing queue; web Purchasing screen with
+  convert flow and PO list
 - **Vendor registry (FR-202)**: `vendors` table + CRUD under `/api/v1/vendors`
   (purchasing/admin roles), unique names (409 `DUPLICATE_VENDOR`), active flag with
   `?active=true` filter and `assertActive` guard (409 `VENDOR_INACTIVE`) ready for PO

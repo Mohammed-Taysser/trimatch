@@ -145,6 +145,16 @@ export class RequisitionsService {
     return this.findOwn(id, requesterId);
   }
 
+  // Purchasing queue (FR-201): approved requisitions awaiting conversion.
+  async findApproved(): Promise<RequisitionView[]> {
+    const rows = await this.requisitions.findAll({
+      where: { status: 'approved' },
+      include: [RequisitionLine, { model: ApprovalStep, include: [User] }, User],
+      order: [['updatedAt', 'ASC']],
+    });
+    return rows.map((row) => this.toView(row));
+  }
+
   async findAllOwn(requesterId: string): Promise<RequisitionView[]> {
     const rows = await this.requisitions.findAll({
       where: { requesterId },
@@ -229,6 +239,7 @@ export class RequisitionsService {
     return RequisitionSchema.parse({
       id: row.id,
       requesterId: row.requesterId,
+      requesterName: row.requester?.fullName,
       status: row.status,
       justification: row.justification,
       neededBy: row.neededBy,
