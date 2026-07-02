@@ -23,8 +23,7 @@ export default function App() {
   });
   const readiness = useQuery({
     queryKey: ['health', 'readiness'],
-    queryFn: async () =>
-      HealthReadinessSchema.parse(await fetchJson('/api/v1/health/readiness')),
+    queryFn: async () => HealthReadinessSchema.parse(await fetchJson('/api/v1/health/readiness')),
     refetchInterval: 5000,
     retry: false,
   });

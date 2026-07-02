@@ -7,18 +7,18 @@
 
 ## 1. Who can do what (RBAC matrix)
 
-| Action | Requester | Approver | Purchasing | Warehouse | AP | Admin |
-| --- | :-: | :-: | :-: | :-: | :-: | :-: |
-| Create/edit own draft requisition | ✅ | — | — | — | — | — |
-| Submit / withdraw own requisition | ✅ | — | — | — | — | — |
-| Approve/reject a pending step | — | ✅ (own step) | — | — | — | — |
-| Delegate approvals (v1) | — | ✅ | — | — | — | — |
-| Manage vendors | — | — | ✅ | — | — | ✅ |
-| Convert requisition → PO, issue/cancel PO | — | — | ✅ | — | — | — |
-| Record goods receipt | — | — | — | ✅ | — | — |
-| Enter invoices, resolve exceptions (v1) | — | — | — | — | ✅ | — |
-| Edit approval matrix & tolerances (v1) | — | — | — | — | — | ✅ |
-| View audit trail | own items | own steps | ✅ | own GRNs | ✅ | ✅ |
+| Action                                    | Requester |   Approver    | Purchasing | Warehouse | AP  | Admin |
+| ----------------------------------------- | :-------: | :-----------: | :--------: | :-------: | :-: | :---: |
+| Create/edit own draft requisition         |    ✅     |       —       |     —      |     —     |  —  |   —   |
+| Submit / withdraw own requisition         |    ✅     |       —       |     —      |     —     |  —  |   —   |
+| Approve/reject a pending step             |     —     | ✅ (own step) |     —      |     —     |  —  |   —   |
+| Delegate approvals (v1)                   |     —     |      ✅       |     —      |     —     |  —  |   —   |
+| Manage vendors                            |     —     |       —       |     ✅     |     —     |  —  |  ✅   |
+| Convert requisition → PO, issue/cancel PO |     —     |       —       |     ✅     |     —     |  —  |   —   |
+| Record goods receipt                      |     —     |       —       |     —      |    ✅     |  —  |   —   |
+| Enter invoices, resolve exceptions (v1)   |     —     |       —       |     —      |     —     | ✅  |   —   |
+| Edit approval matrix & tolerances (v1)    |     —     |       —       |     —      |     —     |  —  |  ✅   |
+| View audit trail                          | own items |   own steps   |     ✅     | own GRNs  | ✅  |  ✅   |
 
 ## 2. Requester — asking for something
 
@@ -27,11 +27,11 @@
 2. **Save as draft** — drafts are private to you; edit or delete freely (FR-102).
 3. **Submit** — the system computes who must approve (based on total amount,
    your department, and category) and shows you the chain up front (FR-103).
-4. Track progress in **My requests**: each request shows its state and *pending with whom*.
+4. Track progress in **My requests**: each request shows its state and _pending with whom_.
 5. If **rejected**, you'll get the reason. Revise the draft and resubmit — the new
    approval round starts fresh, and the old round stays in the history (FR-105).
 
-> Money note: what you enter is an *estimate*; purchasing may negotiate the final price.
+> Money note: what you enter is an _estimate_; purchasing may negotiate the final price.
 > If the total grows past your approval band, it will be re-routed (v1).
 
 ## 3. Approver — deciding
@@ -56,10 +56,10 @@
 ## 5. Warehouse — recording what arrived
 
 1. **Receiving** → find the PO (scan/number/vendor).
-2. Enter quantity received per line — the screen shows *open quantity* so short
+2. Enter quantity received per line — the screen shows _open quantity_ so short
    deliveries are obvious (FR-301/302). Damaged goods go in the separate damaged field
    and don't count as received (FR-304).
-3. Save → a GRN number is issued; the PO advances to *partially received* or *received*.
+3. Save → a GRN number is issued; the PO advances to _partially received_ or _received_.
 4. You cannot receive more than was ordered (MVP, FR-303) — if a vendor over-ships,
    escalate to purchasing.
 
@@ -83,7 +83,7 @@
 ## 7. Admin — configuration (v1)
 
 - **Approval matrix**: edit amount bands, departments, categories, and chains. The editor
-  blocks overlapping or gapped bands (FR-505). Changes apply to *new* submissions only —
+  blocks overlapping or gapped bands (FR-505). Changes apply to _new_ submissions only —
   in-flight requests keep their original chain (FR-504).
 - **Match tolerances**: per-category overrides of the qty/price/total defaults (PRD §5.2).
 - **Users & roles**: assign the roles from §1; a user may hold several (e.g. requester + approver).
@@ -94,6 +94,6 @@
   approver and how long it's been with them.
 - **"The vendor shipped 2 fewer units — will they be paid in full?"** No. Invoicing more
   than was received always raises an exception (invariant I-3); within-tolerance
-  under-delivery (≤ 2%) matches at the *received* quantity.
+  under-delivery (≤ 2%) matches at the _received_ quantity.
 - **"Can I change a PO after issuing?"** MVP: no — cancel (if nothing received) and reissue.
   v1: amendments create a new version and may require re-approval (FR-604).

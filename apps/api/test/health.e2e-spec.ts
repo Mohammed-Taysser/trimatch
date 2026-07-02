@@ -27,9 +27,7 @@ describe('api starts and serves /api/v1 health (AC 1)', () => {
   });
 
   it('GET /api/v1/health/liveness returns a body matching the shared schema', async () => {
-    const res = await request(app.getHttpServer())
-      .get('/api/v1/health/liveness')
-      .expect(200);
+    const res = await request(app.getHttpServer()).get('/api/v1/health/liveness').expect(200);
     const parsed = HealthLivenessSchema.parse(res.body);
     expect(parsed.service).toBe('trimatch-api');
   });

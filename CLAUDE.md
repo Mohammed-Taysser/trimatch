@@ -21,7 +21,7 @@ and what's next. Run its §5 checklist at the start of every session.
 
 - Work is tracked in ClickUp (folder `901212106264`, 7 lists = Epics 0–6).
   Statuses: `backlog → scoping → in design → ready for development → in development
-  → in review → testing → shipped`. Move the card as you work.
+→ in review → testing → shipped`. Move the card as you work.
 - ClickUp MCP only loads if the session starts in `/mnt/dev`; otherwise use the REST
   API (`https://api.clickup.com/api/v2`, key in `/mnt/dev/.claude/settings.local.json`
   under `env.CLICKUP_API_KEY`). **Never** print, log, or commit the key.
@@ -41,10 +41,15 @@ and what's next. Run its §5 checklist at the start of every session.
   HTTPS auth doesn't work here and `gh` CLI is not installed). Push branches,
   open PRs on the GitHub web UI — self-review counts until CI exists.
 
-## Commands (once the monorepo exists)
+## Commands
 
 - `pnpm install && docker compose up -d && pnpm dev` — api on :3000, web on :5173.
+- `pnpm lint` / `pnpm format:check` / `pnpm typecheck` / `pnpm test` /
+  `pnpm test:cov` (80% gate) / `pnpm test:integration` / `pnpm build` — the CI
+  pipeline runs these in that order; run them before pushing.
 - Env config is validated at startup — the app must refuse to boot on invalid env.
+- husky hooks: pre-commit runs lint-staged (eslint+prettier), commit-msg runs
+  commitlint (conventional). Never bypass with `--no-verify`.
 
 ## Key doc contracts
 

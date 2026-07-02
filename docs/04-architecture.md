@@ -25,19 +25,19 @@ the seams where a future split would happen, without paying distributed-systems 
 
 ## 2. NestJS module map
 
-| Module | Owns | Key rules |
-| --- | --- | --- |
-| `requisitions` | REQ + lines, submission, revision | FR-101..107, chain snapshot call |
-| `approvals` | matrix rules, chains, steps, delegation — **generic engine** | FR-501..505, ADR-0002 |
-| `vendors` | vendor registry | FR-202 |
-| `purchasing` | PO + lines, numbering, issue/cancel/close | FR-201..206, I-1, I-6 |
-| `receiving` | GRNs, open-quantity math | FR-301..304, I-2 |
-| `invoicing` | vendor invoices, duplicate check | FR-401, I-3 |
-| `matching` | tolerance evaluation, match records, exceptions | FR-402..406, I-4, PRD §5.2 |
-| `audit` | append-only audit log, queried by all modules | NFR-01, I-7 |
-| `identity` | users, roles, RBAC guards, auth (JWT) | NFR-02 |
-| `notifications` | domain-event consumers → BullMQ → email/in-app | SLA §2 async target |
-| `common` | money type, sequence claimer, state-machine base, error filter | I-6, I-8, NFR-03/05 |
+| Module          | Owns                                                           | Key rules                        |
+| --------------- | -------------------------------------------------------------- | -------------------------------- |
+| `requisitions`  | REQ + lines, submission, revision                              | FR-101..107, chain snapshot call |
+| `approvals`     | matrix rules, chains, steps, delegation — **generic engine**   | FR-501..505, ADR-0002            |
+| `vendors`       | vendor registry                                                | FR-202                           |
+| `purchasing`    | PO + lines, numbering, issue/cancel/close                      | FR-201..206, I-1, I-6            |
+| `receiving`     | GRNs, open-quantity math                                       | FR-301..304, I-2                 |
+| `invoicing`     | vendor invoices, duplicate check                               | FR-401, I-3                      |
+| `matching`      | tolerance evaluation, match records, exceptions                | FR-402..406, I-4, PRD §5.2       |
+| `audit`         | append-only audit log, queried by all modules                  | NFR-01, I-7                      |
+| `identity`      | users, roles, RBAC guards, auth (JWT)                          | NFR-02                           |
+| `notifications` | domain-event consumers → BullMQ → email/in-app                 | SLA §2 async target              |
+| `common`        | money type, sequence claimer, state-machine base, error filter | I-6, I-8, NFR-03/05              |
 
 Dependency direction: feature modules → `common`/`audit`/`identity`; **never** feature → feature
 repositories. Cross-feature reads go through the owning module's service.

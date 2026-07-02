@@ -32,15 +32,15 @@ requisition → approval matrix → purchase order → goods receipt → vendor 
 
 ## 3. ClickUp — our Jira-equivalent
 
-| Thing | Value |
-| --- | --- |
-| Team (workspace) | `9012205641` ("Dev") |
-| Space | "Side Projects" — `90128172532` |
-| Folder | "TriMatch" — `901212106264` |
-| Lists | 7, one per epic (Epic 0..6) |
-| Tasks | 35 stories with Given/When/Then acceptance criteria referencing FR/TC IDs |
-| Status workflow | `backlog → scoping → in design → ready for development → in development → in review → testing → shipped` (+ `cancelled`) |
-| Tags | `setup`, `mvp`, `v1` |
+| Thing            | Value                                                                                                                    |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Team (workspace) | `9012205641` ("Dev")                                                                                                     |
+| Space            | "Side Projects" — `90128172532`                                                                                          |
+| Folder           | "TriMatch" — `901212106264`                                                                                              |
+| Lists            | 7, one per epic (Epic 0..6)                                                                                              |
+| Tasks            | 35 stories with Given/When/Then acceptance criteria referencing FR/TC IDs                                                |
+| Status workflow  | `backlog → scoping → in design → ready for development → in development → in review → testing → shipped` (+ `cancelled`) |
+| Tags             | `setup`, `mvp`, `v1`                                                                                                     |
 
 **Workflow simulation rules** (how we move cards, like an enterprise team):
 
@@ -79,12 +79,9 @@ Run these before doing work in a new session:
 
 ## 6. What's next (in order)
 
-1. **Epic 0 / "Add guardrails and CI pipeline"** (`backlog`): husky + commitlint,
-   ESLint/Prettier strict, GitHub Actions lint→typecheck→unit→integration→build,
-   coverage gate.
-2. **Epic 1 first vertical slice**: draft requisition create/edit (FR-101/102, TC-101..103)
+1. **Epic 1 first vertical slice**: draft requisition create/edit (FR-101/102, TC-101..103)
    — thinnest end-to-end path including one React screen.
-3. Then follow the board.
+2. Then follow the board.
 
 Every release: update [CHANGELOG](../CHANGELOG.md), tag `vX.Y.Z`
 (semantic-release takes over once CI exists).

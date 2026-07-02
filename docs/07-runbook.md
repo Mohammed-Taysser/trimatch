@@ -50,12 +50,12 @@ Demo logins (after seed): `requester@demo`, `lead@demo`, `head@demo`, `purchasin
 
 ## 5. Common operational tasks ⏳
 
-| Task | How |
-| --- | --- |
-| Replay a failed notification job | BullMQ UI / `queue.retryJobs()` — jobs are idempotent |
-| Investigate a match verdict | `match_records` row stores tolerances + comparisons; join `audit_log` on entity id |
-| Unstick a requisition (approver unavailable, pre-v1 delegation) | Admin reassigns the step — writes an audit row with both identities |
-| Fix a wrong receipt | Never edit — post a correcting GRN (negative adjustment), same as accounting practice |
+| Task                                                            | How                                                                                   |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Replay a failed notification job                                | BullMQ UI / `queue.retryJobs()` — jobs are idempotent                                 |
+| Investigate a match verdict                                     | `match_records` row stores tolerances + comparisons; join `audit_log` on entity id    |
+| Unstick a requisition (approver unavailable, pre-v1 delegation) | Admin reassigns the step — writes an audit row with both identities                   |
+| Fix a wrong receipt                                             | Never edit — post a correcting GRN (negative adjustment), same as accounting practice |
 
 ## 6. Backup & restore (SLA §5)
 
@@ -63,9 +63,9 @@ Demo logins (after seed): `requester@demo`, `lead@demo`, `head@demo`, `purchasin
 - **Quarterly restore drill:** restore latest backup into a scratch container, run the
   smoke e2e suite against it, record the date + duration here:
 
-| Drill date | Restore time | Result | Notes |
-| --- | --- | --- | --- |
-| — | — | — | first drill due after first deploy |
+| Drill date | Restore time | Result | Notes                              |
+| ---------- | ------------ | ------ | ---------------------------------- |
+| —          | —            | —      | first drill due after first deploy |
 
 ## 7. Incident response (SLA §4)
 
