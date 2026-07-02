@@ -42,3 +42,12 @@ export const MatchRecordSchema = z.object({
   createdAt: z.string(),
 });
 export type MatchRecord = z.infer<typeof MatchRecordSchema>;
+
+export const ExceptionsQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(20),
+  vendorId: z.uuid().optional(),
+  reason: MatchReasonCodeSchema.optional(),
+  olderThanDays: z.coerce.number().int().nonnegative().optional(),
+});
+export type ExceptionsQuery = z.infer<typeof ExceptionsQuerySchema>;
