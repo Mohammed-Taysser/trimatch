@@ -3,13 +3,13 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { AuditModule } from '../audit/audit.module';
 import { SequencesModule } from '../common/sequences.module';
 import { VendorsModule } from '../vendors/vendors.module';
-import { PoLine, PurchaseOrder } from './purchase-order.model';
+import { PoAmendment, PoLine, PurchaseOrder } from './purchase-order.model';
 import { PurchasingController } from './purchasing.controller';
 import { PurchasingService } from './purchasing.service';
 
 @Module({
   imports: [
-    SequelizeModule.forFeature([PurchaseOrder, PoLine]),
+    SequelizeModule.forFeature([PurchaseOrder, PoLine, PoAmendment]),
     VendorsModule,
     AuditModule,
     SequencesModule,

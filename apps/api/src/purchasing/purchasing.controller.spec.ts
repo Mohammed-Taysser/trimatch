@@ -19,6 +19,9 @@ describe('purchase order endpoints delegate with the authenticated officer', () 
     updateLines: jest.fn().mockResolvedValue({ id: PO_ID }),
     issue: jest.fn().mockResolvedValue({ id: PO_ID, status: 'issued' }),
     cancel: jest.fn().mockResolvedValue({ id: PO_ID, status: 'cancelled' }),
+    amend: jest.fn().mockResolvedValue({ id: PO_ID, version: 2 }),
+    approveAmendment: jest.fn().mockResolvedValue({ id: PO_ID, status: 'issued' }),
+    versions: jest.fn().mockResolvedValue({ items: [], meta: {} }),
   } as unknown as PurchasingService;
   const controller = new PurchasingController(service);
   const page = { page: 1, pageSize: 20 };
@@ -48,5 +51,18 @@ describe('purchase order endpoints delegate with the authenticated officer', () 
     expect(service.findAll).toHaveBeenCalledWith(page);
     expect(service.findOne).toHaveBeenCalledWith(PO_ID);
     expect(service.updateLines).toHaveBeenCalledWith(PO_ID, lines, user.sub);
+  });
+
+  it('amend and approve-amendment carry the acting user; versions is read-only', async () => {
+    const amendment = {
+      reason: 'vendor price change',
+      lines: [{ poLineId: '019787c8-0000-4000-8000-00000000dcba', unitPriceMinor: 60_00 }],
+    };
+    await controller.amend(user, PO_ID, amendment);
+    expect(service.amend).toHaveBeenCalledWith(PO_ID, amendment, user.sub);
+    await controller.approveAmendment(user, PO_ID);
+    expect(service.approveAmendment).toHaveBeenCalledWith(PO_ID, user.sub);
+    await controller.versions(PO_ID, page);
+    expect(service.versions).toHaveBeenCalledWith(PO_ID, page);
   });
 });

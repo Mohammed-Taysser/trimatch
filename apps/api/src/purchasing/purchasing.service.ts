@@ -1,8 +1,16 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import {
   PaginationQuery,
+  PoAmend,
   PoLineInput,
+  PoVersion,
+  PoVersionSchema,
   PurchaseOrder as PoView,
   PurchaseOrderSchema,
 } from '@trimatch/shared';
@@ -17,13 +25,14 @@ import { computeTotals } from '../requisitions/requisition.totals';
 import { Vendor } from '../vendors/vendor.model';
 import { VendorsService } from '../vendors/vendors.service';
 import { poLifecycle } from './po.lifecycle';
-import { PoLine, PurchaseOrder } from './purchase-order.model';
+import { PoAmendment, PoLine, PoVersionSnapshot, PurchaseOrder } from './purchase-order.model';
 
 @Injectable()
 export class PurchasingService {
   constructor(
     @InjectModel(PurchaseOrder) private readonly orders: typeof PurchaseOrder,
     @InjectModel(PoLine) private readonly lines: typeof PoLine,
+    @InjectModel(PoAmendment) private readonly amendments: typeof PoAmendment,
     @InjectConnection() private readonly sequelize: Sequelize,
     private readonly vendors: VendorsService,
     private readonly audit: AuditService,
@@ -171,6 +180,7 @@ export class PurchasingService {
   // I-2 open-quantity math for the PO detail view (damaged tracked separately).
   private async receivedByPoLine(
     poId: string,
+    transaction?: Transaction,
   ): Promise<Map<string, { good: number; damaged: number }>> {
     const rows = await this.sequelize.query<{
       po_line_id: string;
@@ -180,7 +190,7 @@ export class PurchasingService {
       `SELECT gl.po_line_id, SUM(gl.quantity) AS total, SUM(gl.damaged_quantity) AS damaged
        FROM grn_lines gl JOIN grns g ON g.id = gl.grn_id
        WHERE g.po_id = :poId GROUP BY gl.po_line_id`,
-      { replacements: { poId }, type: QueryTypes.SELECT },
+      { replacements: { poId }, type: QueryTypes.SELECT, transaction },
     );
     return new Map(
       rows.map((row) => [
@@ -188,6 +198,200 @@ export class PurchasingService {
         { good: Number(row.total), damaged: Number(row.damaged) },
       ]),
     );
+  }
+
+  // FR-604 / TC-603: an amendment snapshots the current version (append-only)
+  // and applies the changes as version N+1. A total increase parks the PO in
+  // pending_reapproval — receiving and invoicing are status-gated, so both
+  // stay blocked until an approver signs off.
+  async amend(id: string, input: PoAmend, actorId: string): Promise<PoView> {
+    await this.sequelize.transaction(async (transaction) => {
+      const po = await this.orders.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
+      if (!po) {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'Purchase order not found' });
+      }
+      if (po.status !== 'issued' && po.status !== 'partially_received') {
+        throw new ConflictException({
+          code: 'INVALID_TRANSITION',
+          message: `A purchase order in state '${po.status}' cannot be amended`,
+        });
+      }
+
+      const lines = await this.lines.findAll({
+        where: { poId: id },
+        order: [['lineNo', 'ASC']],
+        transaction,
+      });
+      const byId = new Map(lines.map((line) => [line.id, line]));
+      const received = await this.receivedByPoLine(id, transaction);
+
+      const oldVersion = po.version;
+      const oldTotal = Number(po.totalMinor);
+      const snapshot: PoVersionSnapshot = {
+        totalMinor: oldTotal,
+        lines: lines.map((line) => ({
+          poLineId: line.id,
+          lineNo: line.lineNo,
+          description: line.description,
+          quantity: line.quantity,
+          unitPriceMinor: Number(line.unitPriceMinor),
+          lineTotalMinor: Number(line.lineTotalMinor),
+        })),
+      };
+
+      const deltas: string[] = [];
+      for (const change of input.lines) {
+        const line = byId.get(change.poLineId);
+        if (!line) {
+          throw new NotFoundException({
+            code: 'NOT_FOUND',
+            message: `PO line ${change.poLineId} does not belong to this purchase order`,
+          });
+        }
+        const newQty = change.quantity ?? line.quantity;
+        const alreadyReceived = received.get(line.id)?.good ?? 0;
+        // I-2 survives amendments: ordered may never drop below received.
+        if (newQty < alreadyReceived) {
+          throw new UnprocessableEntityException({
+            code: 'AMEND_BELOW_RECEIVED',
+            message: `Line ${line.lineNo}: quantity ${newQty} is below the ${alreadyReceived} already received`,
+          });
+        }
+        const newPrice = change.unitPriceMinor ?? Number(line.unitPriceMinor);
+        if (newQty !== line.quantity) {
+          deltas.push(`line ${line.lineNo}: qty ${line.quantity} → ${newQty}`);
+        }
+        if (newPrice !== Number(line.unitPriceMinor)) {
+          deltas.push(`line ${line.lineNo}: price ${Number(line.unitPriceMinor)} → ${newPrice}`);
+        }
+        await line.update(
+          { quantity: newQty, unitPriceMinor: newPrice, lineTotalMinor: newQty * newPrice },
+          { transaction },
+        );
+      }
+      const newTotal = lines.reduce((sum, line) => sum + Number(line.lineTotalMinor), 0);
+      const requiresReapproval = newTotal > oldTotal;
+
+      await this.amendments.create(
+        {
+          poId: id,
+          version: oldVersion,
+          snapshot,
+          reason: input.reason,
+          requiresReapproval,
+          amendedBy: actorId,
+        },
+        { transaction },
+      );
+      if (requiresReapproval) poLifecycle.assertCanTransition(po.status, 'pending_reapproval');
+      const from = po.status;
+      await po.update(
+        {
+          version: oldVersion + 1,
+          totalMinor: newTotal,
+          ...(requiresReapproval ? { status: 'pending_reapproval' } : {}),
+        },
+        { transaction },
+      );
+      await this.audit.record(
+        {
+          entityType: 'purchase_order',
+          entityId: id,
+          actorId,
+          action: 'po.amended',
+          ...(requiresReapproval ? { fromState: from, toState: 'pending_reapproval' } : {}),
+          comment: `v${oldVersion} → v${oldVersion + 1}: ${input.reason} (${deltas.join('; ') || 'no changes'}); total ${oldTotal} → ${newTotal}${requiresReapproval ? '; re-approval required' : ''}`,
+        },
+        transaction,
+      );
+    });
+    return this.findOne(id);
+  }
+
+  // FR-604: sign-off on a total-increasing amendment — the PO returns to
+  // whatever state its receipts say it is in.
+  async approveAmendment(id: string, actorId: string): Promise<PoView> {
+    await this.sequelize.transaction(async (transaction) => {
+      const po = await this.orders.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
+      if (!po) {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'Purchase order not found' });
+      }
+      if (po.status !== 'pending_reapproval') {
+        throw new ConflictException({
+          code: 'INVALID_TRANSITION',
+          message: `A purchase order in state '${po.status}' has no amendment awaiting approval`,
+        });
+      }
+      const received = await this.receivedByPoLine(id, transaction);
+      const target = [...received.values()].some((entry) => entry.good > 0)
+        ? 'partially_received'
+        : 'issued';
+      poLifecycle.assertCanTransition(po.status, target);
+      await po.update({ status: target }, { transaction });
+      await this.audit.record(
+        {
+          entityType: 'purchase_order',
+          entityId: id,
+          actorId,
+          action: 'po.amendment_approved',
+          fromState: 'pending_reapproval',
+          toState: target,
+          comment: `v${po.version} approved`,
+        },
+        transaction,
+      );
+    });
+    return this.findOne(id);
+  }
+
+  // FR-604: every version stays visible — superseded snapshots plus the live
+  // row (as the highest version, flagged current).
+  async versions(id: string, query: PaginationQuery): Promise<PagedResult<PoVersion>> {
+    const po = await this.orders.findByPk(id, { include: [PoLine] });
+    if (!po) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'Purchase order not found' });
+    }
+    const { limit, offset } = pageOffset(query);
+    const { rows, count } = await this.amendments.findAndCountAll({
+      where: { poId: id },
+      order: [['version', 'ASC']],
+      limit,
+      offset,
+    });
+    const items = rows.map((amendment) =>
+      PoVersionSchema.parse({
+        version: amendment.version,
+        current: false,
+        totalMinor: amendment.snapshot.totalMinor,
+        lines: amendment.snapshot.lines,
+        supersededReason: amendment.reason,
+        supersededAt: (amendment.createdAt as Date).toISOString(),
+      }),
+    );
+    // the live row is the last entry of the conceptual list (index = count)
+    if (offset <= count && count < offset + limit) {
+      items.push(
+        PoVersionSchema.parse({
+          version: po.version,
+          current: true,
+          totalMinor: Number(po.totalMinor),
+          lines: (po.lines ?? [])
+            .slice()
+            .sort((a, b) => a.lineNo - b.lineNo)
+            .map((line) => ({
+              poLineId: line.id,
+              lineNo: line.lineNo,
+              description: line.description,
+              quantity: line.quantity,
+              unitPriceMinor: Number(line.unitPriceMinor),
+              lineTotalMinor: Number(line.lineTotalMinor),
+            })),
+          supersededReason: null,
+          supersededAt: null,
+        }),
+      );
+    }
+    return new PagedResult(items, pageMeta(query, count + 1));
   }
 
   async findAll(query: PaginationQuery): Promise<PagedResult<PoView>> {
@@ -295,6 +499,7 @@ export class PurchasingService {
       requisitionId: row.requisitionId,
       currency: row.currency,
       totalMinor: Number(row.totalMinor),
+      version: row.version,
       lines: (row.lines ?? [])
         .slice()
         .sort((a, b) => a.lineNo - b.lineNo)

@@ -9,11 +9,11 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { PurchaseOrder } from '@trimatch/shared';
+import { PoVersion, PurchaseOrder } from '@trimatch/shared';
 import { CurrentUser, JwtPayload, Roles } from '../auth/decorators';
 import { PaginationQueryDto } from '../common/dto';
 import { PagedResult } from '../common/paged';
-import { ConvertRequisitionDto, PoLinesUpdateDto } from './dto';
+import { ConvertRequisitionDto, PoAmendDto, PoLinesUpdateDto } from './dto';
 import { PurchasingService } from './purchasing.service';
 
 @Controller('purchase-orders')
@@ -57,6 +57,36 @@ export class PurchasingController {
   @Roles('purchasing', 'admin', 'warehouse', 'ap')
   get(@Param('id', ParseUUIDPipe) id: string): Promise<PurchaseOrder> {
     return this.purchasing.findOne(id);
+  }
+
+  // FR-604: amendments — version N+1; a total increase needs re-approval.
+  @Post(':id/amend')
+  @HttpCode(200)
+  amend(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: PoAmendDto,
+  ): Promise<PurchaseOrder> {
+    return this.purchasing.amend(id, body, user.sub);
+  }
+
+  @Post(':id/approve-amendment')
+  @HttpCode(200)
+  @Roles('approver', 'admin')
+  approveAmendment(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<PurchaseOrder> {
+    return this.purchasing.approveAmendment(id, user.sub);
+  }
+
+  @Get(':id/versions')
+  @Roles('purchasing', 'admin', 'warehouse', 'ap', 'approver')
+  versions(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: PaginationQueryDto,
+  ): Promise<PagedResult<PoVersion>> {
+    return this.purchasing.versions(id, query);
   }
 
   @Put(':id/lines')

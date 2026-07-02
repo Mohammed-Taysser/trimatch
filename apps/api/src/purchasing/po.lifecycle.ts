@@ -10,4 +10,10 @@ export const poLifecycle = new StateMachine<PoStatus>('purchase order', [
   { from: 'issued', to: 'cancelled' }, // only while nothing received (guard in service)
   { from: 'partially_received', to: 'received' },
   { from: 'received', to: 'closed' },
+  // FR-604: a total-increasing amendment needs sign-off before more goods or
+  // invoices can flow; approval returns the PO to where the receipts say it is.
+  { from: 'issued', to: 'pending_reapproval' },
+  { from: 'partially_received', to: 'pending_reapproval' },
+  { from: 'pending_reapproval', to: 'issued' },
+  { from: 'pending_reapproval', to: 'partially_received' },
 ]);
