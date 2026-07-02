@@ -7,6 +7,20 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Added
+
+- **Web design system & visual refresh (Epic 7)**: design tokens
+  (`styles/global.css`: color incl. status semantics, spacing, type scale,
+  radii) + shared components (`Button`, `StatusBadge`, `Card`, `Field`,
+  `Alert`, `Loading`, `EmptyState`, `Pagination`) replace all ad-hoc inline
+  styles across the 8 screens; consistent app shell (brand header, role badge,
+  sign-out) replaces per-page header copies; one color language for every
+  document status; money via `Intl.NumberFormat` (currency-aware) and dates
+  via `Intl.DateTimeFormat`; pagination controls on the main lists driven by
+  the envelope `meta` (new `apiFetchPaged`); keyboard/a11y basics (labels on
+  every input, `:focus-visible` rings, `aria-pressed` filter chips);
+  responsive at laptop widths
+
 ### Planned (next)
 
 - Epic 7 — UI refinement/design system + superadmin dashboard

@@ -1,16 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DelegationListSchema, DelegationSchema, InboxSchema } from '@trimatch/shared';
 import { useState } from 'react';
-import { ApiError, apiFetch } from '../../lib/api';
+import { AppShell } from '../../components/AppShell';
+import { Alert, Button, EmptyState, Field, Loading, Pagination } from '../../components/ui';
+import { ApiError, apiFetch, apiFetchPaged } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
-
-function money(minor: number, currency: string): string {
-  return `${(minor / 100).toFixed(2)} ${currency}`;
-}
+import { formatDate, money } from '../../lib/format';
 
 export function ApprovalsInboxPage() {
-  const { token, user, logout } = useAuth();
+  const { token } = useAuth();
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [delegateEmail, setDelegateEmail] = useState('');
   const [delegateFrom, setDelegateFrom] = useState('');
@@ -18,8 +18,12 @@ export function ApprovalsInboxPage() {
   const [error, setError] = useState<string | null>(null);
 
   const inbox = useQuery({
-    queryKey: ['approvals', 'inbox'],
-    queryFn: () => apiFetch('/api/v1/approvals/inbox', { token, schema: InboxSchema }),
+    queryKey: ['approvals', 'inbox', page],
+    queryFn: () =>
+      apiFetchPaged(`/api/v1/approvals/inbox?page=${page}&pageSize=20`, {
+        token,
+        schema: InboxSchema,
+      }),
     refetchInterval: 15000,
   });
 
@@ -65,88 +69,85 @@ export function ApprovalsInboxPage() {
   });
 
   return (
-    <main style={{ fontFamily: 'system-ui, sans-serif', maxWidth: 860, margin: '2rem auto' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h1>Approval inbox</h1>
-        <span>
-          {user?.fullName} ({user?.role}){' '}
-          <button type="button" onClick={logout}>
-            Sign out
-          </button>
-        </span>
-      </header>
+    <AppShell title="Approvals inbox">
+      {error && <Alert kind="error">{error}</Alert>}
 
-      {error && <p style={{ color: 'crimson' }}>{error}</p>}
-
-      <details style={{ marginBottom: 12 }}>
+      <details className="card">
         <summary>Delegate my approvals</summary>
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <input
-            placeholder="Delegate email"
-            aria-label="Delegate email"
-            value={delegateEmail}
-            onChange={(e) => setDelegateEmail(e.target.value)}
-            style={{ flex: 1 }}
-          />
-          <input
-            type="date"
-            aria-label="Delegation start"
-            value={delegateFrom}
-            onChange={(e) => setDelegateFrom(e.target.value)}
-          />
-          <input
-            type="date"
-            aria-label="Delegation end"
-            value={delegateTo}
-            onChange={(e) => setDelegateTo(e.target.value)}
-          />
-          <button type="button" onClick={() => delegate.mutate()} disabled={delegate.isPending}>
+        <div className="form-row">
+          <Field label="Delegate email">
+            <input
+              placeholder="Delegate email"
+              aria-label="Delegate email"
+              value={delegateEmail}
+              onChange={(e) => setDelegateEmail(e.target.value)}
+            />
+          </Field>
+          <Field label="Starts on">
+            <input
+              type="date"
+              aria-label="Delegation start"
+              value={delegateFrom}
+              onChange={(e) => setDelegateFrom(e.target.value)}
+            />
+          </Field>
+          <Field label="Ends on">
+            <input
+              type="date"
+              aria-label="Delegation end"
+              value={delegateTo}
+              onChange={(e) => setDelegateTo(e.target.value)}
+            />
+          </Field>
+          <Button onClick={() => delegate.mutate()} disabled={delegate.isPending}>
             Delegate
-          </button>
+          </Button>
         </div>
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {delegations.data?.map((d) => (
-            <li key={d.id} style={{ fontSize: 14, marginTop: 4 }}>
-              → {d.delegateName} ({d.startsOn} – {d.endsOn}){' '}
-              <button type="button" onClick={() => revoke.mutate(d.id)}>
-                Revoke
-              </button>
-            </li>
-          ))}
-        </ul>
+        {delegations.data?.map((d) => (
+          <p key={d.id} className="card-meta">
+            {d.delegateName} ({formatDate(d.startsOn)} – {formatDate(d.endsOn)}){' '}
+            <Button small variant="danger" onClick={() => revoke.mutate(d.id)}>
+              Revoke
+            </Button>
+          </p>
+        ))}
       </details>
 
-      {inbox.isPending && <p>Loading…</p>}
-      {inbox.isError && <p style={{ color: 'crimson' }}>Could not load the inbox.</p>}
-      {inbox.data?.length === 0 && <p>Nothing waiting for your approval. 🎉</p>}
+      {inbox.isPending && <Loading />}
+      {inbox.isError && <Alert kind="error">Could not load the inbox.</Alert>}
+      {inbox.data?.items.length === 0 && (
+        <EmptyState title="Inbox zero" hint="Nothing waiting for your approval." />
+      )}
 
-      <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>
-        {inbox.data?.map((item) => (
-          <li key={item.stepId} style={{ border: '1px solid #ccc', borderRadius: 6, padding: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <ul className="card-list">
+        {inbox.data?.items.map((item) => (
+          <li key={item.stepId} className="card">
+            <div className="card-row">
               <strong>{item.requisition.justification}</strong>
               <span>{money(item.requisition.totalMinor, item.requisition.currency)}</span>
             </div>
-            <div style={{ color: '#555', fontSize: 14 }}>
-              from {item.requisition.requesterName} · needed by {item.requisition.neededBy} · round{' '}
-              {item.round}, step {item.stepNo}
+            <div className="card-meta">
+              from {item.requisition.requesterName} · needed by{' '}
+              {formatDate(item.requisition.neededBy)} · round {item.round}, step {item.stepNo}
             </div>
-            <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
-              <button
-                type="button"
+            <div className="card-actions">
+              <Button
+                variant="primary"
+                small
                 onClick={() => decide.mutate({ stepId: item.stepId, action: 'approve' })}
                 disabled={decide.isPending}
               >
                 Approve
-              </button>
+              </Button>
               <input
                 placeholder="Reason (required to reject)"
+                aria-label="Reason (required to reject)"
                 value={reasons[item.stepId] ?? ''}
                 onChange={(e) => setReasons((prev) => ({ ...prev, [item.stepId]: e.target.value }))}
-                style={{ flex: 1 }}
               />
-              <button
-                type="button"
+              <Button
+                variant="danger"
+                small
                 onClick={() =>
                   decide.mutate({
                     stepId: item.stepId,
@@ -157,11 +158,12 @@ export function ApprovalsInboxPage() {
                 disabled={decide.isPending}
               >
                 Reject
-              </button>
+              </Button>
             </div>
           </li>
         ))}
       </ul>
-    </main>
+      <Pagination meta={inbox.data?.meta} onPage={setPage} />
+    </AppShell>
   );
 }
