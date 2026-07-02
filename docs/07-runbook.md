@@ -34,11 +34,13 @@ Demo logins (after seed): `requester@demo`, `requester2@demo`, `lead@demo`, `hea
 - `seed` = minimal demo org (idempotent, safe to re-run).
 - Test fixtures live with the tests; TC data mirrors PRD §5 examples exactly.
 
-## 4. Logs, health, metrics ⏳
+## 4. Logs, health, metrics
 
-- Structured JSON logs on stdout, one request-id per line
-  (`X-Request-Id` accepted or generated). Filter a request:
-  `docker logs api | grep <requestId>`.
+- Structured JSON logs on stdout via nestjs-pino, one request-id per line
+  (`X-Request-Id` accepted or generated, always echoed as a response header).
+  Filter a request: `docker logs api | grep <requestId>`. `Authorization`
+  headers are redacted; health-check requests are excluded from access logs;
+  dev mode pretty-prints (pino-pretty), test runs are silent.
 - Health: `GET /api/v1/health/liveness` (process),
   `GET /api/v1/health/readiness` (PG+Redis reachable — TCP check until Sequelize/BullMQ
   land, then real driver pings; 503 with a `degraded` body when a check fails).

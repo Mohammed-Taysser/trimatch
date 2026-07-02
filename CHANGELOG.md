@@ -9,6 +9,9 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Structured request logging** (nestjs-pino): one JSON line per request on stdout
+  with `X-Request-Id` (honored or generated, echoed as response header),
+  `Authorization` redacted, health checks excluded, pretty dev output (runbook §4)
 - **Revise & resubmit (FR-105)**: `POST /requisitions/:id/revise` (rejected → draft),
   resubmit opens a new approval round while earlier rounds stay in history; web
   "Revise & edit" button jumps straight into the prefilled form

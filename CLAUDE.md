@@ -46,9 +46,12 @@ and what's next. Run its §5 checklist at the start of every session.
 - **Every user-requested task or change gets a ClickUp ticket** (in the owning
   epic's list) so it can be followed up — create it when the request arrives,
   even for small changes.
-- Remote: `origin` → <https://github.com/Mohammed-Taysser/trimatch> (SSH URL;
-  HTTPS auth doesn't work here and `gh` CLI is not installed). Push branches,
-  open PRs on the GitHub web UI — self-review counts until CI exists.
+- Remote: `origin` → <https://github.com/Mohammed-Taysser/trimatch> (SSH URL for
+  git; `gh` CLI not installed but a GitHub token lives in `~/.config/gh/hosts.yml`
+  — use it via the REST API, **never print it**).
+- **Git flow per task: branch → push the branch → open a PR → merge the PR into
+  `main` on GitHub** (merge commit), then pull main locally. No local-only merges.
+  Self-review counts; PR CI must be green before merge.
 
 ## Commands
 

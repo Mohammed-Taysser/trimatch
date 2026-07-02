@@ -1,6 +1,9 @@
+import { randomUUID } from 'node:crypto';
+import { IncomingMessage, ServerResponse } from 'node:http';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { LoggerModule } from 'nestjs-pino';
 import { ApprovalsModule } from './approvals/approvals.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
@@ -19,6 +22,33 @@ import { RequisitionsModule } from './requisitions/requisitions.module';
       cache: true,
       envFilePath: ['.env', '../../.env'],
       validate: validateEnv,
+    }),
+    // Structured JSON access logs with one request-id per line (runbook §4):
+    // X-Request-Id honored or generated, always echoed back; auth redacted.
+    LoggerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const env = config.getOrThrow<string>('NODE_ENV');
+        return {
+          pinoHttp: {
+            level: env === 'test' ? 'silent' : env === 'production' ? 'info' : 'debug',
+            genReqId: (req: IncomingMessage, res: ServerResponse) => {
+              const header = req.headers['x-request-id'];
+              const id = (Array.isArray(header) ? header[0] : header) ?? randomUUID();
+              res.setHeader('X-Request-Id', id);
+              return id;
+            },
+            redact: ['req.headers.authorization'],
+            autoLogging: {
+              ignore: (req: IncomingMessage) => req.url?.startsWith('/api/v1/health') ?? false,
+            },
+            transport:
+              env === 'development'
+                ? { target: 'pino-pretty', options: { singleLine: true } }
+                : undefined,
+          },
+        };
+      },
     }),
     DatabaseModule,
     IdentityModule,
