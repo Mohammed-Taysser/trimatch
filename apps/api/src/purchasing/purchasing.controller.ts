@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Put } from '@nestjs/common';
 import { PurchaseOrder } from '@trimatch/shared';
 import { CurrentUser, JwtPayload, Roles } from '../auth/decorators';
 import { ConvertRequisitionDto, PoLinesUpdateDto } from './dto';
@@ -15,6 +15,15 @@ export class PurchasingController {
     @Body() body: ConvertRequisitionDto,
   ): Promise<PurchaseOrder> {
     return this.purchasing.convert(body.requisitionId, body.vendorId, user.sub);
+  }
+
+  @Post(':id/issue')
+  @HttpCode(200)
+  issue(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<PurchaseOrder> {
+    return this.purchasing.issue(id, user.sub);
   }
 
   @Get()

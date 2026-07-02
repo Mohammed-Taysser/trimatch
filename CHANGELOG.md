@@ -9,6 +9,10 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Gapless PO numbering on issue (FR-203/I-6)**: `sequences` table + claim upsert
+  inside the issuing transaction (`common/sequences`), `POST /purchase-orders/:id/issue`
+  assigns `PO-YYYY-NNNN` and moves draft → issued with an audit row; TC-203 proves
+  gaplessness under 3 concurrent issues; web Issue button
 - **Convert requisition → PO draft (FR-201)**: `purchase_orders` + `po_lines` tables
   (CLI-generated migration), PO lifecycle map per FR-204,
   `POST /purchase-orders/from-requisition` — approved REQ → `converted` + PO draft

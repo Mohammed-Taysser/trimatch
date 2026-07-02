@@ -33,6 +33,20 @@ export function PurchaseOrdersTab() {
     queryFn: () => apiFetch('/api/v1/purchase-orders', { token, schema: PurchaseOrderListSchema }),
   });
 
+  const issue = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/v1/purchase-orders/${id}/issue`, {
+        method: 'POST',
+        token,
+        schema: PurchaseOrderSchema,
+      }),
+    onSuccess: () => {
+      setError(null);
+      void queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+    },
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Issue failed'),
+  });
+
   const convert = useMutation({
     mutationFn: (payload: { requisitionId: string; vendorId: string }) =>
       apiFetch('/api/v1/purchase-orders/from-requisition', {
@@ -69,6 +83,7 @@ export function PurchaseOrdersTab() {
               </div>
               <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
                 <select
+                  aria-label="Vendor for this purchase order"
                   value={vendorByReq[req.id] ?? ''}
                   onChange={(e) =>
                     setVendorByReq((prev) => ({ ...prev, [req.id]: e.target.value }))
@@ -114,6 +129,17 @@ export function PurchaseOrdersTab() {
               <div style={{ color: '#555', fontSize: 14 }}>
                 {po.lines.length} line(s) · from requisition {po.requisitionId.slice(0, 8)}…
               </div>
+              {po.status === 'draft' && (
+                <div style={{ marginTop: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => issue.mutate(po.id)}
+                    disabled={issue.isPending}
+                  >
+                    Issue (claims number)
+                  </button>
+                </div>
+              )}
             </li>
           ))}
         </ul>
