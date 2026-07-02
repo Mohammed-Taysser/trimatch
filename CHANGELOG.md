@@ -9,6 +9,12 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Approver inbox (FR-104)**: `GET /approvals/inbox` + approve/reject endpoints in a
+  new `approvals` module — reject requires a reason (422 `REASON_REQUIRED`, TC-105),
+  decisions lock rows and advance the requisition (approved when no pending steps
+  remain in the round); requisition views now include chain steps with the decision
+  reason verbatim; web: role-routed approver inbox screen, requesters see rejection
+  reasons on their drafts
 - **Submit for approval (FR-103)**: `POST /requisitions/:id/submit` — state-machine
   base (`common/state-machine`, lifecycle per domain §3.1, 409 `INVALID_TRANSITION`),
   approval-chain snapshot (`approval_steps` with rounds, MVP approver = requester's

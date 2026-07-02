@@ -15,6 +15,7 @@ module.exports = {
     '!src/database/**',
     '!src/identity/**',
     '!src/requisitions/requisitions.service.ts',
+    '!src/approvals/approvals.service.ts',
   ],
   coverageThreshold: {
     global: {

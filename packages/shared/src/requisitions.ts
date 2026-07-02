@@ -35,6 +35,23 @@ export type RequisitionCreate = z.infer<typeof RequisitionCreateSchema>;
 export const RequisitionUpdateSchema = RequisitionCreateSchema;
 export type RequisitionUpdate = z.infer<typeof RequisitionUpdateSchema>;
 
+export const ApprovalStepStatusSchema = z.enum(['pending', 'approved', 'rejected']);
+export type ApprovalStepStatus = z.infer<typeof ApprovalStepStatusSchema>;
+
+// A chain step as seen on a requisition (snapshot per ADR-0002) — carries the
+// decision reason verbatim so the requester is informed (FR-104).
+export const ApprovalStepViewSchema = z.object({
+  id: z.uuid(),
+  round: z.number().int().positive(),
+  stepNo: z.number().int().positive(),
+  status: ApprovalStepStatusSchema,
+  approverId: z.uuid(),
+  approverName: z.string(),
+  reason: z.string().nullable(),
+  decidedAt: z.string().nullable(),
+});
+export type ApprovalStepView = z.infer<typeof ApprovalStepViewSchema>;
+
 export const RequisitionLineSchema = RequisitionLineInputSchema.extend({
   id: z.uuid(),
   lineNo: z.number().int().positive(),
@@ -51,6 +68,7 @@ export const RequisitionSchema = z.object({
   currency: CurrencySchema,
   totalMinor: z.number().int().nonnegative(),
   lines: z.array(RequisitionLineSchema),
+  steps: z.array(ApprovalStepViewSchema).default([]),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

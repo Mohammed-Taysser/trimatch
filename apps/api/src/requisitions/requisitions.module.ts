@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
+import { ApprovalStep } from '../approvals/approval-step.model';
 import { AuditModule } from '../audit/audit.module';
 import { IdentityModule } from '../identity/identity.module';
-import { ApprovalStep } from './approval-step.model';
 import { Requisition, RequisitionLine } from './requisition.model';
 import { RequisitionsController } from './requisitions.controller';
 import { RequisitionsService } from './requisitions.service';
