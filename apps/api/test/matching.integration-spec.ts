@@ -186,6 +186,81 @@ describe('the 3-way match end to end (FR-402/403/405/406)', () => {
     expect(record.comparisons[0].cumulativeInvoicedQty).toBe(60);
   });
 
+  it('TC-602: invoices of 50 then 60 against 100 received → QTY_OVER_INVOICED (FR-602 · I-3)', async () => {
+    const { poId, poLineId } = await receivedPo(100);
+
+    const first = await enterInvoice(poId, poLineId, {
+      qty: 50,
+      priceMinor: 50_00,
+      isFinal: false,
+    });
+    const firstMatch = await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${first}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    expect(MatchRecordSchema.parse(firstMatch.body.data).outcome).toBe('matched');
+
+    const second = await enterInvoice(poId, poLineId, {
+      qty: 60,
+      priceMinor: 50_00,
+      isFinal: false,
+    });
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${second}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    const record = MatchRecordSchema.parse(res.body.data);
+    expect(record.outcome).toBe('exception');
+    expect(record.reasons[0]).toMatchObject({ code: 'QTY_OVER_INVOICED', lineNo: 1 });
+    expect(record.reasons[0].detail).toContain('110 > received 100');
+    expect(record.comparisons[0].cumulativeInvoicedQty).toBe(110);
+  });
+
+  it('FR-602 boundary: 50 then 50 settles the PO — both invoices match and become payable', async () => {
+    const { poId, poLineId } = await receivedPo(100);
+
+    for (const isFinal of [false, true]) {
+      const invoiceId = await enterInvoice(poId, poLineId, { qty: 50, priceMinor: 50_00, isFinal });
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/invoices/${invoiceId}/match`)
+        .set('Authorization', `Bearer ${apToken}`)
+        .expect(200);
+      expect(MatchRecordSchema.parse(res.body.data).outcome).toBe('matched');
+
+      const invoice = await request(app.getHttpServer())
+        .get(`/api/v1/invoices/${invoiceId}`)
+        .set('Authorization', `Bearer ${apToken}`)
+        .expect(200);
+      expect(InvoiceSchema.parse(invoice.body.data).status).toBe('payable');
+    }
+  });
+
+  it('FR-602: rejected invoices do not count toward the cumulative invoiced quantity', async () => {
+    const { poId, poLineId } = await receivedPo(100);
+
+    // a price-variance exception, then AP rejects it back to the vendor
+    const bad = await enterInvoice(poId, poLineId, { qty: 60, priceMinor: 55_00, isFinal: false });
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${bad}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${bad}/reject`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .send({ reason: 'wrong unit price' })
+      .expect(200);
+
+    // the full received quantity is still invoiceable — the rejected 60 is excluded
+    const replacement = await enterInvoice(poId, poLineId, { qty: 100, priceMinor: 50_00 });
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${replacement}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    const record = MatchRecordSchema.parse(res.body.data);
+    expect(record.outcome).toBe('matched');
+    expect(record.comparisons[0].cumulativeInvoicedQty).toBe(100);
+  });
+
   it('the exceptions queue lists exceptions with side-by-side deltas and filters (FR-603)', async () => {
     // create one PRICE_VARIANCE exception for this vendor
     const { poId, poLineId } = await receivedPo(100);
