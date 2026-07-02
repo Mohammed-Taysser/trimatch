@@ -1,6 +1,6 @@
 # TriMatch — Procurement & Purchase Orders with 3-Way Matching
 
-> **Status:** `v0.1.0` — MVP requisition flow shipped · **Stage:** Epic 2 (purchase orders)
+> **Status:** `v0.2.0` — MVP complete (requisition → approval → PO → receipt) · **Stage:** Epic 4 (invoices & 3-way match)
 > **Stack (decided, see ADR-0001):** NestJS · PostgreSQL · Sequelize · React · Redis/BullMQ
 
 ## Getting started

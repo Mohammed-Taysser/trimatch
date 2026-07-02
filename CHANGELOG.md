@@ -7,6 +7,20 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Planned (next)
+
+- Epic 4 — vendor invoices & the 3-way match (v1): invoice entry, duplicate
+  detection, tolerance evaluation (PRD §5.2 cases A–H), exceptions queue
+- Epic 7 — UI polish & superadmin dashboard
+
+## [0.2.0] — 2026-07-02
+
+MVP complete: the full procurement loop runs end to end through the UI — a
+requester raises and submits, the manager approves or rejects with a reason,
+purchasing converts to a numbered PO for an active vendor, and the warehouse
+receives against it with open-quantity and damaged-goods tracking — all
+state-machine-guarded, audit-trailed, gapless-numbered, and seeded for demo.
+
 ### Changed
 
 - **API contract**: every success response now uses the fixed envelope
@@ -55,11 +69,6 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
   (purchasing/admin roles), unique names (409 `DUPLICATE_VENDOR`), active flag with
   `?active=true` filter and `assertActive` guard (409 `VENDOR_INACTIVE`) ready for PO
   creation; web Vendors screen for the purchasing role
-
-### Planned (next)
-
-- Epic 2 — purchase orders: vendors registry (FR-202), convert approved REQ → PO
-  (FR-201), gapless PO numbering (I-6), issue/cancel/close lifecycle
 
 ## [0.1.0] — 2026-07-02
 
