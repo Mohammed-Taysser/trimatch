@@ -9,6 +9,9 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Revise & resubmit (FR-105)**: `POST /requisitions/:id/revise` (rejected → draft),
+  resubmit opens a new approval round while earlier rounds stay in history; web
+  "Revise & edit" button jumps straight into the prefilled form
 - **Approver inbox (FR-104)**: `GET /approvals/inbox` + approve/reject endpoints in a
   new `approvals` module — reject requires a reason (422 `REASON_REQUIRED`, TC-105),
   decisions lock rows and advance the requisition (approved when no pending steps

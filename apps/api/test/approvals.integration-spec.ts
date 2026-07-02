@@ -168,4 +168,77 @@ describe('approver inbox and decisions (FR-104 · TC-105)', () => {
       .expect(403);
     expect(res.body.code).toBe('FORBIDDEN');
   });
+
+  describe('revise & resubmit (FR-105 · TC-106)', () => {
+    it('TC-106: revise + resubmit → new round, previous round preserved in history', async () => {
+      const { reqId, stepId } = await submittedRequisition();
+      const reason = 'Wrong laptop model — spec the 16GB variant';
+      await request(app.getHttpServer())
+        .post(`/api/v1/approvals/steps/${stepId}/reject`)
+        .set('Authorization', `Bearer ${leadToken}`)
+        .send({ reason })
+        .expect(204);
+
+      // revise: rejected → draft, edit allowed again
+      const revised = await request(app.getHttpServer())
+        .post(`/api/v1/requisitions/${reqId}/revise`)
+        .set('Authorization', `Bearer ${requesterToken}`)
+        .expect(200);
+      expect(RequisitionSchema.parse(revised.body).status).toBe('draft');
+      await request(app.getHttpServer())
+        .put(`/api/v1/requisitions/${reqId}`)
+        .set('Authorization', `Bearer ${requesterToken}`)
+        .send({
+          ...DRAFT,
+          lines: [
+            {
+              description: 'Laptop 16GB',
+              category: 'IT hardware',
+              quantity: 1,
+              unitPriceMinor: 119_00,
+            },
+          ],
+        })
+        .expect(200);
+
+      // resubmit: round 2 opens, round 1 stays in history with the reason
+      const resubmitted = await request(app.getHttpServer())
+        .post(`/api/v1/requisitions/${reqId}/submit`)
+        .set('Authorization', `Bearer ${requesterToken}`)
+        .expect(200);
+      const parsed = RequisitionSchema.parse(resubmitted.body);
+      expect(parsed.status).toBe('pending_approval');
+      expect(parsed.steps).toHaveLength(2);
+      expect(parsed.steps[0]).toMatchObject({ round: 1, status: 'rejected', reason });
+      expect(parsed.steps[1]).toMatchObject({ round: 2, status: 'pending', reason: null });
+
+      // round 2 is decidable: approve → approved
+      const inbox = await request(app.getHttpServer())
+        .get('/api/v1/approvals/inbox')
+        .set('Authorization', `Bearer ${leadToken}`)
+        .expect(200);
+      const round2 = InboxSchema.parse(inbox.body).find(
+        (i) => i.requisition.id === reqId && i.round === 2,
+      );
+      expect(round2).toBeDefined();
+      await request(app.getHttpServer())
+        .post(`/api/v1/approvals/steps/${round2?.stepId}/approve`)
+        .set('Authorization', `Bearer ${leadToken}`)
+        .expect(204);
+      const final = await request(app.getHttpServer())
+        .get(`/api/v1/requisitions/${reqId}`)
+        .set('Authorization', `Bearer ${requesterToken}`)
+        .expect(200);
+      expect(RequisitionSchema.parse(final.body).status).toBe('approved');
+    });
+
+    it('revising a non-rejected requisition → 409 INVALID_TRANSITION', async () => {
+      const { reqId } = await submittedRequisition();
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/requisitions/${reqId}/revise`)
+        .set('Authorization', `Bearer ${requesterToken}`)
+        .expect(409);
+      expect(res.body.code).toBe('INVALID_TRANSITION');
+    });
+  });
 });

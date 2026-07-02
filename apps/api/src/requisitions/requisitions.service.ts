@@ -111,6 +111,40 @@ export class RequisitionsService {
     return this.findOwn(id, requesterId);
   }
 
+  // FR-105 / TC-106: rejected → draft; the next submit opens a new round while
+  // the decided steps of earlier rounds stay untouched (history kept).
+  async revise(id: string, requesterId: string): Promise<RequisitionView> {
+    await this.sequelize.transaction(async (transaction) => {
+      const row = await this.requisitions.findByPk(id, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!row) {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'Requisition not found' });
+      }
+      if (row.requesterId !== requesterId) {
+        throw new ForbiddenException({
+          code: 'FORBIDDEN',
+          message: 'Only the requester may revise this requisition',
+        });
+      }
+      requisitionLifecycle.assertCanTransition(row.status, 'draft');
+      await row.update({ status: 'draft' }, { transaction });
+      await this.audit.record(
+        {
+          entityType: 'requisition',
+          entityId: id,
+          actorId: requesterId,
+          action: 'requisition.revised',
+          fromState: 'rejected',
+          toState: 'draft',
+        },
+        transaction,
+      );
+    });
+    return this.findOwn(id, requesterId);
+  }
+
   async findAllOwn(requesterId: string): Promise<RequisitionView[]> {
     const rows = await this.requisitions.findAll({
       where: { requesterId },
