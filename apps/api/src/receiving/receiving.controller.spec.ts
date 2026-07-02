@@ -21,4 +21,14 @@ describe('receipt endpoint delegates with the acting warehouse user', () => {
     await controller.receive(user, body);
     expect(service.receive).toHaveBeenCalledWith(body, user.sub);
   });
+
+  it('list passes the poId-scoped pagination query through', async () => {
+    const service = {
+      listByPo: jest.fn().mockResolvedValue({ items: [], meta: {} }),
+    } as unknown as ReceivingService;
+    const controller = new ReceivingController(service);
+    const query = { page: 1, pageSize: 20, poId: '019787c8-0000-4000-8000-00000000abcd' };
+    await controller.list(query);
+    expect(service.listByPo).toHaveBeenCalledWith(query);
+  });
 });

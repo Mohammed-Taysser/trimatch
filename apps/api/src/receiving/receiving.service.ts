@@ -5,10 +5,11 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
-import { Grn as GrnView, GrnCreate, GrnSchema } from '@trimatch/shared';
+import { Grn as GrnView, GrnCreate, GrnListQuery, GrnSchema } from '@trimatch/shared';
 import { QueryTypes, Transaction } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { AuditService } from '../audit/audit.service';
+import { pageMeta, pageOffset, PagedResult } from '../common/paged';
 import { formatDocNumber, SequencesService } from '../common/sequences.service';
 import { User } from '../identity/user.model';
 import { poLifecycle } from '../purchasing/po.lifecycle';
@@ -136,11 +137,31 @@ export class ReceivingService {
     return new Map(rows.map((row) => [row.po_line_id, Number(row.total)]));
   }
 
+  // FR-601 (TC-601): one PO accumulates many receipts over time — the history,
+  // oldest first, so the 40/30/30 story reads in the order it happened.
+  async listByPo(query: GrnListQuery): Promise<PagedResult<GrnView>> {
+    const { rows, count } = await this.grns.findAndCountAll({
+      where: { poId: query.poId },
+      include: [GrnLine, User],
+      order: [['createdAt', 'ASC']],
+      distinct: true,
+      ...pageOffset(query),
+    });
+    return new PagedResult(
+      rows.map((row) => this.toView(row)),
+      pageMeta(query, count),
+    );
+  }
+
   async findOne(id: string): Promise<GrnView> {
     const row = await this.grns.findByPk(id, { include: [GrnLine, User] });
     if (!row) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'GRN not found' });
     }
+    return this.toView(row);
+  }
+
+  private toView(row: Grn): GrnView {
     return GrnSchema.parse({
       id: row.id,
       grnNumber: row.grnNumber,

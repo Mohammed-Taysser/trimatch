@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { GrnSchema, PurchaseOrderListSchema, PurchaseOrderSchema } from '@trimatch/shared';
+import {
+  GrnListSchema,
+  GrnSchema,
+  PurchaseOrderListSchema,
+  PurchaseOrderSchema,
+} from '@trimatch/shared';
 import { useState } from 'react';
 import { ApiError, apiFetch } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -36,6 +41,16 @@ export function WarehousePage() {
       apiFetch(`/api/v1/purchase-orders/${selectedId}`, { token, schema: PurchaseOrderSchema }),
   });
 
+  const history = useQuery({
+    queryKey: ['receipts', selectedId],
+    enabled: selectedId !== null,
+    queryFn: () =>
+      apiFetch(`/api/v1/receipts?poId=${selectedId}&pageSize=100`, {
+        token,
+        schema: GrnListSchema,
+      }),
+  });
+
   const receive = useMutation({
     mutationFn: (payload: {
       poId: string;
@@ -47,6 +62,7 @@ export function WarehousePage() {
       setQuantities({});
       setDamaged({});
       void queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      void queryClient.invalidateQueries({ queryKey: ['receipts'] });
     },
     onError: (err) => {
       setMessage(null);
@@ -149,6 +165,23 @@ export function WarehousePage() {
               Close
             </button>
           </div>
+
+          <h3>Receipt history</h3>
+          {history.data?.length === 0 && <p>No receipts yet.</p>}
+          <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 4 }}>
+            {history.data?.map((grn) => (
+              <li key={grn.id} style={{ fontSize: 14 }}>
+                <strong>{grn.grnNumber}</strong> · {new Date(grn.createdAt).toLocaleString()} ·{' '}
+                {grn.receivedByName} ·{' '}
+                {grn.lines
+                  .map(
+                    (line) =>
+                      `${line.quantity} received${line.damagedQuantity > 0 ? ` (${line.damagedQuantity} damaged)` : ''}`,
+                  )
+                  .join(', ')}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
     </main>

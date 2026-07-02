@@ -7,6 +7,14 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Added
+
+- **Receipt history per PO (FR-601/TC-601)**: `GET /receipts?poId=` (warehouse/
+  admin, paginated, oldest first) — proof that one PO accumulates many receipts:
+  40/30/30 against a qty-100 line ends at open qty 0 and PO `received`, and a
+  further receipt is refused; receipt history shown under the selected PO on the
+  warehouse screen
+
 ### Planned (next)
 
 - Epic 6 — exceptions & partial deliveries (v1): credit-note application,
