@@ -154,21 +154,22 @@ describe('vendor invoice entry (FR-401 · TC-401)', () => {
     expect(dup.body.code).toBe('DUPLICATE_INVOICE');
   });
 
-  it('inconsistent totals → 422 TOTAL_MISMATCH (I-8)', async () => {
+  it('a total not backed by line items is recorded as-is — flagging it is the match job (case H)', async () => {
     const { poId, poLineId } = await receivedPo();
     const res = await request(app.getHttpServer())
       .post('/api/v1/invoices')
       .set('Authorization', `Bearer ${apToken}`)
       .send({
         poId,
-        invoiceNumber: `BAD-${Date.now().toString(36)}`,
+        invoiceNumber: `SHIP-${Date.now().toString(36)}`,
         invoiceDate: '2026-07-02',
         taxMinor: 0,
-        totalMinor: 1199_99,
+        totalMinor: 1230_00, // +$30 unlisted shipping
         lines: [{ poLineId, quantity: 2, unitPriceMinor: 600_00 }],
       })
-      .expect(422);
-    expect(res.body.code).toBe('TOTAL_MISMATCH');
+      .expect(201);
+    expect(res.body.data.totalMinor).toBe(1230_00);
+    expect(res.body.data.subtotalMinor).toBe(1200_00);
   });
 
   it('a requester role cannot enter invoices → 403', async () => {

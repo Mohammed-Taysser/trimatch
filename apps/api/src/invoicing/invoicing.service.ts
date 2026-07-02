@@ -1,9 +1,4 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import {
   Invoice as InvoiceView,
@@ -56,18 +51,14 @@ export class InvoicingService {
         }
       }
 
-      // I-8: exact integer arithmetic — no tolerance at entry time.
+      // Record the vendor's paper as-is (I-8 integer math). A total that is
+      // not backed by the line items (unlisted shipping, fees — PRD case H)
+      // is the 3-way match's job to flag, not entry validation's.
       const computed = input.lines.map((line) => ({
         ...line,
         lineTotalMinor: line.quantity * line.unitPriceMinor,
       }));
       const subtotal = computed.reduce((sum, line) => sum + line.lineTotalMinor, 0);
-      if (subtotal + input.taxMinor !== input.totalMinor) {
-        throw new UnprocessableEntityException({
-          code: 'TOTAL_MISMATCH',
-          message: `Total ${input.totalMinor} does not equal subtotal ${subtotal} + tax ${input.taxMinor}`,
-        });
-      }
 
       try {
         const invoice = await this.invoices.create(
@@ -79,6 +70,7 @@ export class InvoicingService {
             invoiceDate: input.invoiceDate,
             dueDate: input.dueDate ?? null,
             currency: po.currency,
+            isFinal: input.isFinal ?? false,
             subtotalMinor: subtotal,
             taxMinor: input.taxMinor,
             totalMinor: input.totalMinor,
@@ -153,6 +145,7 @@ export class InvoicingService {
       subtotalMinor: Number(row.subtotalMinor),
       taxMinor: Number(row.taxMinor),
       totalMinor: Number(row.totalMinor),
+      isFinal: row.isFinal,
       lines: (row.lines ?? []).map((line) => ({
         poLineId: line.poLineId,
         quantity: line.quantity,

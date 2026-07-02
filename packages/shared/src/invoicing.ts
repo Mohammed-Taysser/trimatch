@@ -18,6 +18,9 @@ export const InvoiceCreateSchema = z.object({
   dueDate: z.iso.date().optional(),
   taxMinor: z.number().int().nonnegative(),
   totalMinor: z.number().int().nonnegative(),
+  // Final settlement for the PO — under-delivery is judged on final invoices
+  // (PRD cases E vs G; close-short).
+  isFinal: z.boolean().optional(),
   lines: z
     .array(
       z.object({
@@ -44,6 +47,7 @@ export const InvoiceSchema = z.object({
   subtotalMinor: z.number().int().nonnegative(),
   taxMinor: z.number().int().nonnegative(),
   totalMinor: z.number().int().nonnegative(),
+  isFinal: z.boolean(),
   lines: z.array(
     z.object({
       poLineId: z.uuid(),

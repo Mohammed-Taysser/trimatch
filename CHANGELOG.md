@@ -9,6 +9,21 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **The 3-way match (FR-402/403/405/406)**: pure tolerance rules in integer minor
+  units / basis points (no floats — TC-406) mirroring PRD §5.2 cases A–H 1:1;
+  per-line checks (price ±1%, cumulative invoiced ≤ received per I-3, final-invoice
+  under-delivery −2%) + invoice-level total variance ($25 abs); immutable
+  `match_records` (DB trigger, FR-405) storing tolerances, comparisons and
+  machine-readable reasons; `POST /invoices/:id/match` — matched auto-advances to
+  payable (FR-406 hard gate), failures route to exception; `invoices.is_final`
+  flag (close-short) disambiguates cases E vs G; web Run-match button with verdicts
+
+### Changed
+
+- **Invoice entry records the vendor's total as-is**: the `TOTAL_MISMATCH` entry
+  guard was removed — an unlisted extra (case H shipping) must be enterable so the
+  match can flag it as `TOTAL_VARIANCE`
+
 - **Vendor invoice entry (FR-401)**: `invoices` + `invoice_lines` tables, unique
   vendor+number (409 `DUPLICATE_INVOICE`, TC-401), exact-total validation
   (422 `TOTAL_MISMATCH`, I-8), audit row `invoice.entered`; AP-role web screen

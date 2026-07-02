@@ -16,6 +16,7 @@ import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { IdentityModule } from './identity/identity.module';
 import { InvoicingModule } from './invoicing/invoicing.module';
+import { MatchingModule } from './matching/matching.module';
 import { PurchasingModule } from './purchasing/purchasing.module';
 import { ReceivingModule } from './receiving/receiving.module';
 import { RequisitionsModule } from './requisitions/requisitions.module';
@@ -65,6 +66,7 @@ import { VendorsModule } from './vendors/vendors.module';
     PurchasingModule,
     ReceivingModule,
     InvoicingModule,
+    MatchingModule,
     HealthModule,
   ],
   providers: [
