@@ -9,9 +9,12 @@ module.exports = {
     // (test/*.integration-spec.ts) against real Postgres, not by unit tests.
     '!src/main.ts',
     '!src/setup-app.ts',
+    '!src/export-openapi.ts',
     '!src/**/*.module.ts',
+    '!src/**/*.model.ts',
     '!src/database/**',
     '!src/identity/**',
+    '!src/requisitions/requisitions.service.ts',
   ],
   coverageThreshold: {
     global: {

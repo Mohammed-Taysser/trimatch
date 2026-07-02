@@ -9,6 +9,7 @@ import { validateEnv } from './config/env';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { IdentityModule } from './identity/identity.module';
+import { RequisitionsModule } from './requisitions/requisitions.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { IdentityModule } from './identity/identity.module';
     DatabaseModule,
     IdentityModule,
     AuthModule,
+    RequisitionsModule,
     HealthModule,
   ],
   providers: [
