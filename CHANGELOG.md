@@ -9,6 +9,11 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Exceptions queue (FR-403/FR-603)**: `GET /exceptions` (ap/admin, paginated)
+  filterable by vendor, reason and age; every item carries the match record's
+  side-by-side comparisons (ordered/received/invoiced, PO vs invoice price,
+  per-line verdicts, total delta); AP screen renders the three-document deltas
+  with mismatches highlighted
 - **The 3-way match (FR-402/403/405/406)**: pure tolerance rules in integer minor
   units / basis points (no floats — TC-406) mirroring PRD §5.2 cases A–H 1:1;
   per-line checks (price ±1%, cumulative invoiced ≤ received per I-3, final-invoice

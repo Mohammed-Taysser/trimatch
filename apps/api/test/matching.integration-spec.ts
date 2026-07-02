@@ -194,6 +194,57 @@ describe('the 3-way match end to end (FR-402/403/405/406)', () => {
     expect(record.comparisons[0].cumulativeInvoicedQty).toBe(60);
   });
 
+  it('the exceptions queue lists exceptions with side-by-side deltas and filters (FR-603)', async () => {
+    // create one PRICE_VARIANCE exception for this vendor
+    const { poId, poLineId } = await receivedPo(100);
+    const invoiceId = await enterInvoice(poId, poLineId, { qty: 100, priceMinor: 55_00 });
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+
+    const queue = await request(app.getHttpServer())
+      .get(`/api/v1/exceptions?vendorId=${vendorId}&reason=PRICE_VARIANCE&pageSize=100`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    const item = (
+      queue.body.data as {
+        invoice: { id: string };
+        match: { comparisons: unknown[]; reasons: { code: string }[] };
+      }[]
+    ).find((i) => i.invoice.id === invoiceId);
+    expect(item).toBeDefined();
+    expect(item?.match.reasons[0].code).toBe('PRICE_VARIANCE');
+    // side-by-side: ordered / received / invoiced / both prices / verdict
+    expect(item?.match.comparisons[0]).toMatchObject({
+      orderedQty: 100,
+      receivedQty: 100,
+      cumulativeInvoicedQty: 100,
+      poUnitPriceMinor: 50_00,
+      invoiceUnitPriceMinor: 55_00,
+      verdict: 'PRICE_VARIANCE',
+    });
+
+    // a non-matching reason filter excludes it
+    const filtered = await request(app.getHttpServer())
+      .get(`/api/v1/exceptions?vendorId=${vendorId}&reason=TOTAL_VARIANCE&pageSize=100`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    const excluded = (filtered.body.data as { invoice: { id: string } }[]).some(
+      (i) => i.invoice.id === invoiceId,
+    );
+    expect(excluded).toBe(false);
+
+    // age filter: nothing this fresh is older than 5 days
+    const aged = await request(app.getHttpServer())
+      .get(`/api/v1/exceptions?vendorId=${vendorId}&olderThanDays=5&pageSize=100`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    expect(
+      (aged.body.data as { invoice: { id: string } }[]).some((i) => i.invoice.id === invoiceId),
+    ).toBe(false);
+  });
+
   it('match records are immutable (FR-405) and re-matching is refused', async () => {
     const { poId, poLineId } = await receivedPo(100);
     const invoiceId = await enterInvoice(poId, poLineId, { qty: 100, priceMinor: 50_00 });

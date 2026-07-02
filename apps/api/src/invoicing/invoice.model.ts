@@ -13,6 +13,7 @@ import {
   Table,
 } from 'sequelize-typescript';
 import { User } from '../identity/user.model';
+import { MatchRecord } from '../matching/match-record.model';
 import { PoLine, PurchaseOrder } from '../purchasing/purchase-order.model';
 import { Vendor } from '../vendors/vendor.model';
 
@@ -83,6 +84,9 @@ export class Invoice extends Model {
 
   @HasMany(() => InvoiceLine)
   declare lines?: InvoiceLine[];
+
+  @HasMany(() => MatchRecord)
+  declare matchRecords?: MatchRecord[];
 }
 
 @Table({ tableName: 'invoice_lines', underscored: true, timestamps: true })

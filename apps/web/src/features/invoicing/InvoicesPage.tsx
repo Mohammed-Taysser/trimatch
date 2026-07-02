@@ -22,6 +22,7 @@ export function InvoicesPage() {
   const [invoiceDate, setInvoiceDate] = useState('');
   const [tax, setTax] = useState('0');
   const [isFinal, setIsFinal] = useState(true);
+  const [reasonFilter, setReasonFilter] = useState('');
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
@@ -90,6 +91,38 @@ export function InvoicesPage() {
       setMessage(null);
       setError(err instanceof ApiError ? err.message : 'Invoice entry failed');
     },
+  });
+
+  const exceptions = useQuery({
+    queryKey: ['exceptions', reasonFilter],
+    queryFn: () =>
+      apiFetch(`/api/v1/exceptions?pageSize=100${reasonFilter ? `&reason=${reasonFilter}` : ''}`, {
+        token,
+      }) as Promise<
+        {
+          invoice: {
+            id: string;
+            invoiceNumber: string;
+            vendorName: string;
+            totalMinor: number;
+            currency: string;
+            ageDays: number;
+          };
+          match: {
+            reasons: { code: string; detail: string }[];
+            totalDeltaMinor: number;
+            comparisons: {
+              lineNo: number;
+              orderedQty: number;
+              receivedQty: number;
+              cumulativeInvoicedQty: number;
+              poUnitPriceMinor: number;
+              invoiceUnitPriceMinor: number;
+              verdict: string;
+            }[];
+          };
+        }[]
+      >,
   });
 
   const runMatch = useMutation({
@@ -215,6 +248,110 @@ export function InvoicesPage() {
             </div>
           </div>
         )}
+      </section>
+
+      <section>
+        <h2>Exceptions queue</h2>
+        <label>
+          Reason{' '}
+          <select
+            aria-label="Filter exceptions by reason"
+            value={reasonFilter}
+            onChange={(e) => setReasonFilter(e.target.value)}
+          >
+            <option value="">all</option>
+            <option value="PRICE_VARIANCE">PRICE_VARIANCE</option>
+            <option value="QTY_OVER_INVOICED">QTY_OVER_INVOICED</option>
+            <option value="QTY_UNDER_DELIVERY">QTY_UNDER_DELIVERY</option>
+            <option value="TOTAL_VARIANCE">TOTAL_VARIANCE</option>
+          </select>
+        </label>
+        {exceptions.data?.length === 0 && <p>No exceptions. 🎉</p>}
+        <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>
+          {exceptions.data?.map((ex) => (
+            <li
+              key={ex.invoice.id}
+              style={{ border: '1px solid #d99', borderRadius: 6, padding: 12 }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <strong>
+                  {ex.invoice.invoiceNumber} · {ex.invoice.vendorName}
+                </strong>
+                <span>
+                  {money(ex.invoice.totalMinor, ex.invoice.currency)} · {ex.invoice.ageDays}d old
+                </span>
+              </div>
+              <div style={{ color: 'crimson', fontSize: 14 }}>
+                {ex.match.reasons.map((r) => r.code).join(', ')}
+              </div>
+              <table style={{ marginTop: 6, fontSize: 13, borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    {[
+                      'line',
+                      'ordered',
+                      'received',
+                      'invoiced',
+                      'PO price',
+                      'inv price',
+                      'verdict',
+                    ].map((h) => (
+                      <th key={h} style={{ padding: '2px 10px', textAlign: 'right' }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {ex.match.comparisons.map((c) => (
+                    <tr key={c.lineNo}>
+                      <td style={{ padding: '2px 10px', textAlign: 'right' }}>{c.lineNo}</td>
+                      <td style={{ padding: '2px 10px', textAlign: 'right' }}>{c.orderedQty}</td>
+                      <td
+                        style={{
+                          padding: '2px 10px',
+                          textAlign: 'right',
+                          fontWeight: c.receivedQty !== c.orderedQty ? 700 : 400,
+                        }}
+                      >
+                        {c.receivedQty}
+                      </td>
+                      <td
+                        style={{
+                          padding: '2px 10px',
+                          textAlign: 'right',
+                          fontWeight: c.cumulativeInvoicedQty !== c.receivedQty ? 700 : 400,
+                        }}
+                      >
+                        {c.cumulativeInvoicedQty}
+                      </td>
+                      <td style={{ padding: '2px 10px', textAlign: 'right' }}>
+                        {(c.poUnitPriceMinor / 100).toFixed(2)}
+                      </td>
+                      <td
+                        style={{
+                          padding: '2px 10px',
+                          textAlign: 'right',
+                          fontWeight: c.invoiceUnitPriceMinor !== c.poUnitPriceMinor ? 700 : 400,
+                        }}
+                      >
+                        {(c.invoiceUnitPriceMinor / 100).toFixed(2)}
+                      </td>
+                      <td style={{ padding: '2px 10px', textAlign: 'right' }}>
+                        {c.verdict === 'ok' ? '✓' : c.verdict}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {ex.match.totalDeltaMinor !== 0 && (
+                <div style={{ fontSize: 13, marginTop: 4 }}>
+                  total delta: <strong>{(ex.match.totalDeltaMinor / 100).toFixed(2)}</strong>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section>

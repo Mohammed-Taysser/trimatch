@@ -1,12 +1,15 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ExceptionsQuery } from '@trimatch/shared';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import { MatchRecord as MatchRecordView, MatchRecordSchema } from '@trimatch/shared';
-import { QueryTypes } from 'sequelize';
+import { literal, Op, QueryTypes, WhereOptions } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { AuditService } from '../audit/audit.service';
 import { invoiceLifecycle } from '../invoicing/invoice.lifecycle';
 import { Invoice, InvoiceLine } from '../invoicing/invoice.model';
+import { PagedResult, pageMeta, pageOffset } from '../common/paged';
 import { PoLine } from '../purchasing/purchase-order.model';
+import { Vendor } from '../vendors/vendor.model';
 import { MatchRecord } from './match-record.model';
 import { DEFAULT_TOLERANCES, evaluateMatch, MatchLineInput } from './tolerance.rules';
 
@@ -147,6 +150,62 @@ export class MatchingService {
       return record.id;
     });
     return this.findOne(recordId);
+  }
+
+  // FR-403/FR-603: the exceptions queue — every exception invoice with its
+  // match record (the side-by-side deltas), filterable by vendor/reason/age.
+  async exceptions(query: ExceptionsQuery) {
+    const where: WhereOptions = { status: 'exception' };
+    if (query.vendorId) Object.assign(where, { vendorId: query.vendorId });
+    if (query.olderThanDays !== undefined) {
+      Object.assign(where, {
+        createdAt: { [Op.lte]: new Date(Date.now() - query.olderThanDays * 86_400_000) },
+      });
+    }
+    const { rows, count } = await Invoice.findAndCountAll({
+      where,
+      include: [
+        Vendor,
+        {
+          model: MatchRecord,
+          required: true,
+          // reason is enum-validated by the DTO — safe to inline.
+          where: query.reason
+            ? literal(`"matchRecords"."reasons" @> '[{"code":"${query.reason}"}]'`)
+            : undefined,
+        },
+      ],
+      order: [['createdAt', 'ASC']],
+      distinct: true,
+      ...pageOffset({ page: query.page, pageSize: query.pageSize }),
+    });
+    const items = rows.map((invoice) => {
+      const latest = (invoice.matchRecords ?? [])
+        .slice()
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+      return {
+        invoice: {
+          id: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          vendorId: invoice.vendorId,
+          vendorName: invoice.vendor?.name ?? 'Unknown',
+          totalMinor: Number(invoice.totalMinor),
+          currency: invoice.currency,
+          invoiceDate: invoice.invoiceDate,
+          ageDays: Math.floor((Date.now() - (invoice.createdAt as Date).getTime()) / 86_400_000),
+        },
+        match: {
+          id: latest.id,
+          outcome: latest.outcome,
+          reasons: latest.reasons,
+          comparisons: latest.comparisons,
+          tolerances: latest.tolerances,
+          expectedTotalMinor: Number(latest.expectedTotalMinor),
+          totalDeltaMinor: Number(latest.totalDeltaMinor),
+        },
+      };
+    });
+    return new PagedResult(items, pageMeta({ page: query.page, pageSize: query.pageSize }, count));
   }
 
   async findOne(id: string): Promise<MatchRecordView> {
