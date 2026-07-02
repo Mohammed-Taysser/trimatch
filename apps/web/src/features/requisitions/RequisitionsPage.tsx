@@ -289,6 +289,11 @@ export function RequisitionsPage() {
                   ))}
                 </ol>
               )}
+              {req.po && (
+                <p style={{ margin: '6px 0 0', color: '#1a6b2f' }}>
+                  📦 Purchase order {req.po.poNumber ?? '(pending number)'} — {req.po.status}
+                </p>
+              )}
               {req.steps
                 .filter((step) => step.status === 'rejected' && step.reason)
                 .map((step) => (

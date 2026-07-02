@@ -17,6 +17,9 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Requisition → PO link (FR-107/FR-201)**: requisition views embed the linked
+  PO (`po { id, poNumber, status }`) once converted; requesters see the live PO
+  number and status on their card
 - **PO lifecycle rules (FR-204/FR-205)**: `POST /purchase-orders/:id/cancel`
   (draft/issued → cancelled with audit row; blocked with `CANCEL_BLOCKED_RECEIVED`
   once receipts exist — guard activates with Epic 3), issued POs are immutable —

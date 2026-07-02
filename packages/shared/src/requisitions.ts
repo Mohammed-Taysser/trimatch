@@ -70,6 +70,15 @@ export const RequisitionSchema = z.object({
   totalMinor: z.number().int().nonnegative(),
   lines: z.array(RequisitionLineSchema),
   steps: z.array(ApprovalStepViewSchema).default([]),
+  // Present once the requisition was converted (FR-201) — the linked PO.
+  po: z
+    .object({
+      id: z.uuid(),
+      poNumber: z.string().nullable(),
+      status: z.string(),
+    })
+    .nullable()
+    .default(null),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

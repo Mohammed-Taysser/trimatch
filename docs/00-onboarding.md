@@ -84,9 +84,10 @@ Run these before doing work in a new session:
 
 ## 6. What's next (in order)
 
-1. **Epic 2 — purchase orders (MVP)**: vendors registry (FR-202), convert approved
-   REQ → PO (FR-201), gapless numbering (I-6), PO lifecycle.
-2. Then follow the board (Epic 3 receiving, then v1 epics).
+1. **Epic 3 — goods receiving (MVP)**: GRNs against issued POs, open-quantity math
+   (I-2), partially_received/received transitions — also activates the TC-204
+   receipt-blocking cancel test.
+2. Then follow the board (Epic 4 invoices & 3-way match, v1 epics, Epic 7 UI/admin).
 
 Every release: update [CHANGELOG](../CHANGELOG.md), tag `vX.Y.Z`
 (semantic-release takes over once CI exists).
