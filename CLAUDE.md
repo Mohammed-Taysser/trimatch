@@ -35,8 +35,9 @@ and what's next. Run its §5 checklist at the start of every session.
 - Conventional Commits; update [CHANGELOG.md](CHANGELOG.md) per release; tag `vX.Y.Z`.
 - Branches: `feat/<scope>-<desc>`. Acceptance criteria become test names.
 - Out-of-scope discoveries → new ClickUp backlog task, never scope creep.
-- Remote: `origin` → <https://github.com/Mohammed-Taysser/trimatch> — push branches,
-  open PRs with `gh` (self-review counts until CI exists).
+- Remote: `origin` → <https://github.com/Mohammed-Taysser/trimatch> (SSH URL;
+  HTTPS auth doesn't work here and `gh` CLI is not installed). Push branches,
+  open PRs on the GitHub web UI — self-review counts until CI exists.
 
 ## Commands (once the monorepo exists)
 
