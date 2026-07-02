@@ -17,6 +17,10 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Seeded demo org (runbook §1)**: idempotent flow seeder — 3 vendors (one
+  inactive), a requisition in every lifecycle state (live inbox step, rejection
+  with reason), an issued PO partially received with damaged units; reserved 9xxx
+  number band with sequences bumped via GREATEST; users seeder now upsert-based
 - **Damaged goods (FR-304/TC-304)**: GRN lines record `damagedQuantity` separately —
   damaged units never count as received (open qty decreases by good units only);
   damage is queryable on GRNs and PO detail lines; warehouse screen gains a
