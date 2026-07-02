@@ -7,6 +7,12 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Added
+
+- **Onboarding & session handoff** (`docs/00-onboarding.md`): current state, locked
+  decisions, ClickUp IDs and workflow-simulation rules, session-start validation
+  checklist, and the kickoff prompt for continuing work in a new session
+
 ### Planned (next)
 
 - Code scaffold: pnpm monorepo (`apps/api` NestJS, `apps/web` React, `packages/shared`),

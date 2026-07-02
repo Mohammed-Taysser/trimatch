@@ -8,7 +8,7 @@ approvals route through an **amount/department-based approval matrix**, purchasi
 **purchase orders**, the warehouse records **goods receipts**, and finance only approves a
 vendor invoice for payment when the **3-way match** holds:
 
-```
+```text
 Purchase Order  ≈  Goods Receipt  ≈  Vendor Invoice     (within configured tolerances)
 ```
 
@@ -27,6 +27,7 @@ The process rules live in the [Enterprise Playbook](../ENTERPRISE_PLAYBOOK.md).
 
 | Doc | What's in it |
 | --- | --- |
+| [docs/00-onboarding.md](docs/00-onboarding.md) | **Start here** — session handoff, ClickUp workflow rules, validation checklist |
 | [docs/01-prd.md](docs/01-prd.md) | Product requirements — roles, FR/NFR catalog, business rules with worked examples |
 | [docs/02-sla.md](docs/02-sla.md) | Service levels — availability & latency SLOs, error budget, support tiers, RPO/RTO |
 | [docs/03-domain.md](docs/03-domain.md) | Domain model — glossary, entities, invariants, lifecycle state machines |
