@@ -33,6 +33,8 @@ and what's next. Run its §5 checklist at the start of every session.
   variable goes into `.env.example` with a comment.
 - Docs-first: update docs/ADRs before or with code, not after.
 - Conventional Commits; update [CHANGELOG.md](CHANGELOG.md) per release; tag `vX.Y.Z`.
+- **Commit messages: one single line** (`type(scope): what was done`) — no long
+  bodies, and **never a `Co-Authored-By`** or any AI-attribution trailer.
 - Branches: `feat/<scope>-<desc>`. Acceptance criteria become test names.
 - Out-of-scope discoveries → new ClickUp backlog task, never scope creep.
 - Remote: `origin` → <https://github.com/Mohammed-Taysser/trimatch> (SSH URL;

@@ -6,3 +6,8 @@ onlyBuiltDependencies:
   - esbuild
   - '@nestjs/core'
   - '@swc/core'
+
+# GHSA-72gw-mp4g-v24j / GHSA-3p4h-7m6x-2hcm — @nestjs/platform-express pins an
+# older multer; force the patched line until upstream catches up.
+overrides:
+  multer: '>=2.2.0'
