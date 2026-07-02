@@ -7,4 +7,6 @@ module.exports = {
   roots: ['<rootDir>/test'],
   testMatch: ['**/*.integration-spec.ts'],
   passWithNoTests: true,
+  // One shared database — files must not race (TC-203 asserts gapless numbers).
+  maxWorkers: 1,
 };
