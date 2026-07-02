@@ -12,10 +12,13 @@ requisition → approval matrix → purchase order → goods receipt → vendor 
 **3-way match** → payable. Built solo but run with multinational-team process
 ([Enterprise Playbook](../../ENTERPRISE_PLAYBOOK.md)).
 
-## 2. Current state (v0.0.1 — docs baseline, no code yet)
+## 2. Current state (scaffold merged — 0.1.0-dev)
 
 - Git repo at `/mnt/dev/side-projects/trimatch/`, branch `main`, tag `v0.0.1`,
-  9 Conventional Commits, clean tree.
+  clean tree. **Monorepo scaffold shipped 2026-07-02** (ClickUp `869dz0ff5`):
+  `pnpm install && docker compose up -d && pnpm dev` → api :3000 (`/api/v1`),
+  web :5173. Host ports overridable via `.env` (`POSTGRES_HOST_PORT`/`REDIS_HOST_PORT`)
+  when 5432/6379 are taken. Root `CLAUDE.md` exists for Claude Code sessions.
 - Full docs pack exists — see the [README index](../README.md). Key contracts:
   - Business rules with worked numbers: [PRD §5](01-prd.md) (matrix R1–R5, tolerance cases A–H)
   - Invariants I-1..I-8: [domain doc §4](03-domain.md)
@@ -70,19 +73,17 @@ Run these before doing work in a new session:
 2. **MCP loaded:** ToolSearch for "clickup" returns tools. If not → check
    `/mnt/dev/.mcp.json` exists and session was started in `/mnt/dev`; fall back to REST.
 3. **ClickUp reachable:** list the "TriMatch" folder (`901212106264`) → 7 lists, 35 tasks
-   (4 shipped in Epic 0).
+   (5 shipped in Epic 0).
 4. **Docs render:** README table links resolve (spot-check one).
 
 ## 6. What's next (in order)
 
-1. **Epic 0 / "Scaffold pnpm monorepo…"** (`backlog`): apps/api NestJS, apps/web React,
-   packages/shared (zod), docker-compose (PG16 + Redis), validated env config —
-   AC in the ClickUp task; layout in [architecture doc](04-architecture.md).
-2. **Epic 0 / "Add guardrails and CI pipeline"**: husky + commitlint, ESLint/Prettier
-   strict, GitHub Actions lint→typecheck→unit→integration→build, coverage gate.
-3. **Epic 1 first vertical slice**: draft requisition create/edit (FR-101/102, TC-101..103)
+1. **Epic 0 / "Add guardrails and CI pipeline"** (`backlog`): husky + commitlint,
+   ESLint/Prettier strict, GitHub Actions lint→typecheck→unit→integration→build,
+   coverage gate.
+2. **Epic 1 first vertical slice**: draft requisition create/edit (FR-101/102, TC-101..103)
    — thinnest end-to-end path including one React screen.
-4. Then follow the board.
+3. Then follow the board.
 
 Every release: update [CHANGELOG](../CHANGELOG.md), tag `vX.Y.Z`
 (semantic-release takes over once CI exists).
