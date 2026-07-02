@@ -43,6 +43,16 @@ export class RequisitionsController {
     return this.requisitions.submit(id, user.sub);
   }
 
+  @Post(':id/revise')
+  @Roles('requester')
+  @HttpCode(200)
+  revise(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<Requisition> {
+    return this.requisitions.revise(id, user.sub);
+  }
+
   @Get(':id')
   @Roles('requester')
   get(

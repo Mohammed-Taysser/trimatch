@@ -94,6 +94,20 @@ export function RequisitionsPage() {
     onError: (err) => setError(err instanceof ApiError ? err.message : 'Submit failed'),
   });
 
+  const revise = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/v1/requisitions/${id}/revise`, {
+        method: 'POST',
+        token,
+        schema: RequisitionSchema,
+      }),
+    onSuccess: (req) => {
+      void queryClient.invalidateQueries({ queryKey: ['requisitions'] });
+      startEdit(req);
+    },
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Revise failed'),
+  });
+
   function resetForm() {
     setEditingId(null);
     setJustification('');
@@ -259,6 +273,17 @@ export function RequisitionsPage() {
                     Rejected by {step.approverName}: “{step.reason}”
                   </p>
                 ))}
+              {req.status === 'rejected' && (
+                <div style={{ marginTop: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => revise.mutate(req.id)}
+                    disabled={revise.isPending}
+                  >
+                    Revise & edit
+                  </button>
+                </div>
+              )}
               {req.status === 'draft' && (
                 <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
                   <button
