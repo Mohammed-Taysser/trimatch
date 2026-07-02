@@ -19,6 +19,7 @@ module.exports = {
     '!src/vendors/vendors.service.ts',
     '!src/purchasing/purchasing.service.ts',
     '!src/receiving/receiving.service.ts',
+    '!src/invoicing/invoicing.service.ts',
   ],
   coverageThreshold: {
     global: {

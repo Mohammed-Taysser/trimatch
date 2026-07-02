@@ -7,6 +7,13 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Added
+
+- **Vendor invoice entry (FR-401)**: `invoices` + `invoice_lines` tables, unique
+  vendor+number (409 `DUPLICATE_INVOICE`, TC-401), exact-total validation
+  (422 `TOTAL_MISMATCH`, I-8), audit row `invoice.entered`; AP-role web screen
+  entering invoices against POs
+
 ### Planned (next)
 
 - Epic 4 — vendor invoices & the 3-way match (v1): invoice entry, duplicate

@@ -1,4 +1,5 @@
 import { ApprovalsInboxPage } from './features/approvals/ApprovalsInboxPage';
+import { InvoicesPage } from './features/invoicing/InvoicesPage';
 import { LoginPage } from './features/auth/LoginPage';
 import { PurchasingPage } from './features/purchasing/PurchasingPage';
 import { WarehousePage } from './features/receiving/WarehousePage';
@@ -11,5 +12,6 @@ export default function App() {
   if (user?.role === 'approver') return <ApprovalsInboxPage />;
   if (user?.role === 'purchasing' || user?.role === 'admin') return <PurchasingPage />;
   if (user?.role === 'warehouse') return <WarehousePage />;
+  if (user?.role === 'ap') return <InvoicesPage />;
   return <RequisitionsPage />;
 }

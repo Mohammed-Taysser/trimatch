@@ -15,6 +15,7 @@ import { validateEnv } from './config/env';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { IdentityModule } from './identity/identity.module';
+import { InvoicingModule } from './invoicing/invoicing.module';
 import { PurchasingModule } from './purchasing/purchasing.module';
 import { ReceivingModule } from './receiving/receiving.module';
 import { RequisitionsModule } from './requisitions/requisitions.module';
@@ -63,6 +64,7 @@ import { VendorsModule } from './vendors/vendors.module';
     VendorsModule,
     PurchasingModule,
     ReceivingModule,
+    InvoicingModule,
     HealthModule,
   ],
   providers: [
