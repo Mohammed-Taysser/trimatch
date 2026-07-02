@@ -27,6 +27,9 @@ export const PoLineSchema = PoLineInputSchema.extend({
   lineNo: z.number().int().positive(),
   vendorSku: z.string().nullable(),
   lineTotalMinor: z.number().int().nonnegative(),
+  // Populated on PO detail views once receiving exists (I-2 open-qty math).
+  receivedQuantity: z.number().int().nonnegative().optional(),
+  openQuantity: z.number().int().nonnegative().optional(),
 });
 export type PoLine = z.infer<typeof PoLineSchema>;
 

@@ -17,6 +17,12 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Goods receiving (FR-301/302)**: `grns` + `grn_lines` tables, gapless
+  `GRN-YYYY-NNNN` numbers, `POST /receipts` (warehouse role) with per-line
+  open-quantity math (I-2, over-receipt refused), PO → partially_received /
+  received transitions with audit rows; PO detail exposes received/open
+  quantities; TC-204 activated — received POs return `CANCEL_BLOCKED_RECEIVED`;
+  web Goods-receiving screen for the warehouse role
 - **Requisition → PO link (FR-107/FR-201)**: requisition views embed the linked
   PO (`po { id, poNumber, status }`) once converted; requesters see the live PO
   number and status on their card

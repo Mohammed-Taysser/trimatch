@@ -6,7 +6,7 @@ import {
   PurchaseOrder as PoView,
   PurchaseOrderSchema,
 } from '@trimatch/shared';
-import { Transaction } from 'sequelize';
+import { QueryTypes, Transaction } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { AuditService } from '../audit/audit.service';
 import { PagedResult, pageMeta, pageOffset } from '../common/paged';
@@ -134,13 +134,15 @@ export class PurchasingService {
         throw new NotFoundException({ code: 'NOT_FOUND', message: 'Purchase order not found' });
       }
       const from = po.status;
-      poLifecycle.assertCanTransition(from, 'cancelled');
+      // The receipts check runs first so the caller gets the specific reason
+      // (TC-204) — any received PO is uncancellable regardless of state.
       if ((await this.countReceipts(id, transaction)) > 0) {
         throw new ConflictException({
           code: 'CANCEL_BLOCKED_RECEIVED',
           message: 'This purchase order already has receipts and can no longer be cancelled',
         });
       }
+      poLifecycle.assertCanTransition(from, 'cancelled');
       await po.update({ status: 'cancelled' }, { transaction });
       await this.audit.record(
         {
@@ -157,13 +159,24 @@ export class PurchasingService {
     return this.findOne(id);
   }
 
-  // TODO(Epic 3): count GRN rows for this PO once receiving lands — until then
-  // no receipts can exist, so the guard is trivially satisfied. The parameters
-  // are the future query inputs; referenced here so the signature is stable.
-  private countReceipts(poId: string, transaction: Transaction): Promise<number> {
-    void poId;
-    void transaction;
-    return Promise.resolve(0);
+  // TC-204: a PO with any receipt can no longer be cancelled.
+  private async countReceipts(poId: string, transaction: Transaction): Promise<number> {
+    const rows = await this.sequelize.query<{ count: string }>(
+      'SELECT COUNT(*) AS count FROM grns WHERE po_id = :poId',
+      { replacements: { poId }, type: QueryTypes.SELECT, transaction },
+    );
+    return Number(rows[0].count);
+  }
+
+  // I-2 open-quantity math for the PO detail view.
+  private async receivedByPoLine(poId: string): Promise<Map<string, number>> {
+    const rows = await this.sequelize.query<{ po_line_id: string; total: string }>(
+      `SELECT gl.po_line_id, SUM(gl.quantity) AS total
+       FROM grn_lines gl JOIN grns g ON g.id = gl.grn_id
+       WHERE g.po_id = :poId GROUP BY gl.po_line_id`,
+      { replacements: { poId }, type: QueryTypes.SELECT },
+    );
+    return new Map(rows.map((row) => [row.po_line_id, Number(row.total)]));
   }
 
   async findAll(query: PaginationQuery): Promise<PagedResult<PoView>> {
@@ -184,7 +197,7 @@ export class PurchasingService {
     if (!row) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Purchase order not found' });
     }
-    return this.toView(row);
+    return this.toView(row, await this.receivedByPoLine(id));
   }
 
   // FR-201: price/SKU edits before issue, with the delta audit-logged (TC-201).
@@ -258,7 +271,7 @@ export class PurchasingService {
     return this.findOne(id);
   }
 
-  private toView(row: PurchaseOrder): PoView {
+  private toView(row: PurchaseOrder, received?: Map<string, number>): PoView {
     return PurchaseOrderSchema.parse({
       id: row.id,
       poNumber: row.poNumber,
@@ -280,6 +293,12 @@ export class PurchasingService {
           quantity: line.quantity,
           unitPriceMinor: Number(line.unitPriceMinor),
           lineTotalMinor: Number(line.lineTotalMinor),
+          ...(received
+            ? {
+                receivedQuantity: received.get(line.id) ?? 0,
+                openQuantity: line.quantity - (received.get(line.id) ?? 0),
+              }
+            : {}),
         })),
       createdAt: (row.createdAt as Date).toISOString(),
       updatedAt: (row.updatedAt as Date).toISOString(),
