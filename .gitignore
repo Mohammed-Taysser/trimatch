@@ -32,3 +32,6 @@ junit.xml
 
 # generated API artifacts (ADR-0003)
 docs/api/
+
+# browser-verification artifacts
+.playwright-mcp/
