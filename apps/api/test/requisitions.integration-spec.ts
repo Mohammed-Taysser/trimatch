@@ -119,6 +119,28 @@ describe('draft requisitions (FR-101/102 · TC-101..103)', () => {
     expect(gone.body.code).toBe('NOT_FOUND');
   });
 
+  it('TC-108/FR-107: the list shows live state and the pending approver', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/requisitions')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send(TWO_LINES)
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/requisitions/${created.body.id}/submit`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+
+    const list = await request(app.getHttpServer())
+      .get('/api/v1/requisitions')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    const item = (list.body as { id: string }[]).find((r) => r.id === created.body.id);
+    const parsed = RequisitionSchema.parse(item);
+    expect(parsed.status).toBe('pending_approval');
+    const pending = parsed.steps.find((s) => s.status === 'pending');
+    expect(pending?.approverName).toBe('Lee Lead');
+  });
+
   it('list returns only the requesting user own requisitions', async () => {
     const mine = await request(app.getHttpServer())
       .post('/api/v1/requisitions')
