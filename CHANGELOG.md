@@ -9,6 +9,12 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Partial invoices matched cumulatively — proven (FR-602/TC-602/I-3)**:
+  integration tests — invoices of 50 then 60 against 100 received raise
+  `QTY_OVER_INVOICED` (cumulative 110 > 100) on the second; 50 then 50 settles
+  the PO with both invoices payable; rejected invoices are excluded from the
+  cumulative
+
 - **Receipt history per PO (FR-601/TC-601)**: `GET /receipts?poId=` (warehouse/
   admin, paginated, oldest first) — proof that one PO accumulates many receipts:
   40/30/30 against a qty-100 line ends at open qty 0 and PO `received`, and a
