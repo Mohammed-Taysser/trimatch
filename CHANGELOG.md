@@ -7,6 +7,19 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Planned (next)
+
+- Epic 6 — exceptions & partial deliveries (v1): credit-note application,
+  PO amendments
+- Epic 7 — UI polish & superadmin dashboard
+
+## [0.4.0] — 2026-07-03
+
+The approval matrix engine is live: chains are computed from versioned,
+validated rules at submission and snapshotted (ADR-0002) — sequential
+multi-step approval, delegation windows with dual-identity audit, and proof
+that editing the rules never touches an in-flight chain (I-5).
+
 ### Added
 
 - **In-flight chain immunity proven (FR-504/TC-505/I-5)**: integration test —
@@ -35,14 +48,6 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
   department × category → ordered chain of titles) + append rules (R5: CISO for
   IT/Software licenses); pure overlap validator (422 `MATRIX_OVERLAP`, TC-506);
   default R1–R5 seeded as version 1; admin `GET/POST /matrix-rules`
-
-### Planned (next)
-
-- Epic 5 — approval matrix engine (v1): data-driven rules R1–R5, multi-step
-  chains, delegation, admin rule editor
-- Epic 6 — exceptions & partial deliveries (v1): credit-note application,
-  PO amendments
-- Epic 7 — UI polish & superadmin dashboard
 
 ## [0.3.0] — 2026-07-02
 
