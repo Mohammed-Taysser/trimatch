@@ -1,6 +1,7 @@
 export * from './api';
 export * from './approvals';
 export * from './auth';
+export * from './delegations';
 export * from './health';
 export * from './invoicing';
 export * from './matching';

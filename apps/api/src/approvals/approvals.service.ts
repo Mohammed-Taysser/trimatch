@@ -10,6 +10,7 @@ import { InboxItem, InboxSchema, PaginationQuery } from '@trimatch/shared';
 import { literal, Op, Transaction } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { AuditService } from '../audit/audit.service';
+import { DelegationsService } from './delegations.service';
 import { PagedResult, pageMeta, pageOffset } from '../common/paged';
 import { User } from '../identity/user.model';
 import { requisitionLifecycle } from '../requisitions/requisition.lifecycle';
@@ -22,15 +23,18 @@ export class ApprovalsService {
     @InjectModel(ApprovalStep) private readonly steps: typeof ApprovalStep,
     @InjectConnection() private readonly sequelize: Sequelize,
     private readonly audit: AuditService,
+    private readonly delegations: DelegationsService,
   ) {}
 
   async inbox(approverId: string, query: PaginationQuery): Promise<PagedResult<InboxItem>> {
     // FR-502: an approver sees a step only when it is their turn — the
     // lowest pending step_no of the requisition's current round, and only
     // while the requisition is still pending approval.
+    // FR-503: an active delegation lets the delegate work the delegator's queue.
+    const delegators = await this.delegations.activeDelegatorsFor(approverId);
     const { rows, count } = await this.steps.findAndCountAll({
       where: {
-        approverId,
+        approverId: { [Op.in]: [approverId, ...delegators] },
         status: 'pending',
         [Op.and]: [
           literal(`"ApprovalStep"."step_no" = (
@@ -96,11 +100,17 @@ export class ApprovalsService {
       if (!step) {
         throw new NotFoundException({ code: 'NOT_FOUND', message: 'Approval step not found' });
       }
+      let onBehalfOf: string | null = null;
       if (step.approverId !== approverId) {
-        throw new ForbiddenException({
-          code: 'FORBIDDEN',
-          message: 'This approval step is assigned to another approver',
-        });
+        const delegation = await this.delegations.activeDelegation(step.approverId, approverId);
+        if (!delegation) {
+          throw new ForbiddenException({
+            code: 'FORBIDDEN',
+            message: 'This approval step is assigned to another approver',
+          });
+        }
+        // FR-503 / TC-504: the audit row must show both identities.
+        onBehalfOf = `on behalf of ${delegation.delegator?.fullName ?? step.approverId} (delegation ${delegation.id})`;
       }
       if (step.status !== 'pending') {
         throw new ConflictException({
@@ -129,7 +139,14 @@ export class ApprovalsService {
         { status: decision, reason: trimmedReason ?? null, decidedAt: new Date() },
         { transaction },
       );
-      await this.advanceRequisition(step, decision, approverId, trimmedReason, transaction);
+      await this.advanceRequisition(
+        step,
+        decision,
+        approverId,
+        trimmedReason,
+        transaction,
+        onBehalfOf,
+      );
     });
   }
 
@@ -139,6 +156,7 @@ export class ApprovalsService {
     approverId: string,
     reason: string | undefined,
     transaction: Transaction,
+    onBehalfOf: string | null = null,
   ): Promise<void> {
     const requisition = await Requisition.findByPk(step.requisitionId, {
       transaction,
@@ -170,7 +188,7 @@ export class ApprovalsService {
         action: `requisition.${target}`,
         fromState: 'pending_approval',
         toState: target,
-        comment: reason,
+        comment: [reason, onBehalfOf].filter(Boolean).join(' — ') || undefined,
       },
       transaction,
     );
