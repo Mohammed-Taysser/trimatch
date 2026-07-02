@@ -1,6 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { InvoiceSchema, MatchRecordSchema, VendorSchema } from '@trimatch/shared';
+import {
+  ExceptionsSummarySchema,
+  InvoiceSchema,
+  MatchRecordSchema,
+  VendorSchema,
+} from '@trimatch/shared';
 import { QueryTypes } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import request from 'supertest';
@@ -259,6 +264,87 @@ describe('the 3-way match end to end (FR-402/403/405/406)', () => {
     const record = MatchRecordSchema.parse(res.body.data);
     expect(record.outcome).toBe('matched');
     expect(record.comparisons[0].cumulativeInvoicedQty).toBe(100);
+  });
+
+  it('FR-603: counts per reason, sortable queue, and resolving updates both live', async () => {
+    const summaryOf = async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/exceptions/summary')
+        .set('Authorization', `Bearer ${apToken}`)
+        .expect(200);
+      const parsed = ExceptionsSummarySchema.parse(res.body.data);
+      const byReason = Object.fromEntries(parsed.counts.map((c) => [c.reason, c.count]));
+      return { total: parsed.total, byReason };
+    };
+    const before = await summaryOf();
+
+    // one PRICE_VARIANCE and one QTY_OVER_INVOICED exception
+    const { poId: pricePo, poLineId: priceLine } = await receivedPo(100);
+    const priceInvoice = await enterInvoice(pricePo, priceLine, { qty: 100, priceMinor: 55_00 });
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${priceInvoice}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    const { poId: qtyPo, poLineId: qtyLine } = await receivedPo(50);
+    const qtyInvoice = await enterInvoice(qtyPo, qtyLine, {
+      qty: 60,
+      priceMinor: 50_00,
+      isFinal: false,
+    });
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${qtyInvoice}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+
+    const after = await summaryOf();
+    expect(after.total).toBe(before.total + 2);
+    expect(after.byReason.PRICE_VARIANCE ?? 0).toBe((before.byReason.PRICE_VARIANCE ?? 0) + 1);
+    expect(after.byReason.QTY_OVER_INVOICED ?? 0).toBe(
+      (before.byReason.QTY_OVER_INVOICED ?? 0) + 1,
+    );
+
+    // sort: newest first leads with the exception just created
+    const newest = await request(app.getHttpServer())
+      .get('/api/v1/exceptions?sort=newest&pageSize=1')
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    expect(newest.body.data[0].invoice.id).toBe(qtyInvoice);
+    const oldest = await request(app.getHttpServer())
+      .get('/api/v1/exceptions?sort=oldest&pageSize=1')
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    expect(oldest.body.data[0].invoice.id).not.toBe(qtyInvoice);
+
+    // sort by reason: first reason codes come back in order
+    const byReason = await request(app.getHttpServer())
+      .get('/api/v1/exceptions?sort=reason&pageSize=100')
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    const codes = (byReason.body.data as { match: { reasons: { code: string }[] } }[]).map(
+      (ex) => ex.match.reasons[0].code,
+    );
+    expect(codes).toEqual([...codes].sort());
+    await request(app.getHttpServer())
+      .get('/api/v1/exceptions?sort=vendor&pageSize=100')
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+
+    // resolving pulls the invoice out of the queue and the counts follow
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${priceInvoice}/accept-variance`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .send({ reason: 'Vendor price increase approved by AP manager' })
+      .expect(200);
+    const resolved = await summaryOf();
+    expect(resolved.total).toBe(after.total - 1);
+    expect(resolved.byReason.PRICE_VARIANCE ?? 0).toBe(after.byReason.PRICE_VARIANCE - 1);
+    const queue = await request(app.getHttpServer())
+      .get('/api/v1/exceptions?pageSize=100')
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    const ids = (queue.body.data as { invoice: { id: string } }[]).map((ex) => ex.invoice.id);
+    expect(ids).not.toContain(priceInvoice);
+    expect(ids).toContain(qtyInvoice);
   });
 
   it('the exceptions queue lists exceptions with side-by-side deltas and filters (FR-603)', async () => {

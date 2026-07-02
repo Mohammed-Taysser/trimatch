@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  ExceptionsSummarySchema,
   InvoiceListSchema,
   InvoiceSchema,
   MatchRecordSchema,
@@ -23,6 +24,7 @@ export function InvoicesPage() {
   const [tax, setTax] = useState('0');
   const [isFinal, setIsFinal] = useState(true);
   const [reasonFilter, setReasonFilter] = useState('');
+  const [sortBy, setSortBy] = useState('oldest');
   const [resolutionReasons, setResolutionReasons] = useState<Record<string, string>>({});
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [prices, setPrices] = useState<Record<string, string>>({});
@@ -94,12 +96,21 @@ export function InvoicesPage() {
     },
   });
 
-  const exceptions = useQuery({
-    queryKey: ['exceptions', reasonFilter],
+  const summary = useQuery({
+    queryKey: ['exceptions-summary'],
     queryFn: () =>
-      apiFetch(`/api/v1/exceptions?pageSize=100${reasonFilter ? `&reason=${reasonFilter}` : ''}`, {
-        token,
-      }) as Promise<
+      apiFetch('/api/v1/exceptions/summary', { token, schema: ExceptionsSummarySchema }),
+  });
+
+  const exceptions = useQuery({
+    queryKey: ['exceptions', reasonFilter, sortBy],
+    queryFn: () =>
+      apiFetch(
+        `/api/v1/exceptions?pageSize=100&sort=${sortBy}${reasonFilter ? `&reason=${reasonFilter}` : ''}`,
+        {
+          token,
+        },
+      ) as Promise<
         {
           invoice: {
             id: string;
@@ -138,6 +149,7 @@ export function InvoicesPage() {
       setError(null);
       setMessage(`${invoice.invoiceNumber} → ${invoice.status}`);
       void queryClient.invalidateQueries({ queryKey: ['exceptions'] });
+      void queryClient.invalidateQueries({ queryKey: ['exceptions-summary'] });
       void queryClient.invalidateQueries({ queryKey: ['invoices'] });
     },
     onError: (err) => {
@@ -172,6 +184,8 @@ export function InvoicesPage() {
           : `❌ Exception: ${record.reasons.map((r) => r.code).join(', ')}`,
       );
       void queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      void queryClient.invalidateQueries({ queryKey: ['exceptions'] });
+      void queryClient.invalidateQueries({ queryKey: ['exceptions-summary'] });
     },
     onError: (err) => {
       setMessage(null);
@@ -283,7 +297,39 @@ export function InvoicesPage() {
       </section>
 
       <section>
-        <h2>Exceptions queue</h2>
+        <h2>Exceptions queue{summary.data ? ` (${summary.data.total})` : ''}</h2>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+          <button
+            type="button"
+            onClick={() => setReasonFilter('')}
+            style={{ fontWeight: reasonFilter === '' ? 'bold' : 'normal' }}
+          >
+            all ({summary.data?.total ?? 0})
+          </button>
+          {summary.data?.counts.map((entry) => (
+            <button
+              key={entry.reason}
+              type="button"
+              onClick={() => setReasonFilter(entry.reason)}
+              style={{ fontWeight: reasonFilter === entry.reason ? 'bold' : 'normal' }}
+            >
+              {entry.reason} ({entry.count})
+            </button>
+          ))}
+        </div>
+        <label>
+          Sort{' '}
+          <select
+            aria-label="Sort exceptions"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="oldest">oldest first</option>
+            <option value="newest">newest first</option>
+            <option value="vendor">by vendor</option>
+            <option value="reason">by reason</option>
+          </select>
+        </label>{' '}
         <label>
           Reason{' '}
           <select

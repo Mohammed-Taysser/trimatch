@@ -1,8 +1,13 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { ExceptionsQuery } from '@trimatch/shared';
+import {
+  ExceptionsQuery,
+  ExceptionsSummary,
+  ExceptionsSummaryQuery,
+  ExceptionsSummarySchema,
+} from '@trimatch/shared';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import { MatchRecord as MatchRecordView, MatchRecordSchema } from '@trimatch/shared';
-import { literal, Op, QueryTypes, WhereOptions } from 'sequelize';
+import { literal, Op, Order, QueryTypes, WhereOptions } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { AuditService } from '../audit/audit.service';
 import { invoiceLifecycle } from '../invoicing/invoice.lifecycle';
@@ -12,6 +17,20 @@ import { PoLine } from '../purchasing/purchase-order.model';
 import { Vendor } from '../vendors/vendor.model';
 import { MatchRecord } from './match-record.model';
 import { DEFAULT_TOLERANCES, evaluateMatch, MatchLineInput } from './tolerance.rules';
+
+// FR-603: how the queue can be worked — oldest first is the default worklist.
+const EXCEPTION_SORTS: Record<ExceptionsQuery['sort'], Order> = {
+  oldest: [['createdAt', 'ASC']],
+  newest: [['createdAt', 'DESC']],
+  vendor: [
+    [{ model: Vendor, as: 'vendor' }, 'name', 'ASC'],
+    ['createdAt', 'ASC'],
+  ],
+  reason: [
+    [literal(`"matchRecords"."reasons"->0->>'code'`), 'ASC'],
+    ['createdAt', 'ASC'],
+  ],
+};
 
 @Injectable()
 export class MatchingService {
@@ -152,6 +171,40 @@ export class MatchingService {
     return this.findOne(recordId);
   }
 
+  // FR-603: counts per reason drive the queue header — an invoice carrying
+  // two reasons counts toward both, so the sum can exceed total.
+  async exceptionsSummary(query: ExceptionsSummaryQuery): Promise<ExceptionsSummary> {
+    const filters = ['i.status = :status'];
+    const replacements: Record<string, unknown> = { status: 'exception' };
+    if (query.vendorId) {
+      filters.push('i.vendor_id = :vendorId');
+      replacements.vendorId = query.vendorId;
+    }
+    if (query.olderThanDays !== undefined) {
+      filters.push('i.created_at <= :cutoff');
+      replacements.cutoff = new Date(Date.now() - query.olderThanDays * 86_400_000);
+    }
+    const where = filters.join(' AND ');
+    const counts = await this.sequelize.query<{ reason: string; count: string }>(
+      `SELECT reason.elem->>'code' AS reason, COUNT(DISTINCT i.id) AS count
+       FROM invoices i
+       JOIN match_records m ON m.invoice_id = i.id
+       CROSS JOIN LATERAL jsonb_array_elements(m.reasons) AS reason(elem)
+       WHERE ${where}
+       GROUP BY reason.elem->>'code'
+       ORDER BY reason.elem->>'code'`,
+      { replacements, type: QueryTypes.SELECT },
+    );
+    const total = await this.sequelize.query<{ count: string }>(
+      `SELECT COUNT(*) AS count FROM invoices i WHERE ${where}`,
+      { replacements, type: QueryTypes.SELECT },
+    );
+    return ExceptionsSummarySchema.parse({
+      total: Number(total[0].count),
+      counts: counts.map((row) => ({ reason: row.reason, count: Number(row.count) })),
+    });
+  }
+
   // FR-403/FR-603: the exceptions queue — every exception invoice with its
   // match record (the side-by-side deltas), filterable by vendor/reason/age.
   async exceptions(query: ExceptionsQuery) {
@@ -175,8 +228,12 @@ export class MatchingService {
             : undefined,
         },
       ],
-      order: [['createdAt', 'ASC']],
+      order: EXCEPTION_SORTS[query.sort],
       distinct: true,
+      // an invoice has exactly one match record (re-matching is refused), so
+      // the flat join is safe — and the reason/vendor sorts need the joined
+      // aliases visible to ORDER BY, which the wrapped subquery hides.
+      subQuery: false,
       ...pageOffset({ page: query.page, pageSize: query.pageSize }),
     });
     const items = rows.map((invoice) => {

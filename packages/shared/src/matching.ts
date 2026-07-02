@@ -49,5 +49,20 @@ export const ExceptionsQuerySchema = z.object({
   vendorId: z.uuid().optional(),
   reason: MatchReasonCodeSchema.optional(),
   olderThanDays: z.coerce.number().int().nonnegative().optional(),
+  // FR-603: the queue is a worklist — oldest first by default.
+  sort: z.enum(['oldest', 'newest', 'vendor', 'reason']).default('oldest'),
 });
 export type ExceptionsQuery = z.infer<typeof ExceptionsQuerySchema>;
+
+// FR-603: counts per reason for the queue header — an invoice carrying two
+// reasons counts toward both, so the sum can exceed total.
+export const ExceptionsSummaryQuerySchema = z.object({
+  vendorId: z.uuid().optional(),
+  olderThanDays: z.coerce.number().int().nonnegative().optional(),
+});
+export type ExceptionsSummaryQuery = z.infer<typeof ExceptionsSummaryQuerySchema>;
+export const ExceptionsSummarySchema = z.object({
+  total: z.number().int().nonnegative(),
+  counts: z.array(z.object({ reason: MatchReasonCodeSchema, count: z.number().int().positive() })),
+});
+export type ExceptionsSummary = z.infer<typeof ExceptionsSummarySchema>;
