@@ -9,6 +9,10 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **In-flight chain immunity proven (FR-504/TC-505/I-5)**: integration test —
+  a requisition submitted under the default ruleset keeps and completes its
+  snapshotted three-step chain after the matrix is replaced, while an identical
+  new submission gets the new single-step chain
 - **Delegation (FR-503/TC-504)**: `delegations` table + CRUD (approver delegates to
   a peer by email for a date range; self-delegation and backwards windows refused);
   within the window the delegate sees and works the delegator's queue, and the
