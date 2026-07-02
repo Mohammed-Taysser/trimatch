@@ -9,6 +9,13 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Exceptions queue drives daily work (FR-603)**: `GET /exceptions` gains
+  `sort=oldest|newest|vendor|reason`; new `GET /exceptions/summary` returns the
+  total and counts per reason (vendor/age filters honoured; an invoice carrying
+  two reasons counts toward both); AP screen shows clickable reason-count
+  chips + a sort selector, and both the queue and the counts refresh live on
+  match runs and resolutions
+
 - **PO amendments with versioning (FR-604/TC-603)**: `POST
   /purchase-orders/:id/amend` changes quantity/price on issued or partially
   received POs — the superseded version is snapshotted into append-only

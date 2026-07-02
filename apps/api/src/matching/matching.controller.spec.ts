@@ -18,4 +18,23 @@ describe('match endpoint delegates with the acting AP clerk', () => {
     await controller.match(user, INVOICE_ID);
     expect(service.match).toHaveBeenCalledWith(INVOICE_ID, user.sub);
   });
+
+  it('queue and summary pass the filters straight through', async () => {
+    const service = {
+      exceptions: jest.fn().mockResolvedValue({ items: [], meta: {} }),
+      exceptionsSummary: jest.fn().mockResolvedValue({ total: 0, counts: [] }),
+    } as unknown as MatchingService;
+    const controller = new MatchingController(service);
+    const query = {
+      page: 1,
+      pageSize: 20,
+      reason: 'PRICE_VARIANCE' as const,
+      sort: 'vendor' as const,
+    };
+    await controller.exceptions(query);
+    expect(service.exceptions).toHaveBeenCalledWith(query);
+    const summaryQuery = { olderThanDays: 5 };
+    await controller.exceptionsSummary(summaryQuery);
+    expect(service.exceptionsSummary).toHaveBeenCalledWith(summaryQuery);
+  });
 });
