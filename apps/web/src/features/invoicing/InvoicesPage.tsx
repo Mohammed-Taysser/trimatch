@@ -146,6 +146,17 @@ export function InvoicesPage() {
     },
   });
 
+  const markPayable = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/v1/invoices/${id}/payable`, { method: 'POST', token, schema: InvoiceSchema }),
+    onSuccess: (invoice) => {
+      setError(null);
+      setMessage(`${invoice.invoiceNumber} is payable`);
+      void queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    },
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Payable failed'),
+  });
+
   const runMatch = useMutation({
     mutationFn: (id: string) =>
       apiFetch(`/api/v1/invoices/${id}/match`, {
@@ -437,6 +448,17 @@ export function InvoicesPage() {
                     disabled={runMatch.isPending}
                   >
                     Run 3-way match
+                  </button>
+                </div>
+              )}
+              {inv.status === 'variance_accepted' && (
+                <div style={{ marginTop: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => markPayable.mutate(inv.id)}
+                    disabled={markPayable.isPending}
+                  >
+                    Mark payable
                   </button>
                 </div>
               )}
