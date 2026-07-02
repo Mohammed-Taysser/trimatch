@@ -12,7 +12,7 @@ requisition → approval matrix → purchase order → goods receipt → vendor 
 **3-way match** → payable. Built solo but run with multinational-team process
 ([Enterprise Playbook](../../ENTERPRISE_PLAYBOOK.md)).
 
-## 2. Current state (v0.2.0 — MVP complete: Epics 0–3)
+## 2. Current state (v0.3.0 — Epics 0–4: MVP + the 3-way match)
 
 - Git repo at `/mnt/dev/side-projects/trimatch/`, branch `main`, tags `v0.0.1` +
   `v0.1.0`; remote `origin` → <https://github.com/Mohammed-Taysser/trimatch>
@@ -84,10 +84,10 @@ Run these before doing work in a new session:
 
 ## 6. What's next (in order)
 
-1. **Epic 4 — vendor invoices & 3-way match (v1)**: invoice entry + duplicate check
-   (FR-401, I-3), tolerance evaluation as pure functions mirroring PRD §5.2 cases
-   A–H, match records, exceptions queue.
-2. Then the board: Epic 5 matrix engine, Epic 6 exceptions, Epic 7 UI/superadmin.
+1. **Epic 5 — approval matrix engine (v1)**: rules R1–R5 as versioned DB rows
+   (ADR-0002), multi-step sequential chains, delegation, admin editor — plus the
+   deferred matrix seed data.
+2. Then the board: Epic 6 partial-delivery/credit-note polish, Epic 7 UI/superadmin.
 
 Every release: update [CHANGELOG](../CHANGELOG.md), tag `vX.Y.Z`
 (semantic-release takes over once CI exists).

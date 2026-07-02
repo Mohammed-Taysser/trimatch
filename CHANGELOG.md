@@ -7,6 +7,23 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Planned (next)
+
+- Epic 5 — approval matrix engine (v1): data-driven rules R1–R5, multi-step
+  chains, delegation, admin rule editor
+- Epic 6 — exceptions & partial deliveries (v1): credit-note application,
+  PO amendments
+- Epic 7 — UI polish & superadmin dashboard
+
+## [0.3.0] — 2026-07-02
+
+The 3-way match is live end to end: AP enters the vendor's invoice (duplicate-
+protected), runs the match against PO and receipts — pure integer/basis-point
+rules mirroring PRD §5.2 cases A–H — and either the invoice auto-advances to
+payable or lands in a filterable exceptions queue with the three documents side
+by side, where AP accepts the variance (reason audit-logged), holds for a credit
+note, or rejects. Nothing becomes payable without a match record (I-4).
+
 ### Added
 
 - **Hard payable gate (FR-406/I-4/TC-405)**: `POST /invoices/:id/payable` — an
@@ -43,12 +60,6 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
   vendor+number (409 `DUPLICATE_INVOICE`, TC-401), exact-total validation
   (422 `TOTAL_MISMATCH`, I-8), audit row `invoice.entered`; AP-role web screen
   entering invoices against POs
-
-### Planned (next)
-
-- Epic 4 — vendor invoices & the 3-way match (v1): invoice entry, duplicate
-  detection, tolerance evaluation (PRD §5.2 cases A–H), exceptions queue
-- Epic 7 — UI polish & superadmin dashboard
 
 ## [0.2.0] — 2026-07-02
 
