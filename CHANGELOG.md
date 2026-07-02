@@ -17,6 +17,10 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Damaged goods (FR-304/TC-304)**: GRN lines record `damagedQuantity` separately —
+  damaged units never count as received (open qty decreases by good units only);
+  damage is queryable on GRNs and PO detail lines; warehouse screen gains a
+  damaged input
 - **Over-receipt blocking formalized (FR-303/TC-303)**: receiving beyond the open
   quantity returns 422 `OVER_RECEIPT_BLOCKED` with full rollback; exact-boundary
   receipts succeed; multi-line GRNs are atomic (one overflowing line rejects all)

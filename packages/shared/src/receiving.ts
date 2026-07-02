@@ -8,6 +8,8 @@ export const GrnCreateSchema = z.object({
       z.object({
         poLineId: z.uuid(),
         quantity: z.number().int().positive(),
+        // FR-304: damaged units are recorded but never count as received.
+        damagedQuantity: z.number().int().nonnegative().optional(),
       }),
     )
     .min(1, 'at least one line is required'),
@@ -24,6 +26,7 @@ export const GrnSchema = z.object({
     z.object({
       poLineId: z.uuid(),
       quantity: z.number().int().positive(),
+      damagedQuantity: z.number().int().nonnegative(),
     }),
   ),
   createdAt: z.string(),

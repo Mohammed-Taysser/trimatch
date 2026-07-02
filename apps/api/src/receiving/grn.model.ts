@@ -70,4 +70,9 @@ export class GrnLine extends Model {
   @AllowNull(false)
   @Column(DataType.INTEGER)
   declare quantity: number;
+
+  @AllowNull(false)
+  @Default(0)
+  @Column(DataType.INTEGER)
+  declare damagedQuantity: number;
 }
