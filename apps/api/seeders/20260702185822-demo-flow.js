@@ -112,22 +112,31 @@ module.exports = {
     const now = new Date();
     const q = queryInterface;
 
-    // idempotency: remove previous demo rows (children first)
-    await q.bulkDelete('grn_lines', { grn_id: GRN_ID });
-    await q.bulkDelete('grns', { id: GRN_ID });
-    await q.bulkDelete('po_lines', { po_id: PO_ID });
-    await q.bulkDelete('purchase_orders', { id: PO_ID });
-    await q.bulkDelete('approval_steps', { requisition_id: REQS.map((r) => r.id) });
-    await q.bulkDelete('requisition_lines', { requisition_id: REQS.map((r) => r.id) });
-    await q.bulkDelete('requisitions', { id: REQS.map((r) => r.id) });
-    await q.bulkDelete('vendors', { id: VENDORS.map((v) => v.id) });
+    // Idempotency via upsert on fixed ids — deletes are impossible once other
+    // rows (invoices, append-only match records) reference the demo data.
+    async function upsert(table, rows) {
+      for (const row of rows) {
+        const cols = Object.keys(row);
+        const names = cols.map((c) => `"${c}"`).join(', ');
+        const params = cols.map((c) => `:${c}`).join(', ');
+        const updates = cols
+          .filter((c) => c !== 'id' && c !== 'created_at')
+          .map((c) => `"${c}" = EXCLUDED."${c}"`)
+          .join(', ');
+        await q.sequelize.query(
+          `INSERT INTO ${table} (${names}) VALUES (${params})
+           ON CONFLICT (id) DO UPDATE SET ${updates}`,
+          { replacements: row },
+        );
+      }
+    }
 
-    await q.bulkInsert(
+    await upsert(
       'vendors',
       VENDORS.map((v) => ({ ...v, created_at: now, updated_at: now })),
     );
 
-    await q.bulkInsert(
+    await upsert(
       'requisitions',
       REQS.map((r) => ({
         id: r.id,
@@ -141,7 +150,7 @@ module.exports = {
         updated_at: now,
       })),
     );
-    await q.bulkInsert(
+    await upsert(
       'requisition_lines',
       [
         REQ_LINE(1, REQS[0].id, 'Standing desk 160cm', 8, 300_00),
@@ -152,14 +161,14 @@ module.exports = {
       ].map((l) => ({ ...l, created_at: now, updated_at: now })),
     );
 
-    await q.bulkInsert('approval_steps', [
+    await upsert('approval_steps', [
       STEP(1, REQS[1].id, 'pending', null),
       STEP(2, REQS[2].id, 'rejected', 'Budget freeze — resubmit next quarter (demo)'),
       STEP(3, REQS[3].id, 'approved', null),
       STEP(4, REQS[4].id, 'approved', null),
     ]);
 
-    await q.bulkInsert('purchase_orders', [
+    await upsert('purchase_orders', [
       {
         id: PO_ID,
         po_number: PO_NUMBER,
@@ -173,7 +182,7 @@ module.exports = {
         updated_at: now,
       },
     ]);
-    await q.bulkInsert('po_lines', [
+    await upsert('po_lines', [
       {
         id: PO_LINE_ID,
         po_id: PO_ID,
@@ -188,7 +197,7 @@ module.exports = {
         updated_at: now,
       },
     ]);
-    await q.bulkInsert('grns', [
+    await upsert('grns', [
       {
         id: GRN_ID,
         grn_number: GRN_NUMBER,
@@ -199,7 +208,7 @@ module.exports = {
         updated_at: now,
       },
     ]);
-    await q.bulkInsert('grn_lines', [
+    await upsert('grn_lines', [
       {
         id: '019787c8-5555-4000-8000-000000000002',
         grn_id: GRN_ID,
