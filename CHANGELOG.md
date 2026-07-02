@@ -7,6 +7,13 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Added
+
+- **Vendor registry (FR-202)**: `vendors` table + CRUD under `/api/v1/vendors`
+  (purchasing/admin roles), unique names (409 `DUPLICATE_VENDOR`), active flag with
+  `?active=true` filter and `assertActive` guard (409 `VENDOR_INACTIVE`) ready for PO
+  creation; web Vendors screen for the purchasing role
+
 ### Planned (next)
 
 - Epic 2 — purchase orders: vendors registry (FR-202), convert approved REQ → PO

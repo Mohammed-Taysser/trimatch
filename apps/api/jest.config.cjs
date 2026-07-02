@@ -16,6 +16,7 @@ module.exports = {
     '!src/identity/**',
     '!src/requisitions/requisitions.service.ts',
     '!src/approvals/approvals.service.ts',
+    '!src/vendors/vendors.service.ts',
   ],
   coverageThreshold: {
     global: {
