@@ -29,3 +29,6 @@ Thumbs.db
 # test artifacts
 .nyc_output/
 junit.xml
+
+# generated API artifacts (ADR-0003)
+docs/api/

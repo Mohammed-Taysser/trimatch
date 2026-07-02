@@ -55,8 +55,10 @@ repositories. Cross-feature reads go through the owning module's service.
 - **Transactions**: every state transition + its audit row + any sequence claim commit
   atomically (Sequelize managed transactions; `SELECT … FOR UPDATE` on sequence rows — I-6).
 - **API contract**: DTOs validated with zod schemas from `packages/shared` (same schemas
-  type the React client); OpenAPI generated and exported to `docs/api/openapi.json` in CI;
-  uniform error body with machine-readable `code` (playbook §7).
+  type the React client), bridged to Nest/Swagger via `nestjs-zod` `createZodDto` +
+  a global validation pipe ([ADR-0003](adr/0003-nestjs-zod-swagger.md)); Swagger UI at
+  `/api/docs`, OpenAPI exported to `docs/api/openapi.json` in CI; uniform error body
+  with machine-readable `code` (playbook §7).
 - **AuthZ**: role guards per endpoint + ownership checks in services (requester sees own
   REQs only). RBAC matrix documented in [06-user-manual.md](06-user-manual.md) §1.
 

@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import { HealthLivenessSchema, HealthReadinessSchema } from '@trimatch/shared';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
-import { setupApp } from '../src/setup-app';
+import { setupApp, setupOpenApi } from '../src/setup-app';
 
 // Real infrastructure required: docker compose up -d && migrate (see runbook §1).
 describe('api boots against real infrastructure and serves /api/v1 health (AC 1)', () => {
@@ -12,6 +12,7 @@ describe('api boots against real infrastructure and serves /api/v1 health (AC 1)
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = setupApp(moduleRef.createNestApplication());
+    setupOpenApi(app);
     await app.init();
   });
 
@@ -30,5 +31,13 @@ describe('api boots against real infrastructure and serves /api/v1 health (AC 1)
       status: 'ok',
       checks: { postgres: true, redis: true },
     });
+  });
+
+  it('GET /api/docs-json serves the OpenAPI document with the auth routes (ADR-0003)', async () => {
+    const res = await request(app.getHttpServer()).get('/api/docs-json').expect(200);
+    expect(res.body.info.title).toBe('TriMatch API');
+    expect(Object.keys(res.body.paths)).toEqual(
+      expect.arrayContaining(['/api/v1/auth/login', '/api/v1/auth/me']),
+    );
   });
 });

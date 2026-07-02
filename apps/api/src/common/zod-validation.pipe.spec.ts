@@ -1,18 +1,19 @@
-import { UnprocessableEntityException } from '@nestjs/common';
-import { LoginRequestSchema } from '@trimatch/shared';
-import { ZodValidationPipe } from './zod-validation.pipe';
+import { ArgumentMetadata, UnprocessableEntityException } from '@nestjs/common';
+import { LoginRequestDto } from '../auth/dto';
+import { AppZodValidationPipe } from './zod-validation.pipe';
 
-const pipe = new ZodValidationPipe(LoginRequestSchema);
+const pipe = new AppZodValidationPipe();
+const bodyMeta: ArgumentMetadata = { type: 'body', metatype: LoginRequestDto };
 
-describe('request bodies are validated with 422 VALIDATION_ERROR', () => {
+describe('request bodies are validated with 422 VALIDATION_ERROR (ADR-0003)', () => {
   it('passes through a valid payload', () => {
     const value = { email: 'requester@demo', password: 'Demo123!' };
-    expect(pipe.transform(value)).toEqual(value);
+    expect(pipe.transform(value, bodyMeta)).toEqual(value);
   });
 
   it('throws 422 with machine-readable code and issue details', () => {
     try {
-      pipe.transform({ email: 'requester@demo' });
+      pipe.transform({ email: 'requester@demo' }, bodyMeta);
       fail('expected UnprocessableEntityException');
     } catch (error) {
       expect(error).toBeInstanceOf(UnprocessableEntityException);
@@ -23,5 +24,9 @@ describe('request bodies are validated with 422 VALIDATION_ERROR', () => {
       expect(body.code).toBe('VALIDATION_ERROR');
       expect(body.details.some((d) => d.path === 'password')).toBe(true);
     }
+  });
+
+  it('ignores params that are not zod dtos', () => {
+    expect(pipe.transform('plain', { type: 'param' })).toBe('plain');
   });
 });
