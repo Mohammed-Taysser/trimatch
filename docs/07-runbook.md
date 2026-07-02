@@ -18,7 +18,8 @@ pnpm --filter @trimatch/api seed      # demo org: 8 users + flow data in every s
 pnpm dev                    # api :3000 (/api/v1), web :5173
 ```
 
-Demo logins (after seed): `requester@demo`, `requester2@demo`, `lead@demo`, `head@demo`, `purchasing@demo`,
+Demo logins (after seed): `requester@demo`, `requester2@demo`, `lead@demo`, `head@demo`,
+`findir@demo`, `ceo@demo`, `ciso@demo`, `purchasing@demo`,
 `warehouse@demo`, `ap@demo`, `admin@demo` — password documented in the seed script
 (`apps/api/seeders/`). Login: `POST /api/v1/auth/login {email, password}` → JWT.
 

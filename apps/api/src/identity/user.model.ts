@@ -37,4 +37,10 @@ export class User extends Model {
 
   @Column(DataType.UUID)
   declare managerId: string | null;
+
+  @Column(DataType.STRING(100))
+  declare department: string | null;
+
+  @Column(DataType.STRING(100))
+  declare jobTitle: string | null;
 }

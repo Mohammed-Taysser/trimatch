@@ -14,6 +14,7 @@ import {
 } from '@trimatch/shared';
 import { Sequelize } from 'sequelize-typescript';
 import { ApprovalStep } from '../approvals/approval-step.model';
+import { ChainService } from '../approvals/chain.service';
 import { PagedResult, pageMeta, pageOffset } from '../common/paged';
 import { AuditService } from '../audit/audit.service';
 import { User } from '../identity/user.model';
@@ -32,6 +33,7 @@ export class RequisitionsService {
     @InjectConnection() private readonly sequelize: Sequelize,
     private readonly users: UsersService,
     private readonly audit: AuditService,
+    private readonly chains: ChainService,
   ) {}
 
   // FR-103 / TC-104: draft → pending_approval, chain snapshotted (MVP: the
@@ -54,25 +56,28 @@ export class RequisitionsService {
       requisitionLifecycle.assertCanTransition(row.status, 'pending_approval');
 
       const requester = await this.users.findById(requesterId);
-      if (!requester?.managerId) {
-        throw new ConflictException({
-          code: 'NO_APPROVER',
-          message: 'The requester has no manager to approve this requisition',
-        });
+      if (!requester) {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'Requester not found' });
       }
+      // FR-501: chain computed from the active matrix (snapshotted here per
+      // ADR-0002 — later rule edits never touch this requisition).
+      const lines = await this.lines.findAll({ where: { requisitionId: id }, transaction });
+      const categories = [...new Set(lines.map((line) => line.category))];
+      const chain = await this.chains.buildChain(requester, Number(row.totalMinor), categories);
 
       const previousRounds = (await this.steps.max('round', {
         where: { requisitionId: id },
         transaction,
       })) as number | null;
-      await this.steps.create(
-        {
+      const round = (previousRounds ?? 0) + 1;
+      await this.steps.bulkCreate(
+        chain.map((step) => ({
           requisitionId: id,
-          round: (previousRounds ?? 0) + 1,
-          stepNo: 1,
-          approverId: requester.managerId,
+          round,
+          stepNo: step.stepNo,
+          approverId: step.approverId,
           status: 'pending',
-        },
+        })),
         { transaction },
       );
       await row.update({ status: 'pending_approval' }, { transaction });

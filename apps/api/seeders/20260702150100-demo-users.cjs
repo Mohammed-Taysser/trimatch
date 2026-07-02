@@ -8,11 +8,39 @@ const DEMO_PASSWORD = 'Demo123!';
 
 const USERS = [
   {
+    id: '019787c8-0000-4000-8000-000000000009',
+    email: 'findir@demo',
+    fullName: 'Farah Findirector',
+    role: 'approver',
+    managerId: null,
+    department: 'Finance',
+    jobTitle: 'Finance Director',
+  },
+  {
+    id: '019787c8-0000-4000-8000-00000000000a',
+    email: 'ceo@demo',
+    fullName: 'Casey Executive',
+    role: 'approver',
+    managerId: null,
+    department: null,
+    jobTitle: 'CEO',
+  },
+  {
+    id: '019787c8-0000-4000-8000-00000000000b',
+    email: 'ciso@demo',
+    fullName: 'Sami Secureson',
+    role: 'approver',
+    managerId: null,
+    department: 'IT',
+    jobTitle: 'CISO',
+  },
+  {
     id: '019787c8-0000-4000-8000-000000000001',
     email: 'requester@demo',
     fullName: 'Riley Requester',
     role: 'requester',
     managerId: '019787c8-0000-4000-8000-000000000002',
+    department: 'IT',
   },
   {
     id: '019787c8-0000-4000-8000-000000000008',
@@ -20,6 +48,7 @@ const USERS = [
     fullName: 'Robin Requester',
     role: 'requester',
     managerId: '019787c8-0000-4000-8000-000000000002',
+    department: 'IT',
   },
   {
     id: '019787c8-0000-4000-8000-000000000002',
@@ -27,6 +56,8 @@ const USERS = [
     fullName: 'Lee Lead',
     role: 'approver',
     managerId: '019787c8-0000-4000-8000-000000000003',
+    department: 'IT',
+    jobTitle: 'Team Lead',
   },
   {
     id: '019787c8-0000-4000-8000-000000000003',
@@ -34,6 +65,8 @@ const USERS = [
     fullName: 'Harper Head',
     role: 'approver',
     managerId: null,
+    department: 'IT',
+    jobTitle: 'Department Head',
   },
   {
     id: '019787c8-0000-4000-8000-000000000004',
@@ -74,10 +107,11 @@ module.exports = {
     // the self-referencing FK.
     for (const u of USERS) {
       await queryInterface.sequelize.query(
-        `INSERT INTO users (id, email, full_name, password_hash, role, manager_id, created_at, updated_at)
-         VALUES (:id, :email, :fullName, :passwordHash, :role, NULL, now(), now())
+        `INSERT INTO users (id, email, full_name, password_hash, role, manager_id, department, job_title, created_at, updated_at)
+         VALUES (:id, :email, :fullName, :passwordHash, :role, NULL, :department, :jobTitle, now(), now())
          ON CONFLICT (id) DO UPDATE
-         SET email = :email, full_name = :fullName, password_hash = :passwordHash, role = :role`,
+         SET email = :email, full_name = :fullName, password_hash = :passwordHash, role = :role,
+             department = :department, job_title = :jobTitle`,
         {
           replacements: {
             id: u.id,
@@ -85,6 +119,8 @@ module.exports = {
             fullName: u.fullName,
             passwordHash,
             role: u.role,
+            department: u.department ?? null,
+            jobTitle: u.jobTitle ?? null,
           },
         },
       );
