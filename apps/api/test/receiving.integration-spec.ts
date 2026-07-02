@@ -1,10 +1,10 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { GrnSchema, InboxSchema, PurchaseOrderSchema, VendorSchema } from '@trimatch/shared';
+import { GrnSchema, PurchaseOrderSchema, VendorSchema } from '@trimatch/shared';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { setupApp } from '../src/setup-app';
-import { findAcrossPages } from './helpers';
+import { approveAcrossChain } from './helpers';
 
 // Real infrastructure required: docker compose up -d && migrate && seed.
 const PASSWORD = 'Demo123!';
@@ -21,6 +21,8 @@ describe('goods receiving (FR-301/302 · TC-301/TC-302 · TC-204)', () => {
   let app: INestApplication;
   let requesterToken: string;
   let leadToken: string;
+  let headToken: string;
+  let findirToken: string;
   let purchasingToken: string;
   let warehouseToken: string;
   let vendorId: string;
@@ -44,21 +46,7 @@ describe('goods receiving (FR-301/302 · TC-301/TC-302 · TC-204)', () => {
       .post(`/api/v1/requisitions/${reqId}/submit`)
       .set('Authorization', `Bearer ${requesterToken}`)
       .expect(200);
-    const step = await findAcrossPages(
-      async (page) => {
-        const res = await request(app.getHttpServer())
-          .get(`/api/v1/approvals/inbox?page=${page}&pageSize=100`)
-          .set('Authorization', `Bearer ${leadToken}`)
-          .expect(200);
-        return { items: InboxSchema.parse(res.body.data), totalPages: res.body.meta.totalPages };
-      },
-      (i) => i.requisition.id === reqId,
-    );
-    if (!step) throw new Error('step not in inbox');
-    await request(app.getHttpServer())
-      .post(`/api/v1/approvals/steps/${step.stepId}/approve`)
-      .set('Authorization', `Bearer ${leadToken}`)
-      .expect(204);
+    await approveAcrossChain(app.getHttpServer(), [leadToken, headToken, findirToken], reqId);
     const converted = await request(app.getHttpServer())
       .post('/api/v1/purchase-orders/from-requisition')
       .set('Authorization', `Bearer ${purchasingToken}`)
@@ -88,6 +76,8 @@ describe('goods receiving (FR-301/302 · TC-301/TC-302 · TC-204)', () => {
     leadToken = await login('lead@demo');
     purchasingToken = await login('purchasing@demo');
     warehouseToken = await login('warehouse@demo');
+    headToken = await login('head@demo');
+    findirToken = await login('findir@demo');
 
     const vendor = await request(app.getHttpServer())
       .post('/api/v1/vendors')
@@ -183,20 +173,7 @@ describe('goods receiving (FR-301/302 · TC-301/TC-302 · TC-204)', () => {
       .post(`/api/v1/requisitions/${reqId}/submit`)
       .set('Authorization', `Bearer ${requesterToken}`)
       .expect(200);
-    const step = await findAcrossPages(
-      async (page) => {
-        const res = await request(app.getHttpServer())
-          .get(`/api/v1/approvals/inbox?page=${page}&pageSize=100`)
-          .set('Authorization', `Bearer ${leadToken}`)
-          .expect(200);
-        return { items: InboxSchema.parse(res.body.data), totalPages: res.body.meta.totalPages };
-      },
-      (i) => i.requisition.id === reqId,
-    );
-    await request(app.getHttpServer())
-      .post(`/api/v1/approvals/steps/${step?.stepId}/approve`)
-      .set('Authorization', `Bearer ${leadToken}`)
-      .expect(204);
+    await approveAcrossChain(app.getHttpServer(), [leadToken, headToken, findirToken], reqId);
     const converted = await request(app.getHttpServer())
       .post('/api/v1/purchase-orders/from-requisition')
       .set('Authorization', `Bearer ${purchasingToken}`)
@@ -271,20 +248,7 @@ describe('goods receiving (FR-301/302 · TC-301/TC-302 · TC-204)', () => {
       .post(`/api/v1/requisitions/${reqId}/submit`)
       .set('Authorization', `Bearer ${requesterToken}`)
       .expect(200);
-    const step = await findAcrossPages(
-      async (page) => {
-        const res = await request(app.getHttpServer())
-          .get(`/api/v1/approvals/inbox?page=${page}&pageSize=100`)
-          .set('Authorization', `Bearer ${leadToken}`)
-          .expect(200);
-        return { items: InboxSchema.parse(res.body.data), totalPages: res.body.meta.totalPages };
-      },
-      (i) => i.requisition.id === reqId,
-    );
-    await request(app.getHttpServer())
-      .post(`/api/v1/approvals/steps/${step?.stepId}/approve`)
-      .set('Authorization', `Bearer ${leadToken}`)
-      .expect(204);
+    await approveAcrossChain(app.getHttpServer(), [leadToken, headToken, findirToken], reqId);
     const draftPo = await request(app.getHttpServer())
       .post('/api/v1/purchase-orders/from-requisition')
       .set('Authorization', `Bearer ${purchasingToken}`)

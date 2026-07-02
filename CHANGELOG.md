@@ -9,6 +9,14 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Matrix chain computation (FR-501/TC-501/TC-502)**: submission now computes the
+  approval chain from the active ruleset — most-specific base rule + matching
+  append rules (pure `computeChain`, PRD §5.1 examples reproduced exactly incl.
+  the $500.00/$500.01 boundary); titles resolve via the reporting hierarchy
+  (Team Lead, Department Head) or `users.job_title` (Finance Director, CEO,
+  CISO — three new seeded approvers); users gained `department`/`job_title`;
+  unresolvable titles → 409 `NO_APPROVER`; multi-step chains snapshot one step
+  per approver (sequential gating lands next)
 - **Matrix rules as versioned data (FR-501/505, ADR-0002)**: `matrix_rules` table —
   immutable rows, every admin save creates version N+1; base rules (amount range ×
   department × category → ordered chain of titles) + append rules (R5: CISO for

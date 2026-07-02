@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { ApprovalStep } from '../approvals/approval-step.model';
+import { ApprovalsModule } from '../approvals/approvals.module';
 import { AuditModule } from '../audit/audit.module';
 import { IdentityModule } from '../identity/identity.module';
 import { Requisition, RequisitionLine } from './requisition.model';
@@ -12,6 +13,7 @@ import { RequisitionsService } from './requisitions.service';
     SequelizeModule.forFeature([Requisition, RequisitionLine, ApprovalStep]),
     IdentityModule,
     AuditModule,
+    ApprovalsModule,
   ],
   controllers: [RequisitionsController],
   providers: [RequisitionsService],

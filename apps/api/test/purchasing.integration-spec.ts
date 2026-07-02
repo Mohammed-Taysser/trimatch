@@ -1,7 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import {
-  InboxSchema,
   PurchaseOrderSchema,
   RequisitionListSchema,
   RequisitionSchema,
@@ -12,7 +11,7 @@ import { Sequelize } from 'sequelize-typescript';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { setupApp } from '../src/setup-app';
-import { findAcrossPages } from './helpers';
+import { approveAcrossChain, findAcrossPages } from './helpers';
 
 // Real infrastructure required: docker compose up -d && migrate && seed.
 const PASSWORD = 'Demo123!';
@@ -30,6 +29,8 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
   let app: INestApplication;
   let requesterToken: string;
   let leadToken: string;
+  let headToken: string;
+  let findirToken: string;
   let purchasingToken: string;
   let vendorId: string;
 
@@ -52,21 +53,7 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
       .post(`/api/v1/requisitions/${reqId}/submit`)
       .set('Authorization', `Bearer ${requesterToken}`)
       .expect(200);
-    const item = await findAcrossPages(
-      async (page) => {
-        const res = await request(app.getHttpServer())
-          .get(`/api/v1/approvals/inbox?page=${page}&pageSize=100`)
-          .set('Authorization', `Bearer ${leadToken}`)
-          .expect(200);
-        return { items: InboxSchema.parse(res.body.data), totalPages: res.body.meta.totalPages };
-      },
-      (i) => i.requisition.id === reqId,
-    );
-    if (!item) throw new Error('step not in inbox');
-    await request(app.getHttpServer())
-      .post(`/api/v1/approvals/steps/${item.stepId}/approve`)
-      .set('Authorization', `Bearer ${leadToken}`)
-      .expect(204);
+    await approveAcrossChain(app.getHttpServer(), [leadToken, headToken, findirToken], reqId);
     return reqId;
   }
 
@@ -77,6 +64,8 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
     requesterToken = await login('requester@demo');
     leadToken = await login('lead@demo');
     purchasingToken = await login('purchasing@demo');
+    headToken = await login('head@demo');
+    findirToken = await login('findir@demo');
 
     const vendor = await request(app.getHttpServer())
       .post('/api/v1/vendors')
