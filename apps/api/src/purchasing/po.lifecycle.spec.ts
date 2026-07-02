@@ -11,6 +11,13 @@ describe('purchase order lifecycle state machine', () => {
     ${'issued'}             | ${'cancelled'}          | ${true}
     ${'partially_received'} | ${'received'}           | ${true}
     ${'received'}           | ${'closed'}             | ${true}
+    ${'issued'}             | ${'pending_reapproval'} | ${true}
+    ${'partially_received'} | ${'pending_reapproval'} | ${true}
+    ${'pending_reapproval'} | ${'issued'}             | ${true}
+    ${'pending_reapproval'} | ${'partially_received'} | ${true}
+    ${'draft'}              | ${'pending_reapproval'} | ${false}
+    ${'received'}           | ${'pending_reapproval'} | ${false}
+    ${'pending_reapproval'} | ${'cancelled'}          | ${false}
     ${'draft'}              | ${'received'}           | ${false}
     ${'received'}           | ${'cancelled'}          | ${false}
     ${'closed'}             | ${'issued'}             | ${false}

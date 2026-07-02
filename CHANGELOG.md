@@ -9,6 +9,18 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **PO amendments with versioning (FR-604/TC-603)**: `POST
+  /purchase-orders/:id/amend` changes quantity/price on issued or partially
+  received POs — the superseded version is snapshotted into append-only
+  `po_amendments` (DB trigger refuses UPDATE/DELETE) and the PO becomes version
+  N+1; a total increase parks the PO in the new `pending_reapproval` state
+  (receiving and invoicing blocked) until an approver posts
+  `:id/approve-amendment`; quantity may never drop below what was already
+  received (422 `AMEND_BELOW_RECEIVED`, I-2); `GET /purchase-orders/:id/versions`
+  keeps every version readable; amended values are the new 3-way-match
+  baseline; amend form, versions list and admin approve button on the
+  purchasing screen
+
 - **Partial invoices matched cumulatively — proven (FR-602/TC-602/I-3)**:
   integration tests — invoices of 50 then 60 against 100 received raise
   `QTY_OVER_INVOICED` (cumulative 110 > 100) on the second; 50 then 50 settles
