@@ -1,6 +1,8 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { RequisitionSchema } from '@trimatch/shared';
+import { QueryTypes } from 'sequelize';
+import { Sequelize } from 'sequelize-typescript';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { setupApp } from '../src/setup-app';
@@ -139,5 +141,106 @@ describe('draft requisitions (FR-101/102 · TC-101..103)', () => {
       .send(TWO_LINES)
       .expect(403);
     expect(res.body.code).toBe('FORBIDDEN');
+  });
+
+  describe('submit for approval (FR-103 · TC-104/TC-107)', () => {
+    async function createDraft(token: string): Promise<string> {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/requisitions')
+        .set('Authorization', `Bearer ${token}`)
+        .send(TWO_LINES)
+        .expect(201);
+      return res.body.id as string;
+    }
+
+    it('TC-104: submit → pending_approval, chain snapshotted, audit row written', async () => {
+      const id = await createDraft(tokenA);
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/requisitions/${id}/submit`)
+        .set('Authorization', `Bearer ${tokenA}`)
+        .expect(200);
+      expect(RequisitionSchema.parse(res.body).status).toBe('pending_approval');
+
+      const sequelize = app.get(Sequelize);
+      const steps = await sequelize.query(
+        'SELECT round, step_no, status, approver_id FROM approval_steps WHERE requisition_id = :id',
+        { replacements: { id }, type: QueryTypes.SELECT },
+      );
+      expect(steps).toEqual([
+        expect.objectContaining({
+          round: 1,
+          step_no: 1,
+          status: 'pending',
+          // lead@demo is requester@demo's manager in the seed
+          approver_id: '019787c8-0000-4000-8000-000000000002',
+        }),
+      ]);
+
+      const audit = await sequelize.query(
+        'SELECT action, from_state, to_state, actor_id FROM audit_log WHERE entity_id = :id',
+        { replacements: { id }, type: QueryTypes.SELECT },
+      );
+      expect(audit).toEqual([
+        expect.objectContaining({
+          action: 'requisition.submitted',
+          from_state: 'draft',
+          to_state: 'pending_approval',
+          actor_id: '019787c8-0000-4000-8000-000000000001',
+        }),
+      ]);
+    });
+
+    it('TC-107: submitting a non-draft again → 409 INVALID_TRANSITION', async () => {
+      const id = await createDraft(tokenA);
+      await request(app.getHttpServer())
+        .post(`/api/v1/requisitions/${id}/submit`)
+        .set('Authorization', `Bearer ${tokenA}`)
+        .expect(200);
+      const again = await request(app.getHttpServer())
+        .post(`/api/v1/requisitions/${id}/submit`)
+        .set('Authorization', `Bearer ${tokenA}`)
+        .expect(409);
+      expect(again.body.code).toBe('INVALID_TRANSITION');
+    });
+
+    it('editing a submitted requisition → 409 INVALID_TRANSITION', async () => {
+      const id = await createDraft(tokenA);
+      await request(app.getHttpServer())
+        .post(`/api/v1/requisitions/${id}/submit`)
+        .set('Authorization', `Bearer ${tokenA}`)
+        .expect(200);
+      const edit = await request(app.getHttpServer())
+        .put(`/api/v1/requisitions/${id}`)
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send(TWO_LINES)
+        .expect(409);
+      expect(edit.body.code).toBe('INVALID_TRANSITION');
+    });
+
+    it('user B cannot submit user A draft → 403 FORBIDDEN', async () => {
+      const id = await createDraft(tokenA);
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/requisitions/${id}/submit`)
+        .set('Authorization', `Bearer ${tokenB}`)
+        .expect(403);
+      expect(res.body.code).toBe('FORBIDDEN');
+    });
+
+    it('a requester without a manager gets 409 NO_APPROVER', async () => {
+      const id = await createDraft(tokenB);
+      const sequelize = app.get(Sequelize);
+      await sequelize.query("UPDATE users SET manager_id = NULL WHERE email = 'requester2@demo'");
+      try {
+        const res = await request(app.getHttpServer())
+          .post(`/api/v1/requisitions/${id}/submit`)
+          .set('Authorization', `Bearer ${tokenB}`)
+          .expect(409);
+        expect(res.body.code).toBe('NO_APPROVER');
+      } finally {
+        await sequelize.query(
+          "UPDATE users SET manager_id = '019787c8-0000-4000-8000-000000000002' WHERE email = 'requester2@demo'",
+        );
+      }
+    });
   });
 });

@@ -33,6 +33,16 @@ export class RequisitionsController {
     return this.requisitions.findAllOwn(user.sub);
   }
 
+  @Post(':id/submit')
+  @Roles('requester')
+  @HttpCode(200)
+  submit(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<Requisition> {
+    return this.requisitions.submit(id, user.sub);
+  }
+
   @Get(':id')
   @Roles('requester')
   get(
