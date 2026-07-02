@@ -6,15 +6,21 @@
 - **Date:** 2026-07-02
 - **Related:** [02-sla.md](02-sla.md) · [04-architecture.md](04-architecture.md)
 
-## 1. Run locally ⏳
+## 1. Run locally
 
 ```bash
-# prerequisites: node 22+, pnpm 9+, docker
+# prerequisites: node 22.12+, pnpm 10+, docker
+cp .env.example .env        # api validates env at startup; refuses to boot if invalid
 pnpm install
 docker compose up -d        # postgres:16, redis:7
-pnpm --filter api migrate   # sequelize-cli migrations
-pnpm --filter api seed      # demo org: users per role, matrix R1-R5, categories
-pnpm dev                    # api :3000, web :5173
+pnpm dev                    # api :3000 (/api/v1), web :5173
+```
+
+⏳ Coming with Epic 1 (DB wiring):
+
+```bash
+pnpm --filter @trimatch/api migrate   # sequelize-cli migrations
+pnpm --filter @trimatch/api seed      # demo org: users per role, matrix R1-R5, categories
 ```
 
 Demo logins (after seed): `requester@demo`, `lead@demo`, `head@demo`, `purchasing@demo`,
@@ -37,7 +43,9 @@ Demo logins (after seed): `requester@demo`, `lead@demo`, `head@demo`, `purchasin
 - Structured JSON logs on stdout, one request-id per line
   (`X-Request-Id` accepted or generated). Filter a request:
   `docker logs api | grep <requestId>`.
-- Health: `GET /health/liveness` (process), `GET /health/readiness` (PG+Redis reachable).
+- Health: `GET /api/v1/health/liveness` (process),
+  `GET /api/v1/health/readiness` (PG+Redis reachable — TCP check until Sequelize/BullMQ
+  land, then real driver pings; 503 with a `degraded` body when a check fails).
 - Metrics: `GET /metrics` (Prometheus) — see business series list in the SLA doc §6.
 
 ## 5. Common operational tasks ⏳
