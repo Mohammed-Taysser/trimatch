@@ -18,6 +18,7 @@ describe('purchase order endpoints delegate with the authenticated officer', () 
     findOne: jest.fn().mockResolvedValue({ id: PO_ID }),
     updateLines: jest.fn().mockResolvedValue({ id: PO_ID }),
     issue: jest.fn().mockResolvedValue({ id: PO_ID, status: 'issued' }),
+    cancel: jest.fn().mockResolvedValue({ id: PO_ID, status: 'cancelled' }),
   } as unknown as PurchasingService;
   const controller = new PurchasingController(service);
   const page = { page: 1, pageSize: 20 };
@@ -33,6 +34,11 @@ describe('purchase order endpoints delegate with the authenticated officer', () 
   it('issue passes the acting officer', async () => {
     await controller.issue(user, PO_ID);
     expect(service.issue).toHaveBeenCalledWith(PO_ID, user.sub);
+  });
+
+  it('cancel passes the acting officer', async () => {
+    await controller.cancel(user, PO_ID);
+    expect(service.cancel).toHaveBeenCalledWith(PO_ID, user.sub);
   });
 
   it('list/get/updateLines delegate', async () => {
