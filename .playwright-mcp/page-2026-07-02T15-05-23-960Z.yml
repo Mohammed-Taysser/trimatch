@@ -1,0 +1,32 @@
+- main [ref=e3]:
+    - generic [ref=e4]:
+        - heading "My requisitions" [level=1] [ref=e5]
+        - generic [ref=e6]:
+            - text: Riley Requester (requester)
+            - button "Sign out" [ref=e7]
+    - generic [ref=e8]:
+        - heading "New draft" [level=2] [ref=e9]
+        - generic [ref=e10]:
+            - generic [ref=e11]:
+                - text: Justification
+                - textbox "Justification" [ref=e12]
+            - generic [ref=e13]:
+                - generic [ref=e14]:
+                    - text: Needed by
+                    - textbox "Needed by" [ref=e15]
+                - generic [ref=e16]:
+                    - text: Currency
+                    - textbox "Currency" [ref=e17]: USD
+            - generic [ref=e18]:
+                - textbox "Description" [ref=e19]
+                - textbox "Category" [ref=e20]
+                - spinbutton "Qty" [ref=e21]: '1'
+                - spinbutton "Unit price" [ref=e22]
+                - button "✕" [disabled] [ref=e23]
+            - generic [ref=e24]:
+                - button "+ Add line" [ref=e25]
+                - button "Create draft" [ref=e26]
+    - generic [ref=e27]:
+        - heading "Drafts" [level=2] [ref=e28]
+        - paragraph [ref=e29]: Loading…
+        - list

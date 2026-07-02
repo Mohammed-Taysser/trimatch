@@ -12,6 +12,7 @@ import {
   PrimaryKey,
   Table,
 } from 'sequelize-typescript';
+import { ApprovalStep } from '../approvals/approval-step.model';
 import { User } from '../identity/user.model';
 
 @Table({ tableName: 'requisitions', underscored: true, timestamps: true })
@@ -53,6 +54,9 @@ export class Requisition extends Model {
 
   @HasMany(() => RequisitionLine)
   declare lines?: RequisitionLine[];
+
+  @HasMany(() => ApprovalStep)
+  declare steps?: ApprovalStep[];
 }
 
 @Table({ tableName: 'requisition_lines', underscored: true, timestamps: true })

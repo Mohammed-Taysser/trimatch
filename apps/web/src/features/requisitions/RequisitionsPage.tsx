@@ -252,6 +252,13 @@ export function RequisitionsPage() {
               <div style={{ color: '#555', fontSize: 14 }}>
                 needed by {req.neededBy} · {req.lines.length} line(s)
               </div>
+              {req.steps
+                .filter((step) => step.status === 'rejected' && step.reason)
+                .map((step) => (
+                  <p key={step.id} style={{ color: 'crimson', margin: '6px 0 0' }}>
+                    Rejected by {step.approverName}: “{step.reason}”
+                  </p>
+                ))}
               {req.status === 'draft' && (
                 <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
                   <button

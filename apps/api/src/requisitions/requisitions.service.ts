@@ -12,9 +12,10 @@ import {
   RequisitionUpdate,
 } from '@trimatch/shared';
 import { Sequelize } from 'sequelize-typescript';
+import { ApprovalStep } from '../approvals/approval-step.model';
 import { AuditService } from '../audit/audit.service';
+import { User } from '../identity/user.model';
 import { UsersService } from '../identity/users.service';
-import { ApprovalStep } from './approval-step.model';
 import { requisitionLifecycle } from './requisition.lifecycle';
 import { Requisition, RequisitionLine } from './requisition.model';
 import { computeTotals } from './requisition.totals';
@@ -113,7 +114,7 @@ export class RequisitionsService {
   async findAllOwn(requesterId: string): Promise<RequisitionView[]> {
     const rows = await this.requisitions.findAll({
       where: { requesterId },
-      include: [RequisitionLine],
+      include: [RequisitionLine, { model: ApprovalStep, include: [User] }],
       order: [
         ['createdAt', 'DESC'],
         [{ model: RequisitionLine, as: 'lines' }, 'lineNo', 'ASC'],
@@ -123,7 +124,9 @@ export class RequisitionsService {
   }
 
   async findOwn(id: string, requesterId: string): Promise<RequisitionView> {
-    const row = await this.requisitions.findByPk(id, { include: [RequisitionLine] });
+    const row = await this.requisitions.findByPk(id, {
+      include: [RequisitionLine, { model: ApprovalStep, include: [User] }],
+    });
     if (!row) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Requisition not found' });
     }
@@ -208,6 +211,19 @@ export class RequisitionsService {
           quantity: line.quantity,
           unitPriceMinor: Number(line.unitPriceMinor),
           lineTotalMinor: Number(line.lineTotalMinor),
+        })),
+      steps: (row.steps ?? [])
+        .slice()
+        .sort((a, b) => a.round - b.round || a.stepNo - b.stepNo)
+        .map((step) => ({
+          id: step.id,
+          round: step.round,
+          stepNo: step.stepNo,
+          status: step.status,
+          approverId: step.approverId,
+          approverName: step.approver?.fullName ?? 'Unknown',
+          reason: step.reason,
+          decidedAt: step.decidedAt ? step.decidedAt.toISOString() : null,
         })),
       createdAt: (row.createdAt as Date).toISOString(),
       updatedAt: (row.updatedAt as Date).toISOString(),

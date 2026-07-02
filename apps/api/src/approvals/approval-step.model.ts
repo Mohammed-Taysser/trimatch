@@ -1,6 +1,7 @@
 import { literal } from 'sequelize';
 import {
   AllowNull,
+  BelongsTo,
   Column,
   DataType,
   Default,
@@ -10,7 +11,7 @@ import {
   Table,
 } from 'sequelize-typescript';
 import { User } from '../identity/user.model';
-import { Requisition } from './requisition.model';
+import { Requisition } from '../requisitions/requisition.model';
 
 // Chain snapshot (ADR-0002): steps are frozen at submission; `round` supports
 // revise-and-resubmit history (FR-105).
@@ -26,6 +27,9 @@ export class ApprovalStep extends Model {
   @Column(DataType.UUID)
   declare requisitionId: string;
 
+  @BelongsTo(() => Requisition)
+  declare requisition?: Requisition;
+
   @AllowNull(false)
   @Default(1)
   @Column(DataType.INTEGER)
@@ -39,6 +43,9 @@ export class ApprovalStep extends Model {
   @AllowNull(false)
   @Column(DataType.UUID)
   declare approverId: string;
+
+  @BelongsTo(() => User)
+  declare approver?: User;
 
   @AllowNull(false)
   @Default('pending')

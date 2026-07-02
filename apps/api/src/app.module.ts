@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { ApprovalsModule } from './approvals/approvals.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
@@ -23,6 +24,7 @@ import { RequisitionsModule } from './requisitions/requisitions.module';
     IdentityModule,
     AuthModule,
     RequisitionsModule,
+    ApprovalsModule,
     HealthModule,
   ],
   providers: [
