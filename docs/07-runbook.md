@@ -14,7 +14,7 @@ cp .env.example .env        # api validates env at startup; refuses to boot if i
 pnpm install
 docker compose up -d        # postgres:16, redis:7
 pnpm --filter @trimatch/api migrate   # sequelize-cli migrations
-pnpm --filter @trimatch/api seed      # demo org: 7 users per role (matrix + categories later)
+pnpm --filter @trimatch/api seed      # demo org: 8 users + flow data in every state (matrix rules land with Epic 5)
 pnpm dev                    # api :3000 (/api/v1), web :5173
 ```
 
