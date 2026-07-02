@@ -1,6 +1,8 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, Query } from '@nestjs/common';
 import { Vendor } from '@trimatch/shared';
 import { Roles } from '../auth/decorators';
+import { PaginationQueryDto } from '../common/dto';
+import { PagedResult } from '../common/paged';
 import { VendorCreateDto, VendorUpdateDto } from './dto';
 import { VendorsService } from './vendors.service';
 
@@ -15,8 +17,11 @@ export class VendorsController {
   }
 
   @Get()
-  list(@Query('active') active?: string): Promise<Vendor[]> {
-    return this.vendors.findAll(active === 'true');
+  list(
+    @Query() query: PaginationQueryDto,
+    @Query('active') active?: string,
+  ): Promise<PagedResult<Vendor>> {
+    return this.vendors.findAll(active === 'true', query);
   }
 
   @Put(':id')

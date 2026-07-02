@@ -22,12 +22,12 @@ describe('api boots against real infrastructure and serves /api/v1 health (AC 1)
 
   it('GET /api/v1/health/liveness is public and matches the shared schema', async () => {
     const res = await request(app.getHttpServer()).get('/api/v1/health/liveness').expect(200);
-    expect(HealthLivenessSchema.parse(res.body).service).toBe('trimatch-api');
+    expect(HealthLivenessSchema.parse(res.body.data).service).toBe('trimatch-api');
   });
 
   it('GET /api/v1/health/readiness reports postgres and redis as reachable', async () => {
     const res = await request(app.getHttpServer()).get('/api/v1/health/readiness').expect(200);
-    expect(HealthReadinessSchema.parse(res.body)).toEqual({
+    expect(HealthReadinessSchema.parse(res.body.data)).toEqual({
       status: 'ok',
       checks: { postgres: true, redis: true },
     });

@@ -33,5 +33,7 @@ export async function apiFetch<T = unknown>(path: string, opts: ApiOptions<T> = 
     const err = json as { code?: string; message?: string };
     throw new ApiError(err.code ?? 'UNKNOWN', err.message ?? res.statusText, res.status);
   }
-  return opts.schema ? opts.schema.parse(json) : (json as T);
+  // Fixed envelope: successes are { data, meta?, message, timestamp, requestId }.
+  const payload = (json as { data?: unknown }).data;
+  return opts.schema ? opts.schema.parse(payload) : (payload as T);
 }

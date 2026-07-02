@@ -6,10 +6,11 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
-import { InboxItem, InboxSchema } from '@trimatch/shared';
+import { InboxItem, InboxSchema, PaginationQuery } from '@trimatch/shared';
 import { Transaction } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { AuditService } from '../audit/audit.service';
+import { PagedResult, pageMeta, pageOffset } from '../common/paged';
 import { User } from '../identity/user.model';
 import { requisitionLifecycle } from '../requisitions/requisition.lifecycle';
 import { Requisition } from '../requisitions/requisition.model';
@@ -23,13 +24,15 @@ export class ApprovalsService {
     private readonly audit: AuditService,
   ) {}
 
-  async inbox(approverId: string): Promise<InboxItem[]> {
-    const rows = await this.steps.findAll({
+  async inbox(approverId: string, query: PaginationQuery): Promise<PagedResult<InboxItem>> {
+    const { rows, count } = await this.steps.findAndCountAll({
       where: { approverId, status: 'pending' },
       include: [{ model: Requisition, include: [User] }],
       order: [['createdAt', 'ASC']],
+      distinct: true,
+      ...pageOffset(query),
     });
-    return InboxSchema.parse(
+    const items = InboxSchema.parse(
       rows.flatMap((step) => {
         const requisition = step.requisition;
         if (!requisition) return [];
@@ -51,6 +54,7 @@ export class ApprovalsService {
         ];
       }),
     );
+    return new PagedResult(items, pageMeta(query, count));
   }
 
   // FR-104: approve advances the requisition (next step or approved);

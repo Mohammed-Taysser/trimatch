@@ -11,6 +11,7 @@ import { Sequelize } from 'sequelize-typescript';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { setupApp } from '../src/setup-app';
+import { findAcrossPages } from './helpers';
 
 // Real infrastructure required: docker compose up -d && migrate && seed.
 const PASSWORD = 'Demo123!';
@@ -36,7 +37,7 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
       .post('/api/v1/auth/login')
       .send({ email, password: PASSWORD })
       .expect(200);
-    return res.body.accessToken as string;
+    return res.body.data.accessToken as string;
   }
 
   async function approvedRequisition(): Promise<string> {
@@ -45,16 +46,21 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
       .set('Authorization', `Bearer ${requesterToken}`)
       .send(DRAFT)
       .expect(201);
-    const reqId = created.body.id as string;
+    const reqId = created.body.data.id as string;
     await request(app.getHttpServer())
       .post(`/api/v1/requisitions/${reqId}/submit`)
       .set('Authorization', `Bearer ${requesterToken}`)
       .expect(200);
-    const inbox = await request(app.getHttpServer())
-      .get('/api/v1/approvals/inbox')
-      .set('Authorization', `Bearer ${leadToken}`)
-      .expect(200);
-    const item = InboxSchema.parse(inbox.body).find((i) => i.requisition.id === reqId);
+    const item = await findAcrossPages(
+      async (page) => {
+        const res = await request(app.getHttpServer())
+          .get(`/api/v1/approvals/inbox?page=${page}&pageSize=100`)
+          .set('Authorization', `Bearer ${leadToken}`)
+          .expect(200);
+        return { items: InboxSchema.parse(res.body.data), totalPages: res.body.meta.totalPages };
+      },
+      (i) => i.requisition.id === reqId,
+    );
     if (!item) throw new Error('step not in inbox');
     await request(app.getHttpServer())
       .post(`/api/v1/approvals/steps/${item.stepId}/approve`)
@@ -81,7 +87,7 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
         paymentTerms: 'NET 30',
       })
       .expect(201);
-    vendorId = VendorSchema.parse(vendor.body).id;
+    vendorId = VendorSchema.parse(vendor.body.data).id;
   });
 
   afterAll(async () => {
@@ -91,18 +97,27 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
   it('TC-201: approved REQ → PO draft with inherited lines; REQ becomes converted', async () => {
     const reqId = await approvedRequisition();
 
-    const queue = await request(app.getHttpServer())
-      .get('/api/v1/requisitions/approved')
-      .set('Authorization', `Bearer ${purchasingToken}`)
-      .expect(200);
-    expect(RequisitionListSchema.parse(queue.body).some((r) => r.id === reqId)).toBe(true);
+    const queued = await findAcrossPages(
+      async (page) => {
+        const res = await request(app.getHttpServer())
+          .get(`/api/v1/requisitions/approved?page=${page}&pageSize=100`)
+          .set('Authorization', `Bearer ${purchasingToken}`)
+          .expect(200);
+        return {
+          items: RequisitionListSchema.parse(res.body.data),
+          totalPages: res.body.meta.totalPages,
+        };
+      },
+      (r) => r.id === reqId,
+    );
+    expect(queued).toBeDefined();
 
     const converted = await request(app.getHttpServer())
       .post('/api/v1/purchase-orders/from-requisition')
       .set('Authorization', `Bearer ${purchasingToken}`)
       .send({ requisitionId: reqId, vendorId })
       .expect(201);
-    const po = PurchaseOrderSchema.parse(converted.body);
+    const po = PurchaseOrderSchema.parse(converted.body.data);
     expect(po).toMatchObject({ status: 'draft', poNumber: null, requisitionId: reqId });
     expect(po.totalMinor).toBe(591_00);
     expect(po.lines.map((l) => l.description)).toEqual(['Server rack', 'Rails kit']);
@@ -111,7 +126,7 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
       .get(`/api/v1/requisitions/${reqId}`)
       .set('Authorization', `Bearer ${requesterToken}`)
       .expect(200);
-    expect(view.body.status).toBe('converted');
+    expect(view.body.data.status).toBe('converted');
 
     const audit = await app
       .get(Sequelize)
@@ -129,7 +144,7 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
       .set('Authorization', `Bearer ${purchasingToken}`)
       .send({ requisitionId: reqId, vendorId })
       .expect(201);
-    const po = PurchaseOrderSchema.parse(converted.body);
+    const po = PurchaseOrderSchema.parse(converted.body.data);
 
     const edited = await request(app.getHttpServer())
       .put(`/api/v1/purchase-orders/${po.id}/lines`)
@@ -152,7 +167,7 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
         ],
       })
       .expect(200);
-    const updated = PurchaseOrderSchema.parse(edited.body);
+    const updated = PurchaseOrderSchema.parse(edited.body.data);
     expect(updated.totalMinor).toBe(566_00);
     expect(updated.lines[0].vendorSku).toBe('INI-RACK-42U');
 
@@ -174,14 +189,14 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
       .send(DRAFT)
       .expect(201);
     await request(app.getHttpServer())
-      .post(`/api/v1/requisitions/${created.body.id}/submit`)
+      .post(`/api/v1/requisitions/${created.body.data.id}/submit`)
       .set('Authorization', `Bearer ${requesterToken}`)
       .expect(200);
 
     const res = await request(app.getHttpServer())
       .post('/api/v1/purchase-orders/from-requisition')
       .set('Authorization', `Bearer ${purchasingToken}`)
-      .send({ requisitionId: created.body.id, vendorId })
+      .send({ requisitionId: created.body.data.id, vendorId })
       .expect(409);
     expect(res.body.code).toBe('INVALID_TRANSITION');
   });
@@ -202,7 +217,7 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
     const res = await request(app.getHttpServer())
       .post('/api/v1/purchase-orders/from-requisition')
       .set('Authorization', `Bearer ${purchasingToken}`)
-      .send({ requisitionId: reqId, vendorId: inactive.body.id })
+      .send({ requisitionId: reqId, vendorId: inactive.body.data.id })
       .expect(409);
     expect(res.body.code).toBe('VENDOR_INACTIVE');
   });
@@ -215,7 +230,7 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
         .set('Authorization', `Bearer ${purchasingToken}`)
         .send({ requisitionId: reqId, vendorId })
         .expect(201);
-      return res.body.id as string;
+      return res.body.data.id as string;
     }
 
     it('TC-203: 3 concurrent issues → consecutive PO-YYYY-NNNN, no gaps or duplicates', async () => {
@@ -228,7 +243,7 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
             .expect(200),
         ),
       );
-      const numbers = responses.map((r) => PurchaseOrderSchema.parse(r.body).poNumber);
+      const numbers = responses.map((r) => PurchaseOrderSchema.parse(r.body.data).poNumber);
       const year = new Date().getUTCFullYear();
       for (const n of numbers) {
         expect(n).toMatch(new RegExp(`^PO-${year}-\\d{4}$`));
@@ -238,7 +253,7 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
         .sort((a, b) => a - b);
       expect(new Set(suffixes).size).toBe(3); // no duplicates
       expect(suffixes[2] - suffixes[0]).toBe(2); // no gaps
-      expect(responses.every((r) => r.body.status === 'issued')).toBe(true);
+      expect(responses.every((r) => r.body.data.status === 'issued')).toBe(true);
     });
 
     it('I-8: PO total equals the exact sum of line totals in minor units', async () => {
@@ -247,7 +262,7 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
         .get(`/api/v1/purchase-orders/${id}`)
         .set('Authorization', `Bearer ${purchasingToken}`)
         .expect(200);
-      const po = PurchaseOrderSchema.parse(res.body);
+      const po = PurchaseOrderSchema.parse(res.body.data);
       const sum = po.lines.reduce((acc, l) => acc + l.lineTotalMinor, 0);
       expect(po.totalMinor).toBe(sum);
       for (const line of po.lines) {

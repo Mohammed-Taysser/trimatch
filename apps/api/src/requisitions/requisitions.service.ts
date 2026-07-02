@@ -10,9 +10,11 @@ import {
   RequisitionCreate,
   RequisitionSchema,
   RequisitionUpdate,
+  PaginationQuery,
 } from '@trimatch/shared';
 import { Sequelize } from 'sequelize-typescript';
 import { ApprovalStep } from '../approvals/approval-step.model';
+import { PagedResult, pageMeta, pageOffset } from '../common/paged';
 import { AuditService } from '../audit/audit.service';
 import { User } from '../identity/user.model';
 import { UsersService } from '../identity/users.service';
@@ -146,25 +148,38 @@ export class RequisitionsService {
   }
 
   // Purchasing queue (FR-201): approved requisitions awaiting conversion.
-  async findApproved(): Promise<RequisitionView[]> {
-    const rows = await this.requisitions.findAll({
+  async findApproved(query: PaginationQuery): Promise<PagedResult<RequisitionView>> {
+    const { rows, count } = await this.requisitions.findAndCountAll({
       where: { status: 'approved' },
       include: [RequisitionLine, { model: ApprovalStep, include: [User] }, User],
       order: [['updatedAt', 'ASC']],
+      distinct: true,
+      ...pageOffset(query),
     });
-    return rows.map((row) => this.toView(row));
+    return new PagedResult(
+      rows.map((row) => this.toView(row)),
+      pageMeta(query, count),
+    );
   }
 
-  async findAllOwn(requesterId: string): Promise<RequisitionView[]> {
-    const rows = await this.requisitions.findAll({
+  async findAllOwn(
+    requesterId: string,
+    query: PaginationQuery,
+  ): Promise<PagedResult<RequisitionView>> {
+    const { rows, count } = await this.requisitions.findAndCountAll({
       where: { requesterId },
       include: [RequisitionLine, { model: ApprovalStep, include: [User] }],
       order: [
         ['createdAt', 'DESC'],
         [{ model: RequisitionLine, as: 'lines' }, 'lineNo', 'ASC'],
       ],
+      distinct: true,
+      ...pageOffset(query),
     });
-    return rows.map((row) => this.toView(row));
+    return new PagedResult(
+      rows.map((row) => this.toView(row)),
+      pageMeta(query, count),
+    );
   }
 
   async findOwn(id: string, requesterId: string): Promise<RequisitionView> {

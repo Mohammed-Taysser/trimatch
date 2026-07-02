@@ -1,6 +1,18 @@
-import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { PurchaseOrder } from '@trimatch/shared';
 import { CurrentUser, JwtPayload, Roles } from '../auth/decorators';
+import { PaginationQueryDto } from '../common/dto';
+import { PagedResult } from '../common/paged';
 import { ConvertRequisitionDto, PoLinesUpdateDto } from './dto';
 import { PurchasingService } from './purchasing.service';
 
@@ -27,8 +39,8 @@ export class PurchasingController {
   }
 
   @Get()
-  list(): Promise<PurchaseOrder[]> {
-    return this.purchasing.findAll();
+  list(@Query() query: PaginationQueryDto): Promise<PagedResult<PurchaseOrder>> {
+    return this.purchasing.findAll(query);
   }
 
   @Get(':id')

@@ -8,9 +8,12 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { Requisition } from '@trimatch/shared';
 import { CurrentUser, JwtPayload, Roles } from '../auth/decorators';
+import { PaginationQueryDto } from '../common/dto';
+import { PagedResult } from '../common/paged';
 import { RequisitionCreateDto, RequisitionUpdateDto } from './dto';
 import { RequisitionsService } from './requisitions.service';
 
@@ -29,15 +32,18 @@ export class RequisitionsController {
 
   @Get()
   @Roles('requester')
-  list(@CurrentUser() user: JwtPayload): Promise<Requisition[]> {
-    return this.requisitions.findAllOwn(user.sub);
+  list(
+    @CurrentUser() user: JwtPayload,
+    @Query() query: PaginationQueryDto,
+  ): Promise<PagedResult<Requisition>> {
+    return this.requisitions.findAllOwn(user.sub, query);
   }
 
   // Declared before :id so the literal segment wins the route match.
   @Get('approved')
   @Roles('purchasing', 'admin')
-  approvedQueue(): Promise<Requisition[]> {
-    return this.requisitions.findApproved();
+  approvedQueue(@Query() query: PaginationQueryDto): Promise<PagedResult<Requisition>> {
+    return this.requisitions.findApproved(query);
   }
 
   @Post(':id/submit')

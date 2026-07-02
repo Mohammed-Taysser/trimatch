@@ -29,7 +29,7 @@ describe('draft requisitions (FR-101/102 · TC-101..103)', () => {
       .post('/api/v1/auth/login')
       .send({ email, password: PASSWORD })
       .expect(200);
-    return res.body.accessToken as string;
+    return res.body.data.accessToken as string;
   }
 
   beforeAll(async () => {
@@ -50,7 +50,7 @@ describe('draft requisitions (FR-101/102 · TC-101..103)', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .send(TWO_LINES)
       .expect(201);
-    const req = RequisitionSchema.parse(res.body);
+    const req = RequisitionSchema.parse(res.body.data);
     expect(req.status).toBe('draft');
     expect(req.totalMinor).toBe(59_97);
     expect(req.lines.map((l) => l.lineTotalMinor)).toEqual([30_00, 29_97]);
@@ -72,7 +72,7 @@ describe('draft requisitions (FR-101/102 · TC-101..103)', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .send(TWO_LINES)
       .expect(201);
-    const id = created.body.id as string;
+    const id = created.body.data.id as string;
 
     const edit = await request(app.getHttpServer())
       .put(`/api/v1/requisitions/${id}`)
@@ -94,7 +94,7 @@ describe('draft requisitions (FR-101/102 · TC-101..103)', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .send(TWO_LINES)
       .expect(201);
-    const id = created.body.id as string;
+    const id = created.body.data.id as string;
 
     const updated = await request(app.getHttpServer())
       .put(`/api/v1/requisitions/${id}`)
@@ -106,7 +106,7 @@ describe('draft requisitions (FR-101/102 · TC-101..103)', () => {
         ],
       })
       .expect(200);
-    expect(RequisitionSchema.parse(updated.body).totalMinor).toBe(120_00);
+    expect(RequisitionSchema.parse(updated.body.data).totalMinor).toBe(120_00);
 
     await request(app.getHttpServer())
       .delete(`/api/v1/requisitions/${id}`)
@@ -126,7 +126,7 @@ describe('draft requisitions (FR-101/102 · TC-101..103)', () => {
       .send(TWO_LINES)
       .expect(201);
     await request(app.getHttpServer())
-      .post(`/api/v1/requisitions/${created.body.id}/submit`)
+      .post(`/api/v1/requisitions/${created.body.data.id}/submit`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
 
@@ -134,7 +134,7 @@ describe('draft requisitions (FR-101/102 · TC-101..103)', () => {
       .get('/api/v1/requisitions')
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    const item = (list.body as { id: string }[]).find((r) => r.id === created.body.id);
+    const item = (list.body.data as { id: string }[]).find((r) => r.id === created.body.data.id);
     const parsed = RequisitionSchema.parse(item);
     expect(parsed.status).toBe('pending_approval');
     const pending = parsed.steps.find((s) => s.status === 'pending');
@@ -151,8 +151,8 @@ describe('draft requisitions (FR-101/102 · TC-101..103)', () => {
       .get('/api/v1/requisitions')
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    const idsA = (listA.body as { id: string }[]).map((r) => r.id);
-    expect(idsA).not.toContain(mine.body.id);
+    const idsA = (listA.body.data as { id: string }[]).map((r) => r.id);
+    expect(idsA).not.toContain(mine.body.data.id);
   });
 
   it('a non-requester role cannot create requisitions (403)', async () => {
@@ -172,7 +172,7 @@ describe('draft requisitions (FR-101/102 · TC-101..103)', () => {
         .set('Authorization', `Bearer ${token}`)
         .send(TWO_LINES)
         .expect(201);
-      return res.body.id as string;
+      return res.body.data.id as string;
     }
 
     it('TC-104: submit → pending_approval, chain snapshotted, audit row written', async () => {
@@ -181,7 +181,7 @@ describe('draft requisitions (FR-101/102 · TC-101..103)', () => {
         .post(`/api/v1/requisitions/${id}/submit`)
         .set('Authorization', `Bearer ${tokenA}`)
         .expect(200);
-      expect(RequisitionSchema.parse(res.body).status).toBe('pending_approval');
+      expect(RequisitionSchema.parse(res.body.data).status).toBe('pending_approval');
 
       const sequelize = app.get(Sequelize);
       const steps = await sequelize.query(

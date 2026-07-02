@@ -20,7 +20,7 @@ describe('vendor registry (FR-202)', () => {
       .post('/api/v1/auth/login')
       .send({ email, password: PASSWORD })
       .expect(200);
-    return res.body.accessToken as string;
+    return res.body.data.accessToken as string;
   }
 
   beforeAll(async () => {
@@ -46,7 +46,7 @@ describe('vendor registry (FR-202)', () => {
         paymentTerms: 'NET 30',
       })
       .expect(201);
-    const vendor = VendorSchema.parse(res.body);
+    const vendor = VendorSchema.parse(res.body.data);
     expect(vendor).toMatchObject({ name: vendorName, paymentTerms: 'NET 30', active: true });
   });
 
@@ -66,10 +66,10 @@ describe('vendor registry (FR-202)', () => {
 
   it('update edits terms and the active flag; ?active=true filters', async () => {
     const list = await request(app.getHttpServer())
-      .get('/api/v1/vendors')
+      .get('/api/v1/vendors?pageSize=100')
       .set('Authorization', `Bearer ${purchasingToken}`)
       .expect(200);
-    const mine = VendorListSchema.parse(list.body).find((v) => v.name === vendorName);
+    const mine = VendorListSchema.parse(list.body.data).find((v) => v.name === vendorName);
     expect(mine).toBeDefined();
 
     const updated = await request(app.getHttpServer())
@@ -77,7 +77,7 @@ describe('vendor registry (FR-202)', () => {
       .set('Authorization', `Bearer ${purchasingToken}`)
       .send({ paymentTerms: 'NET 45', active: false })
       .expect(200);
-    expect(VendorSchema.parse(updated.body)).toMatchObject({
+    expect(VendorSchema.parse(updated.body.data)).toMatchObject({
       paymentTerms: 'NET 45',
       active: false,
     });
@@ -86,15 +86,15 @@ describe('vendor registry (FR-202)', () => {
       .get('/api/v1/vendors?active=true')
       .set('Authorization', `Bearer ${purchasingToken}`)
       .expect(200);
-    expect(VendorListSchema.parse(activeOnly.body).some((v) => v.id === mine?.id)).toBe(false);
+    expect(VendorListSchema.parse(activeOnly.body.data).some((v) => v.id === mine?.id)).toBe(false);
   });
 
   it('an inactive vendor cannot receive new POs (assertActive → 409 VENDOR_INACTIVE)', async () => {
     const list = await request(app.getHttpServer())
-      .get('/api/v1/vendors')
+      .get('/api/v1/vendors?pageSize=100')
       .set('Authorization', `Bearer ${purchasingToken}`)
       .expect(200);
-    const inactive = VendorListSchema.parse(list.body).find((v) => v.name === vendorName);
+    const inactive = VendorListSchema.parse(list.body.data).find((v) => v.name === vendorName);
     if (!inactive) throw new Error('vendor from previous test not found');
     const vendors = app.get(VendorsService);
     await expect(vendors.assertActive(inactive.id)).rejects.toMatchObject({
@@ -102,9 +102,27 @@ describe('vendor registry (FR-202)', () => {
     });
   });
 
+  it('responses use the fixed envelope; lists carry pagination meta', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/vendors?page=1&pageSize=2')
+      .set('Authorization', `Bearer ${purchasingToken}`)
+      .expect(200);
+    expect(res.body).toMatchObject({ message: null, meta: { page: 1, pageSize: 2 } });
+    expect(typeof res.body.timestamp).toBe('string');
+    expect(typeof res.body.requestId).toBe('string');
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data.length).toBeLessThanOrEqual(2);
+    expect(res.body.meta.total).toBeGreaterThanOrEqual(res.body.data.length);
+
+    const err = await request(app.getHttpServer()).get('/api/v1/vendors?pageSize=100').expect(401);
+    expect(err.body).toMatchObject({ code: 'UNAUTHORIZED' });
+    expect(typeof err.body.timestamp).toBe('string');
+    expect(err.body.path).toContain('/api/v1/vendors');
+  });
+
   it('a requester role cannot manage vendors → 403', async () => {
     const res = await request(app.getHttpServer())
-      .get('/api/v1/vendors')
+      .get('/api/v1/vendors?pageSize=100')
       .set('Authorization', `Bearer ${requesterToken}`)
       .expect(403);
     expect(res.body.code).toBe('FORBIDDEN');

@@ -20,6 +20,7 @@ describe('requisition endpoints delegate with the authenticated requester', () =
     revise: jest.fn().mockResolvedValue({ id: REQ_ID, status: 'draft' }),
   } as unknown as RequisitionsService;
   const controller = new RequisitionsController(service);
+  const page = { page: 1, pageSize: 20 };
   const body = {
     justification: 'x',
     neededBy: '2026-08-01',
@@ -43,11 +44,11 @@ describe('requisition endpoints delegate with the authenticated requester', () =
   });
 
   it('list/get/update/remove are scoped to the current user', async () => {
-    await controller.list(user);
+    await controller.list(user, page);
     await controller.get(user, REQ_ID);
     await controller.update(user, REQ_ID, body);
     await controller.remove(user, REQ_ID);
-    expect(service.findAllOwn).toHaveBeenCalledWith(user.sub);
+    expect(service.findAllOwn).toHaveBeenCalledWith(user.sub, page);
     expect(service.findOwn).toHaveBeenCalledWith(REQ_ID, user.sub);
     expect(service.update).toHaveBeenCalledWith(REQ_ID, user.sub, body);
     expect(service.remove).toHaveBeenCalledWith(REQ_ID, user.sub);
