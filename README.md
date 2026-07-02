@@ -48,6 +48,7 @@ The process rules live in the [Enterprise Playbook](../ENTERPRISE_PLAYBOOK.md).
 | [docs/05-test-plan.md](docs/05-test-plan.md)       | Test strategy & test-case matrix (TC ↔ FR traceability)                            |
 | [docs/06-user-manual.md](docs/06-user-manual.md)   | User manual per role (requester, approver, purchasing, warehouse, AP)              |
 | [docs/07-runbook.md](docs/07-runbook.md)           | Operations runbook (run, seed, debug, recover)                                     |
+| [docs/08-glossary.md](docs/08-glossary.md)         | Glossary — every term & abbreviation (PRD, ERD, FR, invariants, …) explained       |
 | [docs/adr/](docs/adr/)                             | Architecture decision records                                                      |
 | [CHANGELOG.md](CHANGELOG.md)                       | All notable changes, per version                                                   |
 | [CONTRIBUTING.md](CONTRIBUTING.md)                 | Commit convention, branching, definition of done                                   |
