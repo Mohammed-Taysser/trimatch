@@ -227,6 +227,25 @@ describe('goods receiving (FR-301/302 · TC-301/TC-302 · TC-204)', () => {
     expect(po.lines.map((l) => l.receivedQuantity)).toEqual([0, 0]);
   });
 
+  it('TC-304: 40 good + 5 damaged → open qty decreases by 40 only; damage queryable', async () => {
+    const { poId, poLineId } = await issuedPo();
+    const receipt = await request(app.getHttpServer())
+      .post('/api/v1/receipts')
+      .set('Authorization', `Bearer ${warehouseToken}`)
+      .send({ poId, lines: [{ poLineId, quantity: 40, damagedQuantity: 5 }] })
+      .expect(201);
+    const grn = GrnSchema.parse(receipt.body.data);
+    expect(grn.lines[0]).toMatchObject({ quantity: 40, damagedQuantity: 5 });
+
+    const po = await poDetail(poId, warehouseToken);
+    expect(po.status).toBe('partially_received');
+    expect(po.lines[0]).toMatchObject({
+      receivedQuantity: 40,
+      openQuantity: 60,
+      damagedQuantity: 5,
+    });
+  });
+
   it('TC-204: a PO with a receipt can no longer be cancelled → 409 CANCEL_BLOCKED_RECEIVED', async () => {
     const { poId, poLineId } = await issuedPo();
     await request(app.getHttpServer())

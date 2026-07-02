@@ -78,7 +78,12 @@ export class ReceivingService {
         { transaction },
       );
       await this.grnLines.bulkCreate(
-        input.lines.map((line) => ({ ...line, grnId: grn.id })),
+        input.lines.map((line) => ({
+          poLineId: line.poLineId,
+          quantity: line.quantity,
+          damagedQuantity: line.damagedQuantity ?? 0,
+          grnId: grn.id,
+        })),
         { transaction },
       );
       await this.audit.record(
@@ -87,7 +92,11 @@ export class ReceivingService {
           entityId: grn.id,
           actorId,
           action: 'grn.recorded',
-          comment: `${grn.grnNumber} against PO ${po.poNumber ?? po.id}`,
+          comment: `${grn.grnNumber} against PO ${po.poNumber ?? po.id}${
+            input.lines.some((line) => (line.damagedQuantity ?? 0) > 0)
+              ? ` (damaged units: ${input.lines.reduce((sum, line) => sum + (line.damagedQuantity ?? 0), 0)})`
+              : ''
+          }`,
         },
         transaction,
       );
@@ -141,6 +150,7 @@ export class ReceivingService {
       lines: (row.lines ?? []).map((line) => ({
         poLineId: line.poLineId,
         quantity: line.quantity,
+        damagedQuantity: line.damagedQuantity,
       })),
       createdAt: (row.createdAt as Date).toISOString(),
     });

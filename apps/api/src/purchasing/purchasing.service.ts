@@ -168,15 +168,26 @@ export class PurchasingService {
     return Number(rows[0].count);
   }
 
-  // I-2 open-quantity math for the PO detail view.
-  private async receivedByPoLine(poId: string): Promise<Map<string, number>> {
-    const rows = await this.sequelize.query<{ po_line_id: string; total: string }>(
-      `SELECT gl.po_line_id, SUM(gl.quantity) AS total
+  // I-2 open-quantity math for the PO detail view (damaged tracked separately).
+  private async receivedByPoLine(
+    poId: string,
+  ): Promise<Map<string, { good: number; damaged: number }>> {
+    const rows = await this.sequelize.query<{
+      po_line_id: string;
+      total: string;
+      damaged: string;
+    }>(
+      `SELECT gl.po_line_id, SUM(gl.quantity) AS total, SUM(gl.damaged_quantity) AS damaged
        FROM grn_lines gl JOIN grns g ON g.id = gl.grn_id
        WHERE g.po_id = :poId GROUP BY gl.po_line_id`,
       { replacements: { poId }, type: QueryTypes.SELECT },
     );
-    return new Map(rows.map((row) => [row.po_line_id, Number(row.total)]));
+    return new Map(
+      rows.map((row) => [
+        row.po_line_id,
+        { good: Number(row.total), damaged: Number(row.damaged) },
+      ]),
+    );
   }
 
   async findAll(query: PaginationQuery): Promise<PagedResult<PoView>> {
@@ -271,7 +282,10 @@ export class PurchasingService {
     return this.findOne(id);
   }
 
-  private toView(row: PurchaseOrder, received?: Map<string, number>): PoView {
+  private toView(
+    row: PurchaseOrder,
+    received?: Map<string, { good: number; damaged: number }>,
+  ): PoView {
     return PurchaseOrderSchema.parse({
       id: row.id,
       poNumber: row.poNumber,
@@ -295,8 +309,9 @@ export class PurchasingService {
           lineTotalMinor: Number(line.lineTotalMinor),
           ...(received
             ? {
-                receivedQuantity: received.get(line.id) ?? 0,
-                openQuantity: line.quantity - (received.get(line.id) ?? 0),
+                receivedQuantity: received.get(line.id)?.good ?? 0,
+                openQuantity: line.quantity - (received.get(line.id)?.good ?? 0),
+                damagedQuantity: received.get(line.id)?.damaged ?? 0,
               }
             : {}),
         })),

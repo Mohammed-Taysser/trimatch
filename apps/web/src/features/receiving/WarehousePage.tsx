@@ -13,6 +13,7 @@ export function WarehousePage() {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [quantities, setQuantities] = useState<Record<string, string>>({});
+  const [damaged, setDamaged] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,12 +37,15 @@ export function WarehousePage() {
   });
 
   const receive = useMutation({
-    mutationFn: (payload: { poId: string; lines: { poLineId: string; quantity: number }[] }) =>
-      apiFetch('/api/v1/receipts', { method: 'POST', body: payload, token, schema: GrnSchema }),
+    mutationFn: (payload: {
+      poId: string;
+      lines: { poLineId: string; quantity: number; damagedQuantity?: number }[];
+    }) => apiFetch('/api/v1/receipts', { method: 'POST', body: payload, token, schema: GrnSchema }),
     onSuccess: (grn) => {
       setError(null);
       setMessage(`Recorded ${grn.grnNumber}`);
       setQuantities({});
+      setDamaged({});
       void queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
     },
     onError: (err) => {
@@ -53,7 +57,11 @@ export function WarehousePage() {
   function submitReceipt() {
     if (!detail.data) return;
     const lines = detail.data.lines
-      .map((line) => ({ poLineId: line.id, quantity: Number(quantities[line.id] ?? 0) }))
+      .map((line) => ({
+        poLineId: line.id,
+        quantity: Number(quantities[line.id] ?? 0),
+        damagedQuantity: Number(damaged[line.id] ?? 0) || undefined,
+      }))
       .filter((line) => line.quantity > 0);
     receive.mutate({ poId: detail.data.id, lines });
   }
@@ -119,6 +127,15 @@ export function WarehousePage() {
                   onChange={(e) =>
                     setQuantities((prev) => ({ ...prev, [line.id]: e.target.value }))
                   }
+                  style={{ width: 90 }}
+                />
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="Damaged"
+                  aria-label={`Damaged units for ${line.description}`}
+                  value={damaged[line.id] ?? ''}
+                  onChange={(e) => setDamaged((prev) => ({ ...prev, [line.id]: e.target.value }))}
                   style={{ width: 90 }}
                 />
               </li>
