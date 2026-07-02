@@ -17,6 +17,10 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **PO lifecycle rules (FR-204/FR-205)**: `POST /purchase-orders/:id/cancel`
+  (draft/issued → cancelled with audit row; blocked with `CANCEL_BLOCKED_RECEIVED`
+  once receipts exist — guard activates with Epic 3), issued POs are immutable —
+  line edits return 409 `PO_IMMUTABLE` (I-1); web Cancel button
 - **Gapless PO numbering on issue (FR-203/I-6)**: `sequences` table + claim upsert
   inside the issuing transaction (`common/sequences`), `POST /purchase-orders/:id/issue`
   assigns `PO-YYYY-NNNN` and moves draft → issued with an audit row; TC-203 proves

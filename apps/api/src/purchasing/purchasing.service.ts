@@ -6,6 +6,7 @@ import {
   PurchaseOrder as PoView,
   PurchaseOrderSchema,
 } from '@trimatch/shared';
+import { Transaction } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { AuditService } from '../audit/audit.service';
 import { PagedResult, pageMeta, pageOffset } from '../common/paged';
@@ -122,6 +123,49 @@ export class PurchasingService {
     return this.findOne(poId);
   }
 
+  // FR-204 / TC-204: cancel only while nothing has been received.
+  async cancel(id: string, actorId: string): Promise<PoView> {
+    await this.sequelize.transaction(async (transaction) => {
+      const po = await this.orders.findByPk(id, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!po) {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'Purchase order not found' });
+      }
+      const from = po.status;
+      poLifecycle.assertCanTransition(from, 'cancelled');
+      if ((await this.countReceipts(id, transaction)) > 0) {
+        throw new ConflictException({
+          code: 'CANCEL_BLOCKED_RECEIVED',
+          message: 'This purchase order already has receipts and can no longer be cancelled',
+        });
+      }
+      await po.update({ status: 'cancelled' }, { transaction });
+      await this.audit.record(
+        {
+          entityType: 'purchase_order',
+          entityId: id,
+          actorId,
+          action: 'po.cancelled',
+          fromState: from,
+          toState: 'cancelled',
+        },
+        transaction,
+      );
+    });
+    return this.findOne(id);
+  }
+
+  // TODO(Epic 3): count GRN rows for this PO once receiving lands — until then
+  // no receipts can exist, so the guard is trivially satisfied. The parameters
+  // are the future query inputs; referenced here so the signature is stable.
+  private countReceipts(poId: string, transaction: Transaction): Promise<number> {
+    void poId;
+    void transaction;
+    return Promise.resolve(0);
+  }
+
   async findAll(query: PaginationQuery): Promise<PagedResult<PoView>> {
     const { rows, count } = await this.orders.findAndCountAll({
       include: [PoLine, Vendor],
@@ -155,9 +199,10 @@ export class PurchasingService {
         throw new NotFoundException({ code: 'NOT_FOUND', message: 'Purchase order not found' });
       }
       if (po.status !== 'draft') {
+        // I-1 / FR-205: an issued PO's lines never change (amendments are v1).
         throw new ConflictException({
-          code: 'INVALID_TRANSITION',
-          message: 'Only draft purchase orders can be edited',
+          code: 'PO_IMMUTABLE',
+          message: 'An issued purchase order is immutable; amendments arrive in v1',
         });
       }
 

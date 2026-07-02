@@ -270,6 +270,49 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
       }
     });
 
+    it('TC-205: editing an issued PO line → 409 PO_IMMUTABLE (I-1)', async () => {
+      const id = await draftPo();
+      await request(app.getHttpServer())
+        .post(`/api/v1/purchase-orders/${id}/issue`)
+        .set('Authorization', `Bearer ${purchasingToken}`)
+        .expect(200);
+      const res = await request(app.getHttpServer())
+        .put(`/api/v1/purchase-orders/${id}/lines`)
+        .set('Authorization', `Bearer ${purchasingToken}`)
+        .send({
+          lines: [{ description: 'Sneaky edit', category: 'IT', quantity: 1, unitPriceMinor: 1 }],
+        })
+        .expect(409);
+      expect(res.body.code).toBe('PO_IMMUTABLE');
+    });
+
+    it('cancelling a draft or issued PO (no receipts) succeeds with an audit row', async () => {
+      const id = await draftPo();
+      await request(app.getHttpServer())
+        .post(`/api/v1/purchase-orders/${id}/issue`)
+        .set('Authorization', `Bearer ${purchasingToken}`)
+        .expect(200);
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/purchase-orders/${id}/cancel`)
+        .set('Authorization', `Bearer ${purchasingToken}`)
+        .expect(200);
+      expect(PurchaseOrderSchema.parse(res.body.data).status).toBe('cancelled');
+
+      const audit = await app
+        .get(Sequelize)
+        .query(
+          "SELECT from_state FROM audit_log WHERE entity_id = :id AND action = 'po.cancelled'",
+          { replacements: { id }, type: QueryTypes.SELECT },
+        );
+      expect(audit).toEqual([expect.objectContaining({ from_state: 'issued' })]);
+
+      const again = await request(app.getHttpServer())
+        .post(`/api/v1/purchase-orders/${id}/cancel`)
+        .set('Authorization', `Bearer ${purchasingToken}`)
+        .expect(409);
+      expect(again.body.code).toBe('INVALID_TRANSITION');
+    });
+
     it('issuing a non-draft PO → 409 INVALID_TRANSITION', async () => {
       const id = await draftPo();
       await request(app.getHttpServer())

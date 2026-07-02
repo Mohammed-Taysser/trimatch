@@ -29,6 +29,15 @@ export class PurchasingController {
     return this.purchasing.convert(body.requisitionId, body.vendorId, user.sub);
   }
 
+  @Post(':id/cancel')
+  @HttpCode(200)
+  cancel(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<PurchaseOrder> {
+    return this.purchasing.cancel(id, user.sub);
+  }
+
   @Post(':id/issue')
   @HttpCode(200)
   issue(

@@ -33,6 +33,20 @@ export function PurchaseOrdersTab() {
     queryFn: () => apiFetch('/api/v1/purchase-orders', { token, schema: PurchaseOrderListSchema }),
   });
 
+  const cancel = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/v1/purchase-orders/${id}/cancel`, {
+        method: 'POST',
+        token,
+        schema: PurchaseOrderSchema,
+      }),
+    onSuccess: () => {
+      setError(null);
+      void queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+    },
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Cancel failed'),
+  });
+
   const issue = useMutation({
     mutationFn: (id: string) =>
       apiFetch(`/api/v1/purchase-orders/${id}/issue`, {
@@ -129,14 +143,23 @@ export function PurchaseOrdersTab() {
               <div style={{ color: '#555', fontSize: 14 }}>
                 {po.lines.length} line(s) · from requisition {po.requisitionId.slice(0, 8)}…
               </div>
-              {po.status === 'draft' && (
-                <div style={{ marginTop: 6 }}>
+              {(po.status === 'draft' || po.status === 'issued') && (
+                <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+                  {po.status === 'draft' && (
+                    <button
+                      type="button"
+                      onClick={() => issue.mutate(po.id)}
+                      disabled={issue.isPending}
+                    >
+                      Issue (claims number)
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => issue.mutate(po.id)}
-                    disabled={issue.isPending}
+                    onClick={() => cancel.mutate(po.id)}
+                    disabled={cancel.isPending}
                   >
-                    Issue (claims number)
+                    Cancel PO
                   </button>
                 </div>
               )}
