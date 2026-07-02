@@ -15,7 +15,8 @@ requisition → approval matrix → purchase order → goods receipt → vendor 
 ## 2. Current state (scaffold merged — 0.1.0-dev)
 
 - Git repo at `/mnt/dev/side-projects/trimatch/`, branch `main`, tag `v0.0.1`,
-  clean tree. **Monorepo scaffold shipped 2026-07-02** (ClickUp `869dz0ff5`):
+  clean tree; remote `origin` → <https://github.com/Mohammed-Taysser/trimatch>.
+  **Monorepo scaffold shipped 2026-07-02** (ClickUp `869dz0ff5`):
   `pnpm install && docker compose up -d && pnpm dev` → api :3000 (`/api/v1`),
   web :5173. Host ports overridable via `.env` (`POSTGRES_HOST_PORT`/`REDIS_HOST_PORT`)
   when 5432/6379 are taken. Root `CLAUDE.md` exists for Claude Code sessions.

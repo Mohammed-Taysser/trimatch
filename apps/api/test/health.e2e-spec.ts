@@ -10,6 +10,7 @@ describe('api starts and serves /api/v1 health (AC 1)', () => {
 
   beforeAll(async () => {
     process.env.NODE_ENV = 'test';
+    process.env.API_PORT = process.env.API_PORT ?? '3000';
     process.env.DATABASE_URL =
       process.env.DATABASE_URL ?? 'postgres://trimatch:trimatch@localhost:5432/trimatch';
     process.env.REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';

@@ -1,8 +1,10 @@
 import { z } from 'zod';
 
+// No .default()s on purpose: a missing variable must fail the boot loudly so the
+// gap is visible to every dev, instead of being masked by a silent fallback.
 export const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  API_PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  NODE_ENV: z.enum(['development', 'test', 'production']),
+  API_PORT: z.coerce.number().int().min(1).max(65535),
   DATABASE_URL: z.string().startsWith('postgres', 'must be a postgres:// connection URL'),
   REDIS_URL: z.string().startsWith('redis', 'must be a redis:// connection URL'),
 });

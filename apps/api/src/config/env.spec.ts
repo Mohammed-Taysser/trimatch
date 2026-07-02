@@ -14,11 +14,14 @@ describe('app refuses to boot with invalid env config (AC 3)', () => {
     expect(env.NODE_ENV).toBe('test');
   });
 
-  it('applies defaults for NODE_ENV and API_PORT', () => {
-    const { NODE_ENV, API_PORT, ...rest } = validEnv;
-    const env = validateEnv(rest);
-    expect(env.NODE_ENV).toBe('development');
-    expect(env.API_PORT).toBe(3000);
+  it('throws when NODE_ENV is missing — no silent defaults', () => {
+    const { NODE_ENV, ...rest } = validEnv;
+    expect(() => validateEnv(rest)).toThrow(/NODE_ENV/);
+  });
+
+  it('throws when API_PORT is missing — no silent defaults', () => {
+    const { API_PORT, ...rest } = validEnv;
+    expect(() => validateEnv(rest)).toThrow(/API_PORT/);
   });
 
   it('throws when DATABASE_URL is missing', () => {

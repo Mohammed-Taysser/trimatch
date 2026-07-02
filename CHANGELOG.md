@@ -13,8 +13,8 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
   refuses to boot on invalid config, `/api/v1/health/liveness|readiness`),
   `apps/web` (React 19 + Vite 7 + TanStack Query health dashboard),
   `packages/shared` (zod schemas consumed by both apps),
-  `docker-compose.yml` (postgres:16, redis:7 with healthchecks, host ports
-  overridable via env), `.env.example`;
+  `docker-compose.yml` (postgres:16, redis:7 with healthchecks; credentials, db
+  name and host ports driven by env, no hardcoded values), `.env.example`;
   Jest suites mirror the story's acceptance criteria
 - **CLAUDE.md**: session guide for Claude Code (context pointers, locked decisions,
   workflow rules, ClickUp REST fallback)

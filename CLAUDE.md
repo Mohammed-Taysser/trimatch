@@ -25,11 +25,18 @@ and what's next. Run its §5 checklist at the start of every session.
 - ClickUp MCP only loads if the session starts in `/mnt/dev`; otherwise use the REST
   API (`https://api.clickup.com/api/v2`, key in `/mnt/dev/.claude/settings.local.json`
   under `env.CLICKUP_API_KEY`). **Never** print, log, or commit the key.
+- **No hardcoded config values, and no silent defaults.** Anything
+  environment-dependent (credentials, DB names, ports, hosts, URLs) is read from
+  `.env`, and a missing variable must **fail loudly** so every dev notices:
+  docker-compose uses `${VAR:?message}` (never `${VAR:-default}`), the api's zod
+  env schema has no `.default()`s, the web validates `import.meta.env`. Every new
+  variable goes into `.env.example` with a comment.
 - Docs-first: update docs/ADRs before or with code, not after.
 - Conventional Commits; update [CHANGELOG.md](CHANGELOG.md) per release; tag `vX.Y.Z`.
 - Branches: `feat/<scope>-<desc>`. Acceptance criteria become test names.
 - Out-of-scope discoveries → new ClickUp backlog task, never scope creep.
-- No git remote yet: "PR + review" = local branch, self-review, merge to `main`.
+- Remote: `origin` → <https://github.com/Mohammed-Taysser/trimatch> — push branches,
+  open PRs with `gh` (self-review counts until CI exists).
 
 ## Commands (once the monorepo exists)
 
