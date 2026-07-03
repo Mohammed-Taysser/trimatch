@@ -9,6 +9,17 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **In-app notification center (Epic 9)**: per-user notifications are now
+  persisted (`notifications` table: recipient, type, entity ref, message, read
+  flag) and exposed. `GET /api/v1/notifications` is paginated with an optional
+  `?unread=true|false` filter and returns **only the caller's own** rows
+  (scoped to the JWT `sub`); `PATCH /api/v1/notifications/:id/read` marks one
+  read — another user's row is indistinguishable from a missing one (404, no
+  existence leak). The BullMQ worker now validates a notification job payload
+  and persists it, so a hand-off just enqueues a job. Notification `type` is the
+  canonical domain-event name from docs/03-domain.md §5 (the contract the
+  emit-on-hand-offs task fires).
+
 - **BullMQ notifications foundation (Epic 9)**: a `NotificationsModule` stands up
   the async queue that ADR-0001 provisioned but nothing used yet — the Redis
   connection is parsed from the existing `REDIS_URL` env (no new config), a

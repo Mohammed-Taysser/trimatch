@@ -135,4 +135,7 @@ stateDiagram-v2
 `invoice.matched` · `invoice.exception` · `invoice.payable`
 
 MVP consumes these in-process (notifications); the names are the contract a future
-message broker would inherit.
+message broker would inherit. Each event name is also a `notifications.type`
+value: the BullMQ worker persists a per-user row (`notifications` table) that the
+notification center API (`GET/PATCH /api/v1/notifications`) exposes, scoped to the
+recipient.
