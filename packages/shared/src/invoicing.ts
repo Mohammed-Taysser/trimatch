@@ -65,6 +65,15 @@ export const InvoiceListSchema = z.array(InvoiceSchema);
 
 // FR-404 resolutions: reasons are validated in the service so the API answers
 // 422 REASON_REQUIRED (consistent with approvals).
+// FR-404: apply a received credit note to an invoice held in
+// awaiting_credit_note; the credit must reconcile the invoice to the
+// PO-expected payable or it is refused.
+export const CreditNoteApplySchema = z.object({
+  creditMinor: z.number().int().positive(),
+  reference: z.string().min(1).max(100),
+});
+export type CreditNoteApply = z.infer<typeof CreditNoteApplySchema>;
+
 export const ResolutionRequestSchema = z.object({
   reason: z.string().optional(),
 });
