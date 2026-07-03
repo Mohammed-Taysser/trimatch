@@ -38,20 +38,21 @@ The process rules live in the [Enterprise Playbook](../ENTERPRISE_PLAYBOOK.md).
 
 ## Documentation
 
-| Doc                                                | What's in it                                                                       |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| [docs/00-onboarding.md](docs/00-onboarding.md)     | **Start here** — session handoff, ClickUp workflow rules, validation checklist     |
-| [docs/01-prd.md](docs/01-prd.md)                   | Product requirements — roles, FR/NFR catalog, business rules with worked examples  |
-| [docs/02-sla.md](docs/02-sla.md)                   | Service levels — availability & latency SLOs, error budget, support tiers, RPO/RTO |
-| [docs/03-domain.md](docs/03-domain.md)             | Domain model — glossary, entities, invariants, lifecycle state machines            |
-| [docs/04-architecture.md](docs/04-architecture.md) | Architecture — container view, NestJS module map, data flow                        |
-| [docs/05-test-plan.md](docs/05-test-plan.md)       | Test strategy & test-case matrix (TC ↔ FR traceability)                            |
-| [docs/06-user-manual.md](docs/06-user-manual.md)   | User manual per role (requester, approver, purchasing, warehouse, AP)              |
-| [docs/07-runbook.md](docs/07-runbook.md)           | Operations runbook (run, seed, debug, recover)                                     |
-| [docs/08-glossary.md](docs/08-glossary.md)         | Glossary — every term & abbreviation (PRD, ERD, FR, invariants, …) explained       |
-| [docs/adr/](docs/adr/)                             | Architecture decision records                                                      |
-| [CHANGELOG.md](CHANGELOG.md)                       | All notable changes, per version                                                   |
-| [CONTRIBUTING.md](CONTRIBUTING.md)                 | Commit convention, branching, definition of done                                   |
+| Doc                                                    | What's in it                                                                       |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| [docs/00-onboarding.md](docs/00-onboarding.md)         | **Start here** — session handoff, ClickUp workflow rules, validation checklist     |
+| [docs/01-prd.md](docs/01-prd.md)                       | Product requirements — roles, FR/NFR catalog, business rules with worked examples  |
+| [docs/02-sla.md](docs/02-sla.md)                       | Service levels — availability & latency SLOs, error budget, support tiers, RPO/RTO |
+| [docs/03-domain.md](docs/03-domain.md)                 | Domain model — glossary, entities, invariants, lifecycle state machines            |
+| [docs/04-architecture.md](docs/04-architecture.md)     | Architecture — container view, NestJS module map, data flow                        |
+| [docs/05-test-plan.md](docs/05-test-plan.md)           | Test strategy & test-case matrix (TC ↔ FR traceability)                            |
+| [docs/06-user-manual.md](docs/06-user-manual.md)       | User manual per role (requester, approver, purchasing, warehouse, AP)              |
+| [docs/07-runbook.md](docs/07-runbook.md)               | Operations runbook (run, seed, debug, recover)                                     |
+| [docs/09-user-manual-ar.md](docs/09-user-manual-ar.md) | دليل المستخدم بالعربية الفصحى — with an English↔Arabic terminology glossary        |
+| [docs/08-glossary.md](docs/08-glossary.md)             | Glossary — every term & abbreviation (PRD, ERD, FR, invariants, …) explained       |
+| [docs/adr/](docs/adr/)                                 | Architecture decision records                                                      |
+| [CHANGELOG.md](CHANGELOG.md)                           | All notable changes, per version                                                   |
+| [CONTRIBUTING.md](CONTRIBUTING.md)                     | Commit convention, branching, definition of done                                   |
 
 ## Roles at a glance
 

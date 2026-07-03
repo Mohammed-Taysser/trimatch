@@ -4,6 +4,8 @@
 - **Date:** 2026-07-02
 - **Audience:** end users per role. Screens referenced here are specified by the
   [PRD](01-prd.md) and will match the shipped UI; screenshots land as features ship.
+- **بالعربية:** النسخة العربية الفصحى مع جدول المصطلحات:
+  [دليل المستخدم بالعربية](09-user-manual-ar.md).
 
 ## 1. Who can do what (RBAC matrix)
 

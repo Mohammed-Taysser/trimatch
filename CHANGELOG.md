@@ -7,6 +7,14 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Added
+
+- **Arabic user manual (دليل المستخدم بالفصحى)**: `docs/09-user-manual-ar.md` —
+  Modern Standard Arabic manual mirroring the English one against current
+  shipped behavior, opening with an English ↔ فصحى ↔ familiar-term glossary
+  (goods → البضائع, PO → أمر الشراء «الأوردر», …); linked from the README docs
+  index and the English manual
+
 ### Fixed
 
 - **Dependabot jobs unstuck (869dz36n8)**: the failing `npm_and_yarn` runs were
