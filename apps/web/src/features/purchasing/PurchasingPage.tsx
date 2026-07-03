@@ -1,23 +1,17 @@
-import { useState } from 'react';
+import { Outlet } from 'react-router-dom';
 import { AppShell } from '../../components/AppShell';
-import { Button } from '../../components/ui';
-import { VendorsPage } from '../vendors/VendorsPage';
-import { PurchaseOrdersTab } from './PurchaseOrdersTab';
 
-export function PurchasingPage() {
-  const [tab, setTab] = useState<'orders' | 'vendors'>('orders');
+const PURCHASING_NAV = [
+  { to: '/purchasing/orders', label: 'Purchase orders' },
+  { to: '/purchasing/vendors', label: 'Vendors' },
+];
 
+// The purchasing area is a nested-route layout: a sub-nav over an <Outlet/>;
+// the sections (PurchaseOrdersTab, VendorsPage) are routed in App.tsx.
+export function PurchasingLayout() {
   return (
-    <AppShell title="Purchasing">
-      <nav className="form-row" aria-label="Purchasing sections">
-        <Button className="chip" aria-pressed={tab === 'orders'} onClick={() => setTab('orders')}>
-          Purchase orders
-        </Button>
-        <Button className="chip" aria-pressed={tab === 'vendors'} onClick={() => setTab('vendors')}>
-          Vendors
-        </Button>
-      </nav>
-      {tab === 'orders' ? <PurchaseOrdersTab /> : <VendorsPage />}
+    <AppShell title="Purchasing" nav={PURCHASING_NAV}>
+      <Outlet />
     </AppShell>
   );
 }

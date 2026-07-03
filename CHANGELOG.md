@@ -9,6 +9,13 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Purchasing as a multi-page area (Epic 21)**: the purchasing screen's two
+  tabs became nested routes — `/purchasing/orders` and `/purchasing/vendors`
+  (index redirects to orders) — under a `PurchasingLayout` with the routed
+  section nav, matching the admin pattern. Both sections are now deep-linkable.
+
+### Added
+
 - **Navigation shell + admin as a multi-page area (Epic 21)**: `AppShell` gained
   a role-aware section nav (routed `NavLink` tabs with active-state highlighting),
   and the admin dashboard's five tabs became real nested routes —
