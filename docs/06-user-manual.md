@@ -7,18 +7,27 @@
 
 ## 1. Who can do what (RBAC matrix)
 
-| Action                                    | Requester |   Approver    | Purchasing | Warehouse | AP  | Admin |
-| ----------------------------------------- | :-------: | :-----------: | :--------: | :-------: | :-: | :---: |
-| Create/edit own draft requisition         |    ✅     |       —       |     —      |     —     |  —  |   —   |
-| Submit / withdraw own requisition         |    ✅     |       —       |     —      |     —     |  —  |   —   |
-| Approve/reject a pending step             |     —     | ✅ (own step) |     —      |     —     |  —  |   —   |
-| Delegate approvals (v1)                   |     —     |      ✅       |     —      |     —     |  —  |   —   |
-| Manage vendors                            |     —     |       —       |     ✅     |     —     |  —  |  ✅   |
-| Convert requisition → PO, issue/cancel PO |     —     |       —       |     ✅     |     —     |  —  |   —   |
-| Record goods receipt                      |     —     |       —       |     —      |    ✅     |  —  |   —   |
-| Enter invoices, resolve exceptions (v1)   |     —     |       —       |     —      |     —     | ✅  |   —   |
-| Edit approval matrix & tolerances (v1)    |     —     |       —       |     —      |     —     |  —  |  ✅   |
-| View audit trail                          | own items |   own steps   |     ✅     | own GRNs  | ✅  |  ✅   |
+| Action                                          | Requester |   Approver    | Purchasing | Warehouse | AP  | Admin |
+| ----------------------------------------------- | :-------: | :-----------: | :--------: | :-------: | :-: | :---: |
+| Create/edit own draft requisition               |    ✅     |       —       |     —      |     —     |  —  |   —   |
+| Submit / withdraw own requisition               |    ✅     |       —       |     —      |     —     |  —  |   —   |
+| Approve/reject a pending step                   |     —     | ✅ (own step) |     —      |     —     |  —  |   —   |
+| Delegate approvals                              |     —     |      ✅       |     —      |     —     |  —  |  ✅   |
+| Manage vendors                                  |     —     |       —       |     ✅     |     —     |  —  |  ✅   |
+| Convert requisition → PO, issue/cancel PO       |     —     |       —       |     ✅     |     —     |  —  |  ✅   |
+| Amend an issued PO (versioned)                  |     —     |       —       |     ✅     |     —     |  —  |  ✅   |
+| Approve a total-increasing PO amendment         |     —     |      ✅       |     —      |     —     |  —  |  ✅   |
+| Record goods receipt                            |     —     |       —       |     —      |    ✅     |  —  |  ✅   |
+| Enter invoices, match, resolve exceptions       |     —     |       —       |     —      |     —     | ✅  |  ✅   |
+| Edit approval matrix                            |     —     |       —       |     —      |     —     |  —  |  ✅   |
+| Org-wide requisition list (`/requisitions/all`) |     —     |       —       |     —      |     —     |  —  |  ✅   |
+| User management (role/manager, audited)         |     —     |       —       |     —      |     —     |  —  |  ✅   |
+| Audit-trail browser (`GET /audit`)              |     —     |       —       |     —      |     —     |  —  |  ✅   |
+
+The admin dashboard (web) surfaces all of the above in one place — every
+action still calls the same rule-guarded endpoints (RolesGuard + service
+rules + audit rows); there is no bypass path. Admins cannot change their own
+role (`409 SELF_ROLE_CHANGE`).
 
 ## 2. Requester — asking for something
 

@@ -54,6 +54,18 @@ export const PurchaseOrderSchema = z.object({
 export type PurchaseOrder = z.infer<typeof PurchaseOrderSchema>;
 export const PurchaseOrderListSchema = z.array(PurchaseOrderSchema);
 
+// Worklists filter server-side (e.g. warehouse: issued + partially_received).
+export const PoListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(20),
+  status: z
+    .string()
+    .transform((value) => value.split(','))
+    .pipe(z.array(PoStatusSchema).min(1))
+    .optional(),
+});
+export type PoListQuery = z.infer<typeof PoListQuerySchema>;
+
 export const ConvertRequisitionSchema = z.object({
   requisitionId: z.uuid(),
   vendorId: z.uuid(),

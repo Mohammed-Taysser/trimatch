@@ -9,7 +9,7 @@ const ROLE_SCOPE: Record<string, string> = {
   purchasing: 'Purchasing',
   warehouse: 'Goods receiving',
   ap: 'Invoices & 3-way match',
-  admin: 'Purchasing (admin)',
+  admin: 'Admin dashboard',
 };
 
 export function AppShell({

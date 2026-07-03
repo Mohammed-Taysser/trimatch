@@ -6,11 +6,12 @@ import {
 } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import {
+  PaginationQuery,
   Requisition as RequisitionView,
   RequisitionCreate,
   RequisitionSchema,
   RequisitionUpdate,
-  PaginationQuery,
+  RequisitionsAllQuery,
 } from '@trimatch/shared';
 import { Sequelize } from 'sequelize-typescript';
 import { ApprovalStep } from '../approvals/approval-step.model';
@@ -151,6 +152,21 @@ export class RequisitionsService {
       );
     });
     return this.findOwn(id, requesterId);
+  }
+
+  // Superadmin dashboard: the whole org's requisitions, newest first.
+  async findAllAdmin(query: RequisitionsAllQuery): Promise<PagedResult<RequisitionView>> {
+    const { rows, count } = await this.requisitions.findAndCountAll({
+      where: query.status ? { status: query.status } : undefined,
+      include: [RequisitionLine, { model: ApprovalStep, include: [User] }, User],
+      order: [['createdAt', 'DESC']],
+      distinct: true,
+      ...pageOffset(query),
+    });
+    return new PagedResult(
+      rows.map((row) => this.toView(row)),
+      pageMeta(query, count),
+    );
   }
 
   // Purchasing queue (FR-201): approved requisitions awaiting conversion.
