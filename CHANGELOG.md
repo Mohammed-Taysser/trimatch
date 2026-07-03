@@ -9,6 +9,18 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Changed
 
+- **TypeScript 6** (ticket 869dzkqna, closing Dependabot PR #53): typescript
+  ^6.0.3 across api/web/shared + typescript-eslint bumped to the TS-6-aware
+  8.62; ts-jest 29.4 unchanged. Two migration items surfaced and were handled:
+  TS 6 no longer auto-includes `@types/jest` globals, so the two spec-typechecked
+  packages now declare `types` explicitly (api `[node, jest]`, shared `[jest]`);
+  and the deprecated `moduleResolution: node10` is silenced with
+  `ignoreDeprecations: "6.0"` — the real modern-resolution change is deferred to
+  the eventual TS 7 (native-compiler) migration, which is the deadline TS itself
+  cites. Lint/typecheck/tests/build green
+
+### Changed
+
 - **Jest 30** (ticket 869dzk7q5, closing the loop on Dependabot PR #46): jest
   30.4 + @types/jest 30 + ts-jest 29.4 bumped together in BOTH jest consumers
   (apps/api and packages/shared — leaving shared on 29 made pnpm hoist jest

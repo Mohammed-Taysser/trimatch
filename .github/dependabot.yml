@@ -28,10 +28,9 @@ updates:
       # bump @types/node majors only alongside a deliberate Node bump.
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
-      # Deliberate migrations tracked on the board — remove these once done:
-      # typescript 6 → 869dzkqna.
-      - dependency-name: 'typescript'
-        update-types: ['version-update:semver-major']
+      # typescript 6 migration is done (869dzkqna); the next major (7, the native
+      # compiler port) will be its own deliberate migration when it ships — and
+      # carries the node10 → modern moduleResolution change deferred here.
 
   - package-ecosystem: 'github-actions'
     directory: '/'
