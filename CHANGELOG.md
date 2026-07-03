@@ -9,6 +9,18 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Notifications emitted on every workflow hand-off (Epic 9)**: silent hand-offs
+  now push. A resilient `NotificationsProducer` enqueues a job on each transition,
+  always **after the triggering transaction commits** (a rolled-back change is
+  never announced) and **never failing the business op** (emission errors are
+  swallowed + logged). Recipients: requisition submitted → the first approver;
+  step approved → the next approver in the chain; fully approved / rejected → the
+  requester; invoice match exception → every AP user; PO amendment needing
+  re-approval → the requisition's approvers; delegation created → the delegate.
+  Two new domain events (`po.reapproval_required`, `delegation.created`) join the
+  contract in docs/03-domain.md §5. Each hand-off has an integration test
+  asserting one notification lands with the right recipient.
+
 - **In-app notification center (Epic 9)**: per-user notifications are now
   persisted (`notifications` table: recipient, type, entity ref, message, read
   flag) and exposed. `GET /api/v1/notifications` is paginated with an optional

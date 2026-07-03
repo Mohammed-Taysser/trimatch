@@ -131,8 +131,9 @@ stateDiagram-v2
 ## 5. Domain events (for notifications & future integrations)
 
 `requisition.submitted` · `requisition.approved` · `requisition.rejected` ·
-`po.issued` · `po.received` · `grn.recorded` · `invoice.entered` ·
-`invoice.matched` · `invoice.exception` · `invoice.payable`
+`po.issued` · `po.received` · `po.reapproval_required` · `grn.recorded` ·
+`invoice.entered` · `invoice.matched` · `invoice.exception` · `invoice.payable` ·
+`delegation.created`
 
 MVP consumes these in-process (notifications); the names are the contract a future
 message broker would inherit. Each event name is also a `notifications.type`

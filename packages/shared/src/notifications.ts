@@ -9,11 +9,13 @@ export const NotificationTypeSchema = z.enum([
   'requisition.rejected',
   'po.issued',
   'po.received',
+  'po.reapproval_required',
   'grn.recorded',
   'invoice.entered',
   'invoice.matched',
   'invoice.exception',
   'invoice.payable',
+  'delegation.created',
 ]);
 export type NotificationType = z.infer<typeof NotificationTypeSchema>;
 
@@ -24,6 +26,7 @@ export const NotificationEntityTypeSchema = z.enum([
   'goods_receipt',
   'invoice',
   'match',
+  'delegation',
 ]);
 export type NotificationEntityType = z.infer<typeof NotificationEntityTypeSchema>;
 

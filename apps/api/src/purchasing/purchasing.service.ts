@@ -17,9 +17,11 @@ import {
 } from '@trimatch/shared';
 import { QueryTypes, Transaction } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
+import { ApprovalsService } from '../approvals/approvals.service';
 import { AuditService } from '../audit/audit.service';
 import { PagedResult, pageMeta, pageOffset } from '../common/paged';
 import { formatDocNumber, SequencesService } from '../common/sequences.service';
+import { NotificationsProducer } from '../notifications/notifications.producer';
 import { requisitionLifecycle } from '../requisitions/requisition.lifecycle';
 import { Requisition, RequisitionLine } from '../requisitions/requisition.model';
 import { computeTotals } from '../requisitions/requisition.totals';
@@ -38,6 +40,8 @@ export class PurchasingService {
     private readonly vendors: VendorsService,
     private readonly audit: AuditService,
     private readonly sequences: SequencesService,
+    private readonly approvals: ApprovalsService,
+    private readonly notifications: NotificationsProducer,
   ) {}
 
   // FR-203 / I-6 / TC-203: draft → issued claims PO-YYYY-NNNN inside the same
@@ -252,7 +256,7 @@ export class PurchasingService {
   // pending_reapproval — receiving and invoicing are status-gated, so both
   // stay blocked until an approver signs off.
   async amend(id: string, input: PoAmend, actorId: string): Promise<PoView> {
-    await this.sequelize.transaction(async (transaction) => {
+    const outcome = await this.sequelize.transaction(async (transaction) => {
       const po = await this.orders.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
       if (!po) {
         throw new NotFoundException({ code: 'NOT_FOUND', message: 'Purchase order not found' });
@@ -351,7 +355,20 @@ export class PurchasingService {
         },
         transaction,
       );
+      return { requiresReapproval, requisitionId: po.requisitionId };
     });
+    if (outcome.requiresReapproval) {
+      // FR-604: a total-increasing amendment needs re-approval — notify the
+      // approvers who signed off on the originating requisition (ADR-0002).
+      const approverIds = await this.approvals.approverIdsFor(outcome.requisitionId);
+      await this.notifications.emitEach(approverIds, (recipientId) => ({
+        recipientId,
+        type: 'po.reapproval_required',
+        message: 'A purchase-order amendment needs your re-approval',
+        entityType: 'purchase_order',
+        entityId: id,
+      }));
+    }
     return this.findOne(id);
   }
 

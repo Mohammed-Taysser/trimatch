@@ -6,6 +6,7 @@ import { Notification } from './notification.model';
 import { NOTIFICATIONS_QUEUE } from './notifications.constants';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsProcessor } from './notifications.processor';
+import { NotificationsProducer } from './notifications.producer';
 import { NotificationsService } from './notifications.service';
 import { QueueHealth } from './queue-health.service';
 
@@ -26,7 +27,7 @@ import { QueueHealth } from './queue-health.service';
     BullModule.registerQueue({ name: NOTIFICATIONS_QUEUE }),
   ],
   controllers: [NotificationsController],
-  providers: [NotificationsProcessor, NotificationsService, QueueHealth],
-  exports: [QueueHealth, NotificationsService, BullModule],
+  providers: [NotificationsProcessor, NotificationsService, NotificationsProducer, QueueHealth],
+  exports: [QueueHealth, NotificationsService, NotificationsProducer, BullModule],
 })
 export class NotificationsModule {}

@@ -1,6 +1,12 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { PaginationQuery, UserAdmin, UserAdminSchema, UserUpdate } from '@trimatch/shared';
+import {
+  PaginationQuery,
+  UserAdmin,
+  UserAdminSchema,
+  UserRole,
+  UserUpdate,
+} from '@trimatch/shared';
 import { AuditService } from '../audit/audit.service';
 import { PagedResult, pageMeta, pageOffset } from '../common/paged';
 import { User } from './user.model';
@@ -18,6 +24,13 @@ export class UsersService {
 
   findById(id: string): Promise<User | null> {
     return this.userModel.findByPk(id);
+  }
+
+  // Recipients for role-addressed notifications (e.g. every AP user on an
+  // invoice exception).
+  async findIdsByRole(role: UserRole): Promise<string[]> {
+    const rows = await this.userModel.findAll({ where: { role }, attributes: ['id'] });
+    return rows.map((row) => row.id);
   }
 
   // Superadmin dashboard: the org, paginated, with manager names resolved.
