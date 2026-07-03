@@ -9,6 +9,15 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Navigation shell + admin as a multi-page area (Epic 21)**: `AppShell` gained
+  a role-aware section nav (routed `NavLink` tabs with active-state highlighting),
+  and the admin dashboard's five tabs became real nested routes —
+  `/admin/requisitions`, `/admin/purchase-orders`, `/admin/vendors`,
+  `/admin/users`, `/admin/audit` (index redirects to requisitions). Each section
+  is now deep-linkable and bookmarkable instead of ephemeral tab state.
+
+### Added
+
 - **Client-side routing (Epic 21)**: the web app moved from a role→single-
   component switch to real routes (react-router 7). Each role has a home route
   (`/requisitions`, `/approvals`, `/purchasing`, `/warehouse`, `/invoices`,
