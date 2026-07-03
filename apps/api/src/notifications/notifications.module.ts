@@ -1,15 +1,20 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { SequelizeModule } from '@nestjs/sequelize';
+import { Notification } from './notification.model';
 import { NOTIFICATIONS_QUEUE } from './notifications.constants';
+import { NotificationsController } from './notifications.controller';
 import { NotificationsProcessor } from './notifications.processor';
+import { NotificationsService } from './notifications.service';
 import { QueueHealth } from './queue-health.service';
 
 // BullMQ foundation (ADR-0001): the Redis connection is parsed from the
-// existing REDIS_URL env (no new config); the notifications queue + worker are
-// what later hand-offs and the outbound channel build on.
+// existing REDIS_URL env (no new config). The queue worker persists per-user
+// notifications via NotificationsService; the controller exposes them.
 @Module({
   imports: [
+    SequelizeModule.forFeature([Notification]),
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -20,7 +25,8 @@ import { QueueHealth } from './queue-health.service';
     }),
     BullModule.registerQueue({ name: NOTIFICATIONS_QUEUE }),
   ],
-  providers: [NotificationsProcessor, QueueHealth],
-  exports: [QueueHealth, BullModule],
+  controllers: [NotificationsController],
+  providers: [NotificationsProcessor, NotificationsService, QueueHealth],
+  exports: [QueueHealth, NotificationsService, BullModule],
 })
 export class NotificationsModule {}
