@@ -9,6 +9,14 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Changed
 
+- **Jest 30** (ticket 869dzk7q5, closing the loop on Dependabot PR #46): jest
+  30.4 + @types/jest 30 + ts-jest 29.4 bumped together; both suites pass
+  unchanged. Jest 30 counts branches more strictly, which surfaced two real
+  coverage gaps the old counting masked: `chain.service.ts` joined the
+  DB-bound exclusion list like its siblings, and `matrix.controller.ts` got
+  the standard delegation spec it was missing — branch coverage now 89.5%
+  against the 80% gate
+
 - **Vite 8 (Rolldown) + @vitejs/plugin-react 6** (ticket 869dzk7pe, closing the
   loop on Dependabot PR #42): production build drops from ~3.3s to ~0.8s;
   typecheck/build/dev-server/proxy and the linked-CJS shared-package

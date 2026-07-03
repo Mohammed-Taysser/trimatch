@@ -29,11 +29,7 @@ updates:
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
       # Deliberate migrations tracked on the board — remove these once done:
-      # jest 30 (+ ts-jest) → 869dzk7q5; typescript 6 → 869dzkqna.
-      - dependency-name: 'jest'
-        update-types: ['version-update:semver-major']
-      - dependency-name: '@types/jest'
-        update-types: ['version-update:semver-major']
+      # typescript 6 → 869dzkqna.
       - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
 
