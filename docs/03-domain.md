@@ -125,6 +125,8 @@ stateDiagram-v2
 6. **I-6** Document numbers are gapless per year per type (PRD §5.4) — claimed inside the issuing transaction.
 7. **I-7** Audit rows are never updated or deleted.
 8. **I-8** All money arithmetic happens in integer minor units; comparisons in basis points (PRD §5.2).
+   ([ADR-0004](adr/0004-money-representation.md) decides to migrate this to DECIMAL;
+   in effect once the Epic 20 money-representation task lands.)
 
 ## 5. Domain events (for notifications & future integrations)
 
