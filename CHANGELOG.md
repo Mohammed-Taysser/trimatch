@@ -9,6 +9,16 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Client-side routing (Epic 21)**: the web app moved from a role→single-
+  component switch to real routes (react-router 7). Each role has a home route
+  (`/requisitions`, `/approvals`, `/purchasing`, `/warehouse`, `/invoices`,
+  `/admin`); `/` redirects to the role's home; routes are role-guarded (a role
+  hitting another's route is redirected home); unknown paths render a 404 page.
+  URLs are now real and deep-linkable — the foundation for splitting the
+  tab-crammed screens into dedicated pages.
+
+### Added
+
 - **Step-level approval audit (Epic 8)**: every approval-step decision now
   writes its own audit row (`approval.step_approved`/`approval.step_rejected`,
   keyed to the requisition, naming round + step and preserving the delegation
