@@ -11,7 +11,7 @@ import { LoginPage } from './features/auth/LoginPage';
 import { InvoicesPage } from './features/invoicing/InvoicesPage';
 import { NotFoundPage } from './features/misc/NotFoundPage';
 import { PurchaseOrdersTab } from './features/purchasing/PurchaseOrdersTab';
-import { PurchasingPage } from './features/purchasing/PurchasingPage';
+import { PurchasingLayout } from './features/purchasing/PurchasingPage';
 import { WarehousePage } from './features/receiving/WarehousePage';
 import { RequisitionsPage } from './features/requisitions/RequisitionsPage';
 import { VendorsPage } from './features/vendors/VendorsPage';
@@ -66,10 +66,14 @@ export default function App() {
         path="/purchasing"
         element={
           <RequireRole roles={['purchasing']}>
-            <PurchasingPage />
+            <PurchasingLayout />
           </RequireRole>
         }
-      />
+      >
+        <Route index element={<Navigate to="orders" replace />} />
+        <Route path="orders" element={<PurchaseOrdersTab />} />
+        <Route path="vendors" element={<VendorsPage />} />
+      </Route>
       <Route
         path="/warehouse"
         element={
