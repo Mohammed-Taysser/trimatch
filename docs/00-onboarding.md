@@ -78,15 +78,18 @@ Run these before doing work in a new session:
    `git tag` contains `v0.0.1`.
 2. **MCP loaded:** ToolSearch for "clickup" returns tools. If not → check
    `/mnt/dev/.mcp.json` exists and session was started in `/mnt/dev`; fall back to REST.
-3. **ClickUp reachable:** list the "TriMatch" folder (`901212106264`) → 7 lists, 35 tasks
-   (5 shipped in Epic 0).
+3. **ClickUp reachable:** list the "TriMatch" folder (`901212106264`) → 20 lists
+   (Epics 0–19); Epics 0–7 are shipped, Epics 8–19 are the forward backlog.
 4. **Docs render:** README table links resolve (spot-check one).
 
 ## 6. What's next (in order)
 
-1. Open backlog: investigate failing Dependabot update jobs (869dz36n8).
-2. Then: whatever the user files next — every request gets a ClickUp ticket in
-   the owning epic's list first.
+1. The v1 product (Epics 0–7) is shipped; the forward backlog is Epics 8–19:
+   workflow completion (credit notes, PO close) · notifications (BullMQ) ·
+   multi-currency · in-app help · master data · exports · localization ·
+   analytics · security & auth hardening · observability · frontend/e2e testing ·
+   document attachments. Pick the next story from the owning epic's list.
+2. Every request the user files gets a ClickUp ticket in its epic's list first.
 
 Every release: update [CHANGELOG](../CHANGELOG.md), tag `vX.Y.Z`
 (semantic-release takes over once CI exists).

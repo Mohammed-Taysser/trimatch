@@ -19,7 +19,8 @@ and what's next. Run its §5 checklist at the start of every session.
 
 ## Workflow rules (summary — full rules in onboarding §3)
 
-- Work is tracked in ClickUp (folder `901212106264`, 7 lists = Epics 0–6).
+- Work is tracked in ClickUp (folder `901212106264`, 20 lists = Epics 0–19;
+  Epics 0–7 shipped through v0.6.0, Epics 8–19 are the forward backlog).
   Statuses: `backlog → scoping → in design → ready for development → in development
 → in review → testing → shipped`. Move the card as you work.
 - ClickUp MCP only loads if the session starts in `/mnt/dev`; otherwise use the REST
