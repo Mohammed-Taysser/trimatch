@@ -21,6 +21,7 @@ describe('purchase order endpoints delegate with the authenticated officer', () 
     cancel: jest.fn().mockResolvedValue({ id: PO_ID, status: 'cancelled' }),
     amend: jest.fn().mockResolvedValue({ id: PO_ID, version: 2 }),
     approveAmendment: jest.fn().mockResolvedValue({ id: PO_ID, status: 'issued' }),
+    close: jest.fn().mockResolvedValue({ id: PO_ID, status: 'closed' }),
     versions: jest.fn().mockResolvedValue({ items: [], meta: {} }),
   } as unknown as PurchasingService;
   const controller = new PurchasingController(service);
@@ -62,6 +63,8 @@ describe('purchase order endpoints delegate with the authenticated officer', () 
     expect(service.amend).toHaveBeenCalledWith(PO_ID, amendment, user.sub);
     await controller.approveAmendment(user, PO_ID);
     expect(service.approveAmendment).toHaveBeenCalledWith(PO_ID, user.sub);
+    await controller.close(user, PO_ID);
+    expect(service.close).toHaveBeenCalledWith(PO_ID, user.sub);
     await controller.versions(PO_ID, page);
     expect(service.versions).toHaveBeenCalledWith(PO_ID, page);
   });

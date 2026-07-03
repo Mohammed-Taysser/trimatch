@@ -178,6 +178,52 @@ export class PurchasingService {
     return Number(rows[0].count);
   }
 
+  // FR-604: a received PO can be closed once every invoice against it is
+  // settled — payable or rejected; anything else (entered/exception/
+  // awaiting_credit_note/matched/variance_accepted) is still open work.
+  async close(id: string, actorId: string): Promise<PoView> {
+    await this.sequelize.transaction(async (transaction) => {
+      const po = await this.orders.findByPk(id, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!po) {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'Purchase order not found' });
+      }
+      // Only a received PO may close — wrong state gives INVALID_TRANSITION.
+      poLifecycle.assertCanTransition(po.status, 'closed');
+      if ((await this.countOpenInvoices(id, transaction)) > 0) {
+        throw new ConflictException({
+          code: 'PO_HAS_OPEN_INVOICES',
+          message: 'Every invoice must be settled (payable or rejected) before the PO can close',
+        });
+      }
+      await po.update({ status: 'closed' }, { transaction });
+      await this.audit.record(
+        {
+          entityType: 'purchase_order',
+          entityId: id,
+          actorId,
+          action: 'po.closed',
+          fromState: 'received',
+          toState: 'closed',
+        },
+        transaction,
+      );
+    });
+    return this.findOne(id);
+  }
+
+  // Invoices still in flight (not payable/rejected) block a PO close.
+  private async countOpenInvoices(poId: string, transaction: Transaction): Promise<number> {
+    const rows = await this.sequelize.query<{ count: string }>(
+      `SELECT COUNT(*) AS count FROM invoices
+       WHERE po_id = :poId AND status NOT IN ('payable', 'rejected')`,
+      { replacements: { poId }, type: QueryTypes.SELECT, transaction },
+    );
+    return Number(rows[0].count);
+  }
+
   // I-2 open-quantity math for the PO detail view (damaged tracked separately).
   private async receivedByPoLine(
     poId: string,
