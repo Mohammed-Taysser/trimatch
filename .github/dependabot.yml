@@ -29,12 +29,12 @@ updates:
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
       # Deliberate migrations tracked on the board — remove these once done:
-      # vite 8 (+ plugin-react 6) → 869dzk7pe; jest 30 (+ ts-jest) → 869dzk7q5.
-      - dependency-name: '@vitejs/plugin-react'
-        update-types: ['version-update:semver-major']
+      # jest 30 (+ ts-jest) → 869dzk7q5; typescript 6 → 869dzkqna.
       - dependency-name: 'jest'
         update-types: ['version-update:semver-major']
       - dependency-name: '@types/jest'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
 
   - package-ecosystem: 'github-actions'
