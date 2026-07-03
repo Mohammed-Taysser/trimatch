@@ -52,10 +52,6 @@ read-only audit browser — all behind the same server-side rules as before.
   every input, `:focus-visible` rings, `aria-pressed` filter chips);
   responsive at laptop widths
 
-### Planned (next)
-
-- Epic 7 — UI refinement/design system + superadmin dashboard
-
 ## [0.5.0] — 2026-07-03
 
 Exceptions & partial deliveries complete (Epic 6): a PO accumulates receipts
