@@ -24,6 +24,18 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: '@nestjs/sequelize'
         update-types: ['version-update:semver-major']
+      # Types track the runtime we run, never lead it (batch review 869dzk3j5):
+      # bump @types/node majors only alongside a deliberate Node bump.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      # Deliberate migrations tracked on the board — remove these once done:
+      # vite 8 (+ plugin-react 6) → 869dzk7pe; jest 30 (+ ts-jest) → 869dzk7q5.
+      - dependency-name: '@vitejs/plugin-react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'jest'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/jest'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: 'github-actions'
     directory: '/'
