@@ -12,6 +12,7 @@ import { ExceptionsTab } from './features/invoicing/ExceptionsTab';
 import { InvoicesLayout } from './features/invoicing/InvoicesPage';
 import { InvoicesTab } from './features/invoicing/InvoicesTab';
 import { NotFoundPage } from './features/misc/NotFoundPage';
+import { PurchaseOrderDetailPage } from './features/purchasing/PurchaseOrderDetailPage';
 import { PurchaseOrdersTab } from './features/purchasing/PurchaseOrdersTab';
 import { PurchasingLayout } from './features/purchasing/PurchasingPage';
 import { WarehousePage } from './features/receiving/WarehousePage';
@@ -76,6 +77,14 @@ export default function App() {
         <Route path="orders" element={<PurchaseOrdersTab />} />
         <Route path="vendors" element={<VendorsPage />} />
       </Route>
+      <Route
+        path="/purchase-orders/:id"
+        element={
+          <RequireRole roles={['purchasing', 'admin']}>
+            <PurchaseOrderDetailPage />
+          </RequireRole>
+        }
+      />
       <Route
         path="/warehouse"
         element={
