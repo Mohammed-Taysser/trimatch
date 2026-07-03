@@ -12,7 +12,7 @@ requisition → approval matrix → purchase order → goods receipt → vendor 
 **3-way match** → payable. Built solo but run with multinational-team process
 ([Enterprise Playbook](../../ENTERPRISE_PLAYBOOK.md)).
 
-## 2. Current state (v0.5.0 — Epics 0–6: full v1 procurement flow)
+## 2. Current state (v0.6.0 — Epics 0–7 all shipped)
 
 - Git repo at `/mnt/dev/side-projects/trimatch/`, branch `main`, tags `v0.0.1` +
   `v0.1.0`; remote `origin` → <https://github.com/Mohammed-Taysser/trimatch>
@@ -84,10 +84,9 @@ Run these before doing work in a new session:
 
 ## 6. What's next (in order)
 
-1. **Epic 7 — UI refinement/design system + superadmin dashboard** (the two
-   user-created stories: 869dz698b, 869dz698j).
-2. Then: open backlog items (Dependabot investigation 869dz36n8) and anything
-   newly filed.
+1. Open backlog: investigate failing Dependabot update jobs (869dz36n8).
+2. Then: whatever the user files next — every request gets a ClickUp ticket in
+   the owning epic's list first.
 
 Every release: update [CHANGELOG](../CHANGELOG.md), tag `vX.Y.Z`
 (semantic-release takes over once CI exists).

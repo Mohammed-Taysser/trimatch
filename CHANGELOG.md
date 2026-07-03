@@ -7,6 +7,18 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Planned (next)
+
+- Open ticket: investigate failing Dependabot update jobs (869dz36n8)
+
+## [0.6.0] — 2026-07-03
+
+Epic 7 complete — the last planned epic. The web app runs on a real design
+system (tokens, shared components, app shell, Intl formatting, pagination,
+a11y basics) and admins get a dashboard that sees everything: org-wide
+requisitions, purchase orders, vendors, audited user management and a
+read-only audit browser — all behind the same server-side rules as before.
+
 ### Added
 
 - **Superadmin dashboard (Epic 7)**: admin routes to a new dashboard —
