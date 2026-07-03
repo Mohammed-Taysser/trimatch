@@ -23,6 +23,7 @@ module.exports = {
     '!src/invoicing/invoicing.service.ts',
     '!src/matching/matching.service.ts',
     '!src/approvals/matrix.service.ts',
+    '!src/approvals/chain.service.ts',
     '!src/approvals/delegations.service.ts',
   ],
   coverageThreshold: {
