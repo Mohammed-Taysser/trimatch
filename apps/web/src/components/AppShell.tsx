@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { Button } from './ui';
 
@@ -18,15 +18,22 @@ export interface NavItem {
   label: string;
 }
 
+export interface Breadcrumb {
+  label: string;
+  to?: string;
+}
+
 export function AppShell({
   title,
   subtitle,
   nav,
+  breadcrumbs,
   children,
 }: {
   title: string;
   subtitle?: string;
   nav?: NavItem[];
+  breadcrumbs?: Breadcrumb[];
   children: ReactNode;
 }) {
   const { user, logout } = useAuth();
@@ -47,6 +54,16 @@ export function AppShell({
         </div>
       </header>
       <main className="page">
+        {breadcrumbs && breadcrumbs.length > 0 && (
+          <nav className="breadcrumbs" aria-label="Breadcrumb">
+            {breadcrumbs.map((crumb, index) => (
+              <span key={crumb.label}>
+                {index > 0 && <span className="breadcrumb-sep">/</span>}
+                {crumb.to ? <Link to={crumb.to}>{crumb.label}</Link> : <span>{crumb.label}</span>}
+              </span>
+            ))}
+          </nav>
+        )}
         <div className="page-title">
           <h1>{title}</h1>
           {subtitle && <p>{subtitle}</p>}

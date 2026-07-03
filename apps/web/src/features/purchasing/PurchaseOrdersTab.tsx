@@ -7,6 +7,7 @@ import {
   VendorListSchema,
 } from '@trimatch/shared';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Alert,
   Button,
@@ -255,6 +256,9 @@ export function PurchaseOrdersTab() {
                 </div>
               )}
               <div className="card-actions">
+                <Link className="btn btn-sm" to={`/purchase-orders/${po.id}`}>
+                  View
+                </Link>
                 {(po.status === 'issued' || po.status === 'partially_received') && (
                   <Button onClick={() => setAmendingId(amendingId === po.id ? null : po.id)}>
                     Amend…

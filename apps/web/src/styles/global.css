@@ -168,6 +168,27 @@ p {
   margin: 0;
 }
 
+/* breadcrumbs */
+.breadcrumbs {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.breadcrumbs a {
+  color: var(--color-brand);
+  text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb-sep {
+  margin: 0 var(--space-2);
+  color: var(--color-text-faint);
+}
+
 /* section nav (tab-style routed links) */
 .page-nav {
   display: flex;

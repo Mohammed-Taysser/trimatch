@@ -9,6 +9,16 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Purchase-order detail page + breadcrumbs (Epic 21)**: a focused,
+  deep-linkable `/purchase-orders/:id` page (vendor, status, version, totals,
+  and the full lines table with received/open per line), reachable via a
+  **View** link on every PO card. `AppShell` gained a reusable `breadcrumbs`
+  prop (e.g. Purchase orders → PO-2026-NNNN, the trail linking back to the
+  role's list). This completes the entity-detail/deep-link task alongside the
+  URL-driven filters; the same pattern extends to requisition/invoice detail.
+
+### Added
+
 - **Deep-linkable list filters (Epic 21)**: list filters, sort and pagination
   now live in the URL query (`useUrlState` over react-router's
   `useSearchParams`) — the exceptions queue (`?reason=&sort=`), the admin
