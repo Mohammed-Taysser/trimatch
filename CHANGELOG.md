@@ -10,8 +10,10 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 ### Changed
 
 - **Jest 30** (ticket 869dzk7q5, closing the loop on Dependabot PR #46): jest
-  30.4 + @types/jest 30 + ts-jest 29.4 bumped together; both suites pass
-  unchanged. Jest 30 counts branches more strictly, which surfaced two real
+  30.4 + @types/jest 30 + ts-jest 29.4 bumped together in BOTH jest consumers
+  (apps/api and packages/shared — leaving shared on 29 made pnpm hoist jest
+  30's runtime against jest 29's mock and every suite crashed in CI); both
+  suites pass unchanged. Jest 30 counts branches more strictly, which surfaced two real
   coverage gaps the old counting masked: `chain.service.ts` joined the
   DB-bound exclusion list like its siblings, and `matrix.controller.ts` got
   the standard delegation spec it was missing — branch coverage now 89.5%
