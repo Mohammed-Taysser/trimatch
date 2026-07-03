@@ -7,6 +7,13 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Changed
+
+- **Vite 8 (Rolldown) + @vitejs/plugin-react 6** (ticket 869dzk7pe, closing the
+  loop on Dependabot PR #42): production build drops from ~3.3s to ~0.8s;
+  typecheck/build/dev-server/proxy and the linked-CJS shared-package
+  pre-bundle all verified in the browser
+
 ### Added
 
 - **Arabic user manual (دليل المستخدم بالفصحى)**: `docs/09-user-manual-ar.md` —
