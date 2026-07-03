@@ -1,6 +1,6 @@
 # TriMatch — Procurement & Purchase Orders with 3-Way Matching
 
-> **Status:** `v0.5.0` — exceptions & partial deliveries complete (cumulative matching · PO amendments · live queue) · **Stage:** Epic 7 (UI polish & superadmin)
+> **Status:** `v0.6.0` — all planned epics shipped (design system · superadmin dashboard) · **Stage:** maintenance & new requests
 > **Stack (decided, see ADR-0001):** NestJS · PostgreSQL · Sequelize · React · Redis/BullMQ
 
 ## Getting started
