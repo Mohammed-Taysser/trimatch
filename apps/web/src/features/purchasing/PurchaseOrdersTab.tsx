@@ -11,10 +11,12 @@ import { Link } from 'react-router-dom';
 import {
   Alert,
   Button,
+  ConfirmButton,
   EmptyState,
   Field,
   Loading,
   Pagination,
+  Skeleton,
   StatusBadge,
 } from '../../components/ui';
 import { ApiError, apiFetch, apiFetchPaged } from '../../lib/api';
@@ -222,7 +224,7 @@ export function PurchaseOrdersTab() {
 
       <section>
         <h2>Purchase orders</h2>
-        {orders.isPending && <Loading what="Loading purchase orders" />}
+        {orders.isPending && <Skeleton rows={4} />}
         {orders.data?.items.length === 0 && <EmptyState title="No purchase orders yet." />}
         <ul className="card-list">
           {orders.data?.items.map((po) => (
@@ -246,13 +248,14 @@ export function PurchaseOrdersTab() {
                       Issue (claims number)
                     </Button>
                   )}
-                  <Button
+                  <ConfirmButton
                     variant="danger"
-                    onClick={() => cancel.mutate(po.id)}
                     disabled={cancel.isPending}
+                    confirmLabel="Cancel PO"
+                    onConfirm={() => cancel.mutate(po.id)}
                   >
                     Cancel PO
-                  </Button>
+                  </ConfirmButton>
                 </div>
               )}
               <div className="card-actions">

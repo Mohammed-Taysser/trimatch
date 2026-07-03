@@ -14,6 +14,7 @@ import {
   Field,
   Loading,
   Pagination,
+  Skeleton,
   StatusBadge,
 } from '../../components/ui';
 import { ApiError, apiFetch, apiFetchPaged } from '../../lib/api';
@@ -77,7 +78,7 @@ export function RequisitionsTab() {
           ))}
         </select>
       </Field>
-      {list.isPending && <Loading what="requisitions" />}
+      {list.isPending && <Skeleton rows={4} />}
       {list.data?.items.length === 0 && <EmptyState title="No requisitions match." />}
       <ul className="card-list" style={undefined}>
         {list.data?.items.map((req) => (

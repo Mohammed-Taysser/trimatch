@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DelegationListSchema, DelegationSchema, InboxSchema } from '@trimatch/shared';
 import { useState } from 'react';
 import { AppShell } from '../../components/AppShell';
-import { Alert, Button, EmptyState, Field, Loading, Pagination } from '../../components/ui';
+import { Alert, Button, EmptyState, Field, Pagination, Skeleton } from '../../components/ui';
 import { ApiError, apiFetch, apiFetchPaged } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { formatDate, money } from '../../lib/format';
@@ -113,7 +113,7 @@ export function ApprovalsInboxPage() {
         ))}
       </details>
 
-      {inbox.isPending && <Loading />}
+      {inbox.isPending && <Skeleton rows={4} />}
       {inbox.isError && <Alert kind="error">Could not load the inbox.</Alert>}
       {inbox.data?.items.length === 0 && (
         <EmptyState title="Inbox zero" hint="Nothing waiting for your approval." />

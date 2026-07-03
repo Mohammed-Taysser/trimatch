@@ -11,10 +11,11 @@ import {
   Alert,
   Button,
   Card,
+  ConfirmButton,
   EmptyState,
   Field,
-  Loading,
   Pagination,
+  Skeleton,
   StatusBadge,
 } from '../../components/ui';
 import { ApiError, apiFetch, apiFetchPaged } from '../../lib/api';
@@ -255,7 +256,7 @@ export function RequisitionsPage() {
 
       <section>
         <h2>Drafts</h2>
-        {list.isPending && <Loading what="requisitions" />}
+        {list.isPending && <Skeleton rows={4} />}
         {list.isError && <Alert kind="error">Could not load requisitions.</Alert>}
         {list.data?.items.length === 0 && (
           <EmptyState
@@ -334,14 +335,15 @@ export function RequisitionsPage() {
                   <Button small onClick={() => startEdit(req)}>
                     Edit
                   </Button>
-                  <Button
+                  <ConfirmButton
                     small
                     variant="danger"
-                    onClick={() => remove.mutate(req.id)}
                     disabled={remove.isPending}
+                    confirmLabel="Delete"
+                    onConfirm={() => remove.mutate(req.id)}
                   >
                     Delete
-                  </Button>
+                  </ConfirmButton>
                 </div>
               )}
             </li>
