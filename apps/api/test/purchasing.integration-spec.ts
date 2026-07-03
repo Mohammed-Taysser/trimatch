@@ -236,7 +236,9 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
       const numbers = responses.map((r) => PurchaseOrderSchema.parse(r.body.data).poNumber);
       const year = new Date().getUTCFullYear();
       for (const n of numbers) {
-        expect(n).toMatch(new RegExp(`^PO-${year}-\\d{4}$`));
+        // padStart(4) is a minimum width — a busy year legitimately exceeds
+        // 9999, so accept 4-or-more digits (I-6 is gapless, not 4-capped).
+        expect(n).toMatch(new RegExp(`^PO-${year}-\\d{4,}$`));
       }
       const suffixes = numbers
         .map((n) => Number((n as string).split('-')[2]))
@@ -346,7 +348,7 @@ describe('convert approved requisition to PO draft (FR-201 · TC-201/TC-202)', (
       .expect(200);
     const po = RequisitionSchema.parse(afterIssue.body.data).po;
     expect(po?.status).toBe('issued');
-    expect(po?.poNumber).toMatch(/^PO-\d{4}-\d{4}$/);
+    expect(po?.poNumber).toMatch(/^PO-\d{4}-\d{4,}$/);
   });
 
   it('a requester role cannot convert → 403', async () => {

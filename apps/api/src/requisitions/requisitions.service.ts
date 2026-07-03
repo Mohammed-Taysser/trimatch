@@ -20,6 +20,7 @@ import { PagedResult, pageMeta, pageOffset } from '../common/paged';
 import { AuditService } from '../audit/audit.service';
 import { User } from '../identity/user.model';
 import { UsersService } from '../identity/users.service';
+import { NotificationsProducer } from '../notifications/notifications.producer';
 import { PurchaseOrder } from '../purchasing/purchase-order.model';
 import { requisitionLifecycle } from './requisition.lifecycle';
 import { Requisition, RequisitionLine } from './requisition.model';
@@ -35,11 +36,13 @@ export class RequisitionsService {
     private readonly users: UsersService,
     private readonly audit: AuditService,
     private readonly chains: ChainService,
+    private readonly notifications: NotificationsProducer,
   ) {}
 
   // FR-103 / TC-104: draft → pending_approval, chain snapshotted (MVP: the
   // requester's manager — ADR-0002), audit row — all in one transaction.
   async submit(id: string, requesterId: string): Promise<RequisitionView> {
+    let firstApproverId: string | undefined;
     await this.sequelize.transaction(async (transaction) => {
       const row = await this.requisitions.findByPk(id, {
         transaction,
@@ -65,6 +68,9 @@ export class RequisitionsService {
       const lines = await this.lines.findAll({ where: { requisitionId: id }, transaction });
       const categories = [...new Set(lines.map((line) => line.category))];
       const chain = await this.chains.buildChain(requester, Number(row.totalMinor), categories);
+      // The chain is sequential (one approver at a time) — notify whoever is
+      // first in line once the submission commits.
+      firstApproverId = chain[0]?.approverId;
 
       const previousRounds = (await this.steps.max('round', {
         where: { requisitionId: id },
@@ -94,6 +100,15 @@ export class RequisitionsService {
         transaction,
       );
     });
+    if (firstApproverId) {
+      await this.notifications.emit({
+        recipientId: firstApproverId,
+        type: 'requisition.submitted',
+        message: 'A requisition awaits your approval',
+        entityType: 'requisition',
+        entityId: id,
+      });
+    }
     return this.findOwn(id, requesterId);
   }
 

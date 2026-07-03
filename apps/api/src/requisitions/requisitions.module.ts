@@ -4,6 +4,7 @@ import { ApprovalStep } from '../approvals/approval-step.model';
 import { ApprovalsModule } from '../approvals/approvals.module';
 import { AuditModule } from '../audit/audit.module';
 import { IdentityModule } from '../identity/identity.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { Requisition, RequisitionLine } from './requisition.model';
 import { RequisitionsController } from './requisitions.controller';
 import { RequisitionsService } from './requisitions.service';
@@ -14,6 +15,7 @@ import { RequisitionsService } from './requisitions.service';
     IdentityModule,
     AuditModule,
     ApprovalsModule,
+    NotificationsModule,
   ],
   controllers: [RequisitionsController],
   providers: [RequisitionsService],

@@ -13,9 +13,19 @@ import { AuditService } from '../audit/audit.service';
 import { DelegationsService } from './delegations.service';
 import { PagedResult, pageMeta, pageOffset } from '../common/paged';
 import { User } from '../identity/user.model';
+import { NotificationsProducer } from '../notifications/notifications.producer';
 import { requisitionLifecycle } from '../requisitions/requisition.lifecycle';
 import { Requisition } from '../requisitions/requisition.model';
 import { ApprovalStep } from './approval-step.model';
+
+// What decide() should announce once its transaction has committed: the next
+// approver in line (requisition.submitted), or the requester on a final
+// approve/reject.
+interface DecideOutcome {
+  type: 'requisition.submitted' | 'requisition.approved' | 'requisition.rejected';
+  recipientId: string;
+  requisitionId: string;
+}
 
 @Injectable()
 export class ApprovalsService {
@@ -24,7 +34,20 @@ export class ApprovalsService {
     @InjectConnection() private readonly sequelize: Sequelize,
     private readonly audit: AuditService,
     private readonly delegations: DelegationsService,
+    private readonly notifications: NotificationsProducer,
   ) {}
+
+  // Distinct approvers snapshotted on a requisition's latest round — used to
+  // notify who re-approves a PO amendment for that requisition (ADR-0002 chain).
+  async approverIdsFor(requisitionId: string): Promise<string[]> {
+    const round = await this.steps.max('round', { where: { requisitionId } });
+    if (!round) return [];
+    const steps = await this.steps.findAll({
+      where: { requisitionId, round },
+      attributes: ['approverId'],
+    });
+    return [...new Set(steps.map((step) => step.approverId))];
+  }
 
   async inbox(approverId: string, query: PaginationQuery): Promise<PagedResult<InboxItem>> {
     // FR-502: an approver sees a step only when it is their turn — the
@@ -92,7 +115,7 @@ export class ApprovalsService {
       });
     }
 
-    await this.sequelize.transaction(async (transaction) => {
+    const outcome = await this.sequelize.transaction(async (transaction) => {
       const step = await this.steps.findByPk(stepId, {
         transaction,
         lock: transaction.LOCK.UPDATE,
@@ -157,7 +180,7 @@ export class ApprovalsService {
         },
         transaction,
       );
-      await this.advanceRequisition(
+      return this.advanceRequisition(
         step,
         decision,
         approverId,
@@ -165,6 +188,22 @@ export class ApprovalsService {
         transaction,
         onBehalfOf,
       );
+    });
+    if (outcome) await this.emitOutcome(outcome);
+  }
+
+  private async emitOutcome(outcome: DecideOutcome): Promise<void> {
+    const messages: Record<DecideOutcome['type'], string> = {
+      'requisition.approved': 'Your requisition was fully approved',
+      'requisition.rejected': 'Your requisition was rejected',
+      'requisition.submitted': 'A requisition awaits your approval',
+    };
+    await this.notifications.emit({
+      recipientId: outcome.recipientId,
+      type: outcome.type,
+      message: messages[outcome.type],
+      entityType: 'requisition',
+      entityId: outcome.requisitionId,
     });
   }
 
@@ -175,7 +214,7 @@ export class ApprovalsService {
     reason: string | undefined,
     transaction: Transaction,
     onBehalfOf: string | null = null,
-  ): Promise<void> {
+  ): Promise<DecideOutcome | null> {
     const requisition = await Requisition.findByPk(step.requisitionId, {
       transaction,
       lock: transaction.LOCK.UPDATE,
@@ -194,7 +233,20 @@ export class ApprovalsService {
       });
       if (remaining === 0) target = 'approved';
     }
-    if (!target) return; // more steps pending in this round
+    if (!target) {
+      // More steps pending this round — it's the next approver's turn.
+      const next = await this.steps.findOne({
+        where: { requisitionId: step.requisitionId, round: step.round, status: 'pending' },
+        order: [['stepNo', 'ASC']],
+        transaction,
+      });
+      if (!next) return null;
+      return {
+        type: 'requisition.submitted',
+        recipientId: next.approverId,
+        requisitionId: requisition.id,
+      };
+    }
 
     requisitionLifecycle.assertCanTransition(requisition.status, target);
     await requisition.update({ status: target }, { transaction });
@@ -210,5 +262,11 @@ export class ApprovalsService {
       },
       transaction,
     );
+    // Chain resolved — tell the requester it was approved / rejected.
+    return {
+      type: target === 'approved' ? 'requisition.approved' : 'requisition.rejected',
+      recipientId: requisition.requesterId,
+      requisitionId: requisition.id,
+    };
   }
 }

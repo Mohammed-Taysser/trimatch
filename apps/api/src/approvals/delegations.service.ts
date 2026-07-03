@@ -10,6 +10,7 @@ import { Op } from 'sequelize';
 import { AuditService } from '../audit/audit.service';
 import { PagedResult, pageMeta, pageOffset } from '../common/paged';
 import { User } from '../identity/user.model';
+import { NotificationsProducer } from '../notifications/notifications.producer';
 import { Delegation } from './delegation.model';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class DelegationsService {
   constructor(
     @InjectModel(Delegation) private readonly delegations: typeof Delegation,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsProducer,
   ) {}
 
   async create(
@@ -53,6 +55,14 @@ export class DelegationsService {
       actorId: delegatorId,
       action: 'delegation.created',
       comment: `to ${delegate.fullName} (${startsOn} → ${endsOn})`,
+    });
+    // Tell the delegate they now hold delegated approval authority.
+    await this.notifications.emit({
+      recipientId: delegate.id,
+      type: 'delegation.created',
+      message: `You have delegated approval authority from ${startsOn} to ${endsOn}`,
+      entityType: 'delegation',
+      entityId: row.id,
     });
     return this.toView(
       (await this.delegations.findByPk(row.id, {

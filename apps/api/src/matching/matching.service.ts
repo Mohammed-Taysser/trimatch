@@ -18,6 +18,8 @@ import { AuditService } from '../audit/audit.service';
 import { invoiceLifecycle } from '../invoicing/invoice.lifecycle';
 import { Invoice, InvoiceLine } from '../invoicing/invoice.model';
 import { PagedResult, pageMeta, pageOffset } from '../common/paged';
+import { UsersService } from '../identity/users.service';
+import { NotificationsProducer } from '../notifications/notifications.producer';
 import { PoLine } from '../purchasing/purchase-order.model';
 import { Vendor } from '../vendors/vendor.model';
 import { MatchRecord } from './match-record.model';
@@ -43,12 +45,14 @@ export class MatchingService {
     @InjectModel(MatchRecord) private readonly records: typeof MatchRecord,
     @InjectConnection() private readonly sequelize: Sequelize,
     private readonly audit: AuditService,
+    private readonly users: UsersService,
+    private readonly notifications: NotificationsProducer,
   ) {}
 
   // FR-402/403: evaluate PO ↔ GRN ↔ INV per line within tolerances; persist an
   // immutable match record; matched → payable, otherwise → exception.
   async match(invoiceId: string, actorId: string): Promise<MatchRecordView> {
-    const recordId = await this.sequelize.transaction(async (transaction) => {
+    const outcome = await this.sequelize.transaction(async (transaction) => {
       const invoice = await Invoice.findByPk(invoiceId, {
         include: [InvoiceLine],
         transaction,
@@ -171,9 +175,20 @@ export class MatchingService {
           transaction,
         );
       }
-      return record.id;
+      return { recordId: record.id, exception: result.outcome !== 'matched' };
     });
-    return this.findOne(recordId);
+    if (outcome.exception) {
+      // FR-406: an exception lands in AP's queue — notify every AP user.
+      const apIds = await this.users.findIdsByRole('ap');
+      await this.notifications.emitEach(apIds, (recipientId) => ({
+        recipientId,
+        type: 'invoice.exception',
+        message: 'An invoice failed 3-way match and needs review',
+        entityType: 'invoice',
+        entityId: invoiceId,
+      }));
+    }
+    return this.findOne(outcome.recordId);
   }
 
   // FR-404: apply a received credit note to an invoice held in
