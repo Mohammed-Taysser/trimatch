@@ -9,6 +9,15 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Deep-linkable list filters (Epic 21)**: list filters, sort and pagination
+  now live in the URL query (`useUrlState` over react-router's
+  `useSearchParams`) — the exceptions queue (`?reason=&sort=`), the admin
+  requisitions list (`?status=&page=`) and the admin audit browser
+  (`?entityType=&entityId=&page=`). A filtered view is now shareable,
+  bookmarkable and survives a refresh.
+
+### Added
+
 - **Invoices split into dedicated pages (Epic 21)**: the ~620-line AP screen was
   split into `/invoices` (invoice entry + the invoice list with match / mark
   payable / apply-credit-note) and `/invoices/exceptions` (the exceptions
