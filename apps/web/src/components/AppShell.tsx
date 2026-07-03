@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { NavLink } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { Button } from './ui';
 
@@ -12,13 +13,20 @@ const ROLE_SCOPE: Record<string, string> = {
   admin: 'Admin dashboard',
 };
 
+export interface NavItem {
+  to: string;
+  label: string;
+}
+
 export function AppShell({
   title,
   subtitle,
+  nav,
   children,
 }: {
   title: string;
   subtitle?: string;
+  nav?: NavItem[];
   children: ReactNode;
 }) {
   const { user, logout } = useAuth();
@@ -43,6 +51,22 @@ export function AppShell({
           <h1>{title}</h1>
           {subtitle && <p>{subtitle}</p>}
         </div>
+        {nav && nav.length > 0 && (
+          <nav className="page-nav" aria-label="Section navigation">
+            {nav.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end
+                className={({ isActive }) =>
+                  isActive ? 'page-nav-link is-active' : 'page-nav-link'
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        )}
         {children}
       </main>
     </>

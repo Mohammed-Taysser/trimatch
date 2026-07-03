@@ -19,11 +19,15 @@ import {
 import { ApiError, apiFetch, apiFetchPaged } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { formatDate, formatDateTime, money } from '../../lib/format';
-import { PurchaseOrdersTab } from '../purchasing/PurchaseOrdersTab';
-import { VendorsPage } from '../vendors/VendorsPage';
+import { Outlet } from 'react-router-dom';
 
-const TABS = ['Requisitions', 'Purchase orders', 'Vendors', 'Users', 'Audit'] as const;
-type Tab = (typeof TABS)[number];
+const ADMIN_NAV = [
+  { to: '/admin/requisitions', label: 'Requisitions' },
+  { to: '/admin/purchase-orders', label: 'Purchase orders' },
+  { to: '/admin/vendors', label: 'Vendors' },
+  { to: '/admin/users', label: 'Users' },
+  { to: '/admin/audit', label: 'Audit' },
+];
 
 const REQ_STATUSES = [
   'draft',
@@ -43,7 +47,7 @@ const AUDIT_ENTITIES = [
   'user',
 ];
 
-function RequisitionsTab() {
+export function RequisitionsTab() {
   const { token } = useAuth();
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
@@ -97,7 +101,7 @@ function RequisitionsTab() {
   );
 }
 
-function UsersTab() {
+export function UsersTab() {
   const { token } = useAuth();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
@@ -233,7 +237,7 @@ function UsersTab() {
   );
 }
 
-function AuditTab() {
+export function AuditTab() {
   const { token } = useAuth();
   const [entityType, setEntityType] = useState('');
   const [entityId, setEntityId] = useState('');
@@ -322,27 +326,16 @@ function AuditTab() {
   );
 }
 
-export function AdminDashboardPage() {
-  const [tab, setTab] = useState<Tab>('Requisitions');
+// The admin area is a nested-route layout: a sub-nav of deep-linkable sections
+// over an <Outlet/>; the section components are routed in App.tsx.
+export function AdminLayout() {
   return (
-    <AppShell title="Admin dashboard" subtitle="Everything, permission-checked server-side">
-      <nav className="form-row" aria-label="Dashboard sections">
-        {TABS.map((name) => (
-          <Button
-            key={name}
-            className="chip"
-            aria-pressed={tab === name}
-            onClick={() => setTab(name)}
-          >
-            {name}
-          </Button>
-        ))}
-      </nav>
-      {tab === 'Requisitions' && <RequisitionsTab />}
-      {tab === 'Purchase orders' && <PurchaseOrdersTab />}
-      {tab === 'Vendors' && <VendorsPage />}
-      {tab === 'Users' && <UsersTab />}
-      {tab === 'Audit' && <AuditTab />}
+    <AppShell
+      title="Admin dashboard"
+      subtitle="Everything, permission-checked server-side"
+      nav={ADMIN_NAV}
+    >
+      <Outlet />
     </AppShell>
   );
 }
