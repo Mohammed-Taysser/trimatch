@@ -1,5 +1,6 @@
-import { Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import {
+  CreditNoteApplySchema,
   ExceptionsQuerySchema,
   ExceptionsSummary,
   ExceptionsSummaryQuerySchema,
@@ -11,6 +12,7 @@ import { MatchingService } from './matching.service';
 
 export class ExceptionsQueryDto extends createZodDto(ExceptionsQuerySchema) {}
 export class ExceptionsSummaryQueryDto extends createZodDto(ExceptionsSummaryQuerySchema) {}
+export class CreditNoteApplyDto extends createZodDto(CreditNoteApplySchema) {}
 
 @Controller()
 @Roles('ap', 'admin')
@@ -24,6 +26,17 @@ export class MatchingController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<MatchRecord> {
     return this.matching.match(id, user.sub);
+  }
+
+  // FR-404: apply a received credit note to a held invoice.
+  @Post('invoices/:id/apply-credit-note')
+  @HttpCode(200)
+  applyCreditNote(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CreditNoteApplyDto,
+  ): Promise<MatchRecord> {
+    return this.matching.applyCreditNote(id, body.creditMinor, body.reference, user.sub);
   }
 
   @Get('exceptions')

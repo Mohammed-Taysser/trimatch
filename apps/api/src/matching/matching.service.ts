@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import {
   ExceptionsQuery,
   ExceptionsSummary,
@@ -166,6 +171,117 @@ export class MatchingService {
           transaction,
         );
       }
+      return record.id;
+    });
+    return this.findOne(recordId);
+  }
+
+  // FR-404: apply a received credit note to an invoice held in
+  // awaiting_credit_note. A credit note is a total-level document, so this
+  // reconciles at the total level (re-running the line-level match would keep
+  // firing the per-line price variance the credit is meant to settle): the
+  // credit must bring the net payable (invoice total − credit) within
+  // tolerance of the PO-expected total, else it is refused and the invoice
+  // stays held. On success the invoice completes matched → payable.
+  async applyCreditNote(
+    invoiceId: string,
+    creditMinor: number,
+    reference: string,
+    actorId: string,
+  ): Promise<MatchRecordView> {
+    const recordId = await this.sequelize.transaction(async (transaction) => {
+      // Lock the invoice row alone — FOR UPDATE cannot span an outer-joined
+      // include (InvoiceLine); load the lines separately.
+      const invoice = await Invoice.findByPk(invoiceId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!invoice) {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'Invoice not found' });
+      }
+      if (invoice.status !== 'awaiting_credit_note') {
+        throw new ConflictException({
+          code: 'INVALID_TRANSITION',
+          message: `Only an invoice held for a credit note can have one applied (status '${invoice.status}')`,
+        });
+      }
+
+      const invoiceTotal = Number(invoice.totalMinor);
+      if (creditMinor > invoiceTotal) {
+        throw new UnprocessableEntityException({
+          code: 'CREDIT_NOTE_EXCESSIVE',
+          message: `Credit note ${creditMinor} exceeds the invoice total ${invoiceTotal}`,
+        });
+      }
+
+      // PO-expected payable: the invoiced quantities at PO prices, plus tax.
+      const invoiceLines = await InvoiceLine.findAll({ where: { invoiceId }, transaction });
+      const poLines = await PoLine.findAll({ where: { poId: invoice.poId }, transaction });
+      const poPriceById = new Map(poLines.map((line) => [line.id, Number(line.unitPriceMinor)]));
+      let poExpected = Number(invoice.taxMinor);
+      for (const line of invoiceLines) {
+        const poPrice = poPriceById.get(line.poLineId);
+        if (poPrice === undefined) {
+          throw new NotFoundException({
+            code: 'NOT_FOUND',
+            message: `PO line ${line.poLineId} not found for this invoice`,
+          });
+        }
+        poExpected += line.quantity * poPrice;
+      }
+
+      const netPayable = invoiceTotal - creditMinor;
+      const delta = netPayable - poExpected;
+      if (Math.abs(delta) > DEFAULT_TOLERANCES.totalToleranceAbsMinor) {
+        throw new UnprocessableEntityException({
+          code: 'CREDIT_NOTE_INSUFFICIENT',
+          message: `Net payable ${netPayable} still differs from the PO-expected ${poExpected} by ${delta} (tolerance ±${DEFAULT_TOLERANCES.totalToleranceAbsMinor})`,
+        });
+      }
+
+      invoiceLifecycle.assertCanTransition('awaiting_credit_note', 'matched');
+      const record = await this.records.create(
+        {
+          invoiceId,
+          outcome: 'matched',
+          tolerances: DEFAULT_TOLERANCES,
+          comparisons: [],
+          reasons: [],
+          expectedTotalMinor: poExpected,
+          totalDeltaMinor: delta,
+          matchedBy: actorId,
+        },
+        { transaction },
+      );
+      await invoice.update(
+        { creditNoteMinor: creditMinor, creditNoteRef: reference, status: 'matched' },
+        { transaction },
+      );
+      await this.audit.record(
+        {
+          entityType: 'invoice',
+          entityId: invoiceId,
+          actorId,
+          action: 'invoice.credit_note_applied',
+          fromState: 'awaiting_credit_note',
+          toState: 'matched',
+          comment: `credit note ${reference} for ${creditMinor}; net payable ${netPayable} (match record ${record.id})`,
+        },
+        transaction,
+      );
+      invoiceLifecycle.assertCanTransition('matched', 'payable');
+      await invoice.update({ status: 'payable' }, { transaction });
+      await this.audit.record(
+        {
+          entityType: 'invoice',
+          entityId: invoiceId,
+          actorId,
+          action: 'invoice.payable',
+          fromState: 'matched',
+          toState: 'payable',
+        },
+        transaction,
+      );
       return record.id;
     });
     return this.findOne(recordId);

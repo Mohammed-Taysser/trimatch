@@ -7,6 +7,18 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Added
+
+- **Credit-note completion (Epic 8, FR-404)**: `POST
+  /invoices/:id/apply-credit-note` — an invoice held in `awaiting_credit_note`
+  had no way forward; now the vendor's credit note (amount + reference) is
+  applied and reconciled at the total level (net payable = invoice total −
+  credit vs the PO-expected payable). Within tolerance → a new append-only
+  match record, invoice `awaiting_credit_note → matched → payable`, dual audit
+  rows; a credit that doesn't reconcile → 422 `CREDIT_NOTE_INSUFFICIENT`
+  (or `CREDIT_NOTE_EXCESSIVE` if it tops the invoice) and the invoice stays
+  held; applying to an invoice not held → 409. Apply control on the AP screen
+
 ### Changed
 
 - **TypeScript 6** (ticket 869dzkqna, closing Dependabot PR #53): typescript

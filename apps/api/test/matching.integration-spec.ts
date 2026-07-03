@@ -446,6 +446,105 @@ describe('the 3-way match end to end (FR-402/403/405/406)', () => {
     expect(res.body.data.status).toBe('awaiting_credit_note');
   });
 
+  // FR-404 follow-through: applying the vendor's credit note completes the
+  // held invoice. Helper: enter a $55 invoice on a $50 PO, match (→ exception
+  // PRICE_VARIANCE), and hold it for a credit note.
+  async function heldForCreditNote(): Promise<{ invoiceId: string }> {
+    const { poId, poLineId } = await receivedPo(100);
+    const invoiceId = await enterInvoice(poId, poLineId, { qty: 100, priceMinor: 55_00 });
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/request-credit-note`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .send({ reason: 'Vendor overcharged $5/unit; credit note requested' })
+      .expect(200);
+    return { invoiceId };
+  }
+
+  function applyCreditNote(invoiceId: string, body: object, token = apToken) {
+    return request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/apply-credit-note`)
+      .set('Authorization', `Bearer ${token}`)
+      .send(body);
+  }
+
+  it('applying the credit note reconciles the held invoice → payable (FR-404)', async () => {
+    const { invoiceId } = await heldForCreditNote();
+    // overcharge = 100 units x ($55 - $50) = $500.00
+    const res = await applyCreditNote(invoiceId, {
+      creditMinor: 500_00,
+      reference: 'CN-2026-001',
+    }).expect(200);
+    expect(res.body.data.outcome).toBe('matched');
+
+    const invoice = await request(app.getHttpServer())
+      .get(`/api/v1/invoices/${invoiceId}`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    expect(invoice.body.data.status).toBe('payable');
+
+    const audit = await app
+      .get(Sequelize)
+      .query<{ action: string; comment: string }>(
+        `SELECT action, comment FROM audit_log WHERE entity_id = '${invoiceId}' AND action = 'invoice.credit_note_applied'`,
+        { type: QueryTypes.SELECT },
+      );
+    expect(audit).toHaveLength(1);
+    expect(audit[0].comment).toContain('CN-2026-001');
+    expect(audit[0].comment).toContain('net payable 500000');
+  });
+
+  it('a credit note that does not reconcile is refused; the invoice stays held', async () => {
+    const { invoiceId } = await heldForCreditNote();
+    // $400 credit leaves net payable $5,100 vs PO-expected $5,000 — still off
+    const res = await applyCreditNote(invoiceId, {
+      creditMinor: 400_00,
+      reference: 'CN-short',
+    }).expect(422);
+    expect(res.body.code).toBe('CREDIT_NOTE_INSUFFICIENT');
+
+    const invoice = await request(app.getHttpServer())
+      .get(`/api/v1/invoices/${invoiceId}`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    expect(invoice.body.data.status).toBe('awaiting_credit_note');
+  });
+
+  it('a credit note exceeding the invoice total → 422 CREDIT_NOTE_EXCESSIVE', async () => {
+    const { invoiceId } = await heldForCreditNote();
+    const res = await applyCreditNote(invoiceId, {
+      creditMinor: 6_000_00,
+      reference: 'CN-huge',
+    }).expect(422);
+    expect(res.body.code).toBe('CREDIT_NOTE_EXCESSIVE');
+  });
+
+  it('applying a credit note to an invoice not held for one → 409', async () => {
+    const { poId, poLineId } = await receivedPo(100);
+    const invoiceId = await enterInvoice(poId, poLineId, { qty: 100, priceMinor: 50_00 });
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    const res = await applyCreditNote(invoiceId, {
+      creditMinor: 100,
+      reference: 'CN-x',
+    }).expect(409);
+    expect(res.body.code).toBe('INVALID_TRANSITION');
+  });
+
+  it('a non-AP role cannot apply a credit note → 403', async () => {
+    const { invoiceId } = await heldForCreditNote();
+    await applyCreditNote(
+      invoiceId,
+      { creditMinor: 500_00, reference: 'CN-nope' },
+      requesterToken,
+    ).expect(403);
+  });
+
   it('rejecting returns the invoice to the vendor; resolutions need an exception', async () => {
     const { poId, poLineId } = await receivedPo(100);
     const invoiceId = await enterInvoice(poId, poLineId, { qty: 100, priceMinor: 55_00 });

@@ -82,6 +82,13 @@ export class Invoice extends Model {
   @Column(DataType.UUID)
   declare enteredBy: string;
 
+  // FR-404: set when a vendor credit note is applied to a held invoice.
+  @Column(DataType.BIGINT)
+  declare creditNoteMinor: string | number | null;
+
+  @Column(DataType.STRING(100))
+  declare creditNoteRef: string | null;
+
   @HasMany(() => InvoiceLine)
   declare lines?: InvoiceLine[];
 

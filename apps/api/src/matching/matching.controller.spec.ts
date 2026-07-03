@@ -19,6 +19,15 @@ describe('match endpoint delegates with the acting AP clerk', () => {
     expect(service.match).toHaveBeenCalledWith(INVOICE_ID, user.sub);
   });
 
+  it('apply-credit-note passes the amount, reference and actor', async () => {
+    const service = {
+      applyCreditNote: jest.fn().mockResolvedValue({ id: 'rec-2', outcome: 'matched' }),
+    } as unknown as MatchingService;
+    const controller = new MatchingController(service);
+    await controller.applyCreditNote(user, INVOICE_ID, { creditMinor: 500_00, reference: 'CN-1' });
+    expect(service.applyCreditNote).toHaveBeenCalledWith(INVOICE_ID, 500_00, 'CN-1', user.sub);
+  });
+
   it('queue and summary pass the filters straight through', async () => {
     const service = {
       exceptions: jest.fn().mockResolvedValue({ items: [], meta: {} }),

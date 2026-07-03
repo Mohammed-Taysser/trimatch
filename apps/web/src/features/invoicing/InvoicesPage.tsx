@@ -33,6 +33,9 @@ export function InvoicesPage() {
   const [isFinal, setIsFinal] = useState(true);
   const [reasonFilter, setReasonFilter] = useState('');
   const [sortBy, setSortBy] = useState('oldest');
+  const [creditInputs, setCreditInputs] = useState<Record<string, { amount: string; ref: string }>>(
+    {},
+  );
   const [resolutionReasons, setResolutionReasons] = useState<Record<string, string>>({});
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [prices, setPrices] = useState<Record<string, string>>({});
@@ -203,6 +206,34 @@ export function InvoicesPage() {
     onError: (err) => {
       setMessage(null);
       setError(err instanceof ApiError ? err.message : 'Match failed');
+    },
+  });
+
+  const applyCreditNote = useMutation({
+    mutationFn: ({
+      id,
+      creditMinor,
+      reference,
+    }: {
+      id: string;
+      creditMinor: number;
+      reference: string;
+    }) =>
+      apiFetch(`/api/v1/invoices/${id}/apply-credit-note`, {
+        method: 'POST',
+        token,
+        body: { creditMinor, reference },
+        schema: MatchRecordSchema,
+      }),
+    onSuccess: () => {
+      setError(null);
+      setMessage('Credit note applied — invoice reconciled and payable');
+      setCreditInputs({});
+      void queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    },
+    onError: (err) => {
+      setMessage(null);
+      setError(err instanceof ApiError ? err.message : 'Credit note failed');
     },
   });
 
@@ -526,6 +557,54 @@ export function InvoicesPage() {
                     disabled={markPayable.isPending}
                   >
                     Mark payable
+                  </Button>
+                </div>
+              )}
+              {inv.status === 'awaiting_credit_note' && (
+                <div className="card-actions">
+                  <input
+                    aria-label={`Credit note amount for ${inv.invoiceNumber}`}
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="Credit amount"
+                    value={creditInputs[inv.id]?.amount ?? ''}
+                    onChange={(e) =>
+                      setCreditInputs((prev) => ({
+                        ...prev,
+                        [inv.id]: { amount: e.target.value, ref: prev[inv.id]?.ref ?? '' },
+                      }))
+                    }
+                    style={{ width: 120 }}
+                  />
+                  <input
+                    aria-label={`Credit note reference for ${inv.invoiceNumber}`}
+                    placeholder="Reference"
+                    value={creditInputs[inv.id]?.ref ?? ''}
+                    onChange={(e) =>
+                      setCreditInputs((prev) => ({
+                        ...prev,
+                        [inv.id]: { amount: prev[inv.id]?.amount ?? '', ref: e.target.value },
+                      }))
+                    }
+                  />
+                  <Button
+                    variant="primary"
+                    small
+                    disabled={
+                      applyCreditNote.isPending ||
+                      !creditInputs[inv.id]?.amount ||
+                      !creditInputs[inv.id]?.ref
+                    }
+                    onClick={() =>
+                      applyCreditNote.mutate({
+                        id: inv.id,
+                        creditMinor: Math.round(Number(creditInputs[inv.id].amount) * 100),
+                        reference: creditInputs[inv.id].ref,
+                      })
+                    }
+                  >
+                    Apply credit note
                   </Button>
                 </div>
               )}
