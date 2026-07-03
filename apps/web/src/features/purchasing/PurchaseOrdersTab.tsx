@@ -64,6 +64,20 @@ export function PurchaseOrdersTab() {
     onError: (err) => setError(err instanceof ApiError ? err.message : 'Cancel failed'),
   });
 
+  const close = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/v1/purchase-orders/${id}/close`, {
+        method: 'POST',
+        token,
+        schema: PurchaseOrderSchema,
+      }),
+    onSuccess: () => {
+      setError(null);
+      void queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+    },
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Close failed'),
+  });
+
   const issue = useMutation({
     mutationFn: (id: string) =>
       apiFetch(`/api/v1/purchase-orders/${id}/issue`, {
@@ -261,6 +275,15 @@ export function PurchaseOrdersTab() {
                 {po.version > 1 && (
                   <Button onClick={() => setVersionsId(versionsId === po.id ? null : po.id)}>
                     {versionsId === po.id ? 'Hide versions' : 'Versions'}
+                  </Button>
+                )}
+                {po.status === 'received' && (
+                  <Button
+                    variant="primary"
+                    onClick={() => close.mutate(po.id)}
+                    disabled={close.isPending}
+                  >
+                    Close PO
                   </Button>
                 )}
               </div>

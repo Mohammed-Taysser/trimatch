@@ -20,7 +20,8 @@ import { Vendor } from '../vendors/vendor.model';
 import { invoiceLifecycle } from './invoice.lifecycle';
 import { Invoice, InvoiceLine } from './invoice.model';
 
-const INVOICEABLE_PO_STATES = new Set(['issued', 'partially_received', 'received', 'closed']);
+// A closed PO is sealed — it can no longer be invoiced (FR-604).
+const INVOICEABLE_PO_STATES = new Set(['issued', 'partially_received', 'received']);
 
 @Injectable()
 export class InvoicingService {

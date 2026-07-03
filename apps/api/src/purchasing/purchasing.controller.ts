@@ -38,6 +38,16 @@ export class PurchasingController {
     return this.purchasing.cancel(id, user.sub);
   }
 
+  // FR-604: close a received PO once all its invoices are settled.
+  @Post(':id/close')
+  @HttpCode(200)
+  close(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<PurchaseOrder> {
+    return this.purchasing.close(id, user.sub);
+  }
+
   @Post(':id/issue')
   @HttpCode(200)
   issue(

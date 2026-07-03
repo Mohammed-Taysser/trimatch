@@ -9,6 +9,21 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Close a settled PO (Epic 8, received → closed)**: `POST
+  /purchase-orders/:id/close` (purchasing/admin) — the second unwired
+  lifecycle transition. Only a received PO closes, and only once every invoice
+  against it is settled (payable or rejected) — an open invoice → 409
+  `PO_HAS_OPEN_INVOICES`, a non-received PO → 409 `INVALID_TRANSITION`; audit
+  `po.closed`. Close PO button on the purchasing screen.
+
+### Fixed
+
+- **A closed PO is now sealed**: `closed` was still in the invoiceable states,
+  so (once closing became reachable) a closed PO could be invoiced — removed it,
+  and an integration test proves a closed PO refuses new invoices.
+
+### Added
+
 - **Credit-note completion (Epic 8, FR-404)**: `POST
   /invoices/:id/apply-credit-note` — an invoice held in `awaiting_credit_note`
   had no way forward; now the vendor's credit note (amount + reference) is

@@ -338,8 +338,10 @@ describe('the 3-way match end to end (FR-402/403/405/406)', () => {
     const resolved = await summaryOf();
     expect(resolved.total).toBe(after.total - 1);
     expect(resolved.byReason.PRICE_VARIANCE ?? 0).toBe(after.byReason.PRICE_VARIANCE - 1);
+    // newest-first so the just-created invoices sit on page 1 regardless of
+    // how many exceptions already exist in the queue
     const queue = await request(app.getHttpServer())
-      .get('/api/v1/exceptions?pageSize=100')
+      .get('/api/v1/exceptions?pageSize=100&sort=newest')
       .set('Authorization', `Bearer ${apToken}`)
       .expect(200);
     const ids = (queue.body.data as { invoice: { id: string } }[]).map((ex) => ex.invoice.id);
@@ -543,6 +545,75 @@ describe('the 3-way match end to end (FR-402/403/405/406)', () => {
       { creditMinor: 500_00, reference: 'CN-nope' },
       requesterToken,
     ).expect(403);
+  });
+
+  // FR-604: a received PO closes once every invoice is settled (received →
+  // closed).
+  function closePo(poId: string, token = purchasingToken) {
+    return request(app.getHttpServer())
+      .post(`/api/v1/purchase-orders/${poId}/close`)
+      .set('Authorization', `Bearer ${token}`);
+  }
+
+  it('a received PO with all invoices settled can be closed (received → closed)', async () => {
+    const { poId, poLineId } = await receivedPo(100);
+    const invoiceId = await enterInvoice(poId, poLineId, { qty: 100, priceMinor: 50_00 });
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200); // matched → payable
+    const res = await closePo(poId).expect(200);
+    expect(res.body.data.status).toBe('closed');
+
+    const audit = await app
+      .get(Sequelize)
+      .query(`SELECT 1 FROM audit_log WHERE entity_id = '${poId}' AND action = 'po.closed'`, {
+        type: QueryTypes.SELECT,
+      });
+    expect(audit).toHaveLength(1);
+
+    // a closed PO is sealed — no further invoices
+    const blocked = await request(app.getHttpServer())
+      .post('/api/v1/invoices')
+      .set('Authorization', `Bearer ${apToken}`)
+      .send({
+        poId,
+        invoiceNumber: `SEALED-${Date.now().toString(36)}`,
+        invoiceDate: '2026-07-03',
+        taxMinor: 0,
+        totalMinor: 50_00,
+        isFinal: true,
+        lines: [{ poLineId, quantity: 1, unitPriceMinor: 50_00 }],
+      })
+      .expect(409);
+    expect(blocked.body.code).toBe('INVALID_TRANSITION');
+  });
+
+  it('a PO with an unsettled invoice cannot be closed → 409 PO_HAS_OPEN_INVOICES', async () => {
+    const { poId, poLineId } = await receivedPo(100);
+    const invoiceId = await enterInvoice(poId, poLineId, { qty: 100, priceMinor: 55_00 });
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200); // → exception (still open)
+    const res = await closePo(poId).expect(409);
+    expect(res.body.code).toBe('PO_HAS_OPEN_INVOICES');
+  });
+
+  it('only a received PO can close — a partially received one → 409 INVALID_TRANSITION', async () => {
+    const { poId } = await receivedPo(40); // 40 of 100 → partially_received
+    const res = await closePo(poId).expect(409);
+    expect(res.body.code).toBe('INVALID_TRANSITION');
+  });
+
+  it('a non-purchasing role cannot close a PO → 403', async () => {
+    const { poId, poLineId } = await receivedPo(100);
+    const invoiceId = await enterInvoice(poId, poLineId, { qty: 100, priceMinor: 50_00 });
+    await request(app.getHttpServer())
+      .post(`/api/v1/invoices/${invoiceId}/match`)
+      .set('Authorization', `Bearer ${apToken}`)
+      .expect(200);
+    await closePo(poId, apToken).expect(403);
   });
 
   it('rejecting returns the invoice to the vendor; resolutions need an exception', async () => {
