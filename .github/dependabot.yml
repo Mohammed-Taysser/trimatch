@@ -1,0 +1,32 @@
+# Explicit Dependabot config (ticket 869dz36n8): the implicit npm_and_yarn
+# security jobs were failing on transitive-only deps in this pnpm workspace.
+# Version updates run weekly and are grouped so the board gets one reviewable
+# PR, not a spray; security updates are unaffected by this file.
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types:
+          - 'minor'
+          - 'patch'
+    ignore:
+      # ADR-0001: stay on sequelize 6 + @nestjs/sequelize until v7
+      # (@sequelize/core) is stable and supported.
+      - dependency-name: 'sequelize'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'sequelize-typescript'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@nestjs/sequelize'
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
