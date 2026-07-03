@@ -9,6 +9,18 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Superadmin dashboard (Epic 7)**: admin routes to a new dashboard —
+  org-wide requisitions (`GET /requisitions/all`, status filter), purchase
+  orders (reusing the full purchasing tab incl. amendments), vendors, user
+  management (`GET/PATCH /users`: role/manager changes audit-logged as
+  `user.role_changed`/`user.manager_changed`; changing your own role refused
+  with 409 `SELF_ROLE_CHANGE`) and a read-only audit browser (`GET /audit`,
+  filterable by entity type/id/actor, newest first). All new endpoints are
+  `@Roles('admin')` — non-admins get 403; every action reuses the existing
+  rule-guarded endpoints, no bypasses
+- **PO list server-side status filter** (`GET /purchase-orders?status=a,b`),
+  closing the worklist gap tracked as ticket 869dza4zp
+
 - **Web design system & visual refresh (Epic 7)**: design tokens
   (`styles/global.css`: color incl. status semantics, spacing, type scale,
   radii) + shared components (`Button`, `StatusBadge`, `Card`, `Field`,

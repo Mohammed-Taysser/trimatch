@@ -18,6 +18,7 @@ describe('requisition endpoints delegate with the authenticated requester', () =
     remove: jest.fn().mockResolvedValue(undefined),
     submit: jest.fn().mockResolvedValue({ id: REQ_ID, status: 'pending_approval' }),
     revise: jest.fn().mockResolvedValue({ id: REQ_ID, status: 'draft' }),
+    findAllAdmin: jest.fn().mockResolvedValue({ items: [], meta: {} }),
   } as unknown as RequisitionsService;
   const controller = new RequisitionsController(service);
   const page = { page: 1, pageSize: 20 };
@@ -52,5 +53,11 @@ describe('requisition endpoints delegate with the authenticated requester', () =
     expect(service.findOwn).toHaveBeenCalledWith(REQ_ID, user.sub);
     expect(service.update).toHaveBeenCalledWith(REQ_ID, user.sub, body);
     expect(service.remove).toHaveBeenCalledWith(REQ_ID, user.sub);
+  });
+
+  it('the admin org-wide list passes the status filter through', async () => {
+    const query = { page: 1, pageSize: 20, status: 'pending_approval' as const };
+    await controller.listAll(query);
+    expect(service.findAllAdmin).toHaveBeenCalledWith(query);
   });
 });

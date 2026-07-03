@@ -8,6 +8,7 @@ import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import {
   PaginationQuery,
   PoAmend,
+  PoListQuery,
   PoLineInput,
   PoVersion,
   PoVersionSchema,
@@ -394,8 +395,10 @@ export class PurchasingService {
     return new PagedResult(items, pageMeta(query, count + 1));
   }
 
-  async findAll(query: PaginationQuery): Promise<PagedResult<PoView>> {
+  async findAll(query: PoListQuery): Promise<PagedResult<PoView>> {
     const { rows, count } = await this.orders.findAndCountAll({
+      // worklists filter server-side (e.g. warehouse: issued,partially_received)
+      where: query.status ? { status: query.status } : undefined,
       include: [PoLine, Vendor],
       order: [['createdAt', 'DESC']],
       distinct: true,

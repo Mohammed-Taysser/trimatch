@@ -10,11 +10,14 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { Requisition } from '@trimatch/shared';
+import { Requisition, RequisitionsAllQuerySchema } from '@trimatch/shared';
 import { CurrentUser, JwtPayload, Roles } from '../auth/decorators';
 import { PaginationQueryDto } from '../common/dto';
 import { PagedResult } from '../common/paged';
 import { RequisitionCreateDto, RequisitionUpdateDto } from './dto';
+import { createZodDto } from 'nestjs-zod';
+
+export class RequisitionsAllQueryDto extends createZodDto(RequisitionsAllQuerySchema) {}
 import { RequisitionsService } from './requisitions.service';
 
 @Controller('requisitions')
@@ -40,6 +43,13 @@ export class RequisitionsController {
   }
 
   // Declared before :id so the literal segment wins the route match.
+  // Superadmin dashboard: every requisition, org-wide, filterable by status.
+  @Get('all')
+  @Roles('admin')
+  listAll(@Query() query: RequisitionsAllQueryDto): Promise<PagedResult<Requisition>> {
+    return this.requisitions.findAllAdmin(query);
+  }
+
   @Get('approved')
   @Roles('purchasing', 'admin')
   approvedQueue(@Query() query: PaginationQueryDto): Promise<PagedResult<Requisition>> {

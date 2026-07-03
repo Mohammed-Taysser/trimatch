@@ -13,7 +13,7 @@ import { PoVersion, PurchaseOrder } from '@trimatch/shared';
 import { CurrentUser, JwtPayload, Roles } from '../auth/decorators';
 import { PaginationQueryDto } from '../common/dto';
 import { PagedResult } from '../common/paged';
-import { ConvertRequisitionDto, PoAmendDto, PoLinesUpdateDto } from './dto';
+import { ConvertRequisitionDto, PoAmendDto, PoLinesUpdateDto, PoListQueryDto } from './dto';
 import { PurchasingService } from './purchasing.service';
 
 @Controller('purchase-orders')
@@ -49,7 +49,7 @@ export class PurchasingController {
 
   @Get()
   @Roles('purchasing', 'admin', 'warehouse', 'ap')
-  list(@Query() query: PaginationQueryDto): Promise<PagedResult<PurchaseOrder>> {
+  list(@Query() query: PoListQueryDto): Promise<PagedResult<PurchaseOrder>> {
     return this.purchasing.findAll(query);
   }
 
