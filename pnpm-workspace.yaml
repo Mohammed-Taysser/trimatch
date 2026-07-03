@@ -11,3 +11,6 @@ onlyBuiltDependencies:
 # older multer; force the patched line until upstream catches up.
 overrides:
   multer: '>=2.2.0'
+  # GHSA (uuid < 11.1.1, buffer bounds in v3/v5/v6): sequelize 6 pins ^8.3.2;
+  # 11.1.1 is the first patched version and still ships a CJS build.
+  'sequelize>uuid': '^11.1.1'

@@ -7,9 +7,16 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
-### Planned (next)
+### Fixed
 
-- Open ticket: investigate failing Dependabot update jobs (869dz36n8)
+- **Dependabot jobs unstuck (869dz36n8)**: the failing `npm_and_yarn` runs were
+  security-update attempts against transitive-only deps it cannot bump —
+  multer was already patched via the existing workspace override; the open
+  uuid advisory (< 11.1.1, via sequelize 6 which pins `^8.3.2`) is remediated
+  with a scoped `sequelize>uuid: ^11.1.1` override (first patched version,
+  still ships CJS; full suite green). New explicit `.github/dependabot.yml`:
+  weekly npm + github-actions version updates, minor/patch grouped into one
+  PR, sequelize-stack majors ignored per ADR-0001
 
 ## [0.6.0] — 2026-07-03
 
