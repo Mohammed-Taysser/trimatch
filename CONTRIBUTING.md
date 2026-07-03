@@ -23,6 +23,27 @@ docs/<scope>-<short-desc>
 chore/<short-desc>
 ```
 
+## Documentation map (single sources — extend per story, never fork)
+
+Docs are organized by **concern, not by epic**. As each story lands, grow the
+canonical doc it touches; never create a parallel per-epic FR/ERD file — it drifts
+from the code and from the other copy the moment it exists.
+
+| What you're adding                    | Canonical home                                     |
+| ------------------------------------- | -------------------------------------------------- |
+| A functional requirement (FR-xxx)     | [docs/01-prd.md](docs/01-prd.md)                   |
+| A business rule / worked number       | docs/01-prd.md §5 (with the worked example)        |
+| An entity, field, or relationship     | [docs/03-domain.md](docs/03-domain.md) (ERD)       |
+| A domain invariant (I-x)              | docs/03-domain.md                                  |
+| A test case (TC-xxx ↔ FR-xxx)         | [docs/05-test-plan.md](docs/05-test-plan.md)       |
+| An architecture / layout note         | [docs/04-architecture.md](docs/04-architecture.md) |
+| A significant, hard-to-reverse choice | [docs/adr/](docs/adr/) — new ADR, supersede        |
+| End-user behavior                     | docs/06-user-manual.md (+ 09 Arabic)               |
+
+Epic-specific scope lives in the **ClickUp epic/task**, not a doc. SLOs are defined
+in [docs/02-sla.md](docs/02-sla.md); they are verified against measurements (Epic 17
+observability), not per task.
+
 ## Commit convention — Conventional Commits
 
 ```
@@ -46,6 +67,9 @@ BREAKING CHANGE: <description, if any>
 - [ ] Docs updated if behavior or design changed (PRD / domain / ADR / manual)
 - [ ] CHANGELOG `[Unreleased]` section updated for user-visible changes
 - [ ] CI green; verified locally by running the actual flow
+- [ ] **Verification result recorded** — the PR states what was run and its outcome
+      ("How verified"), and the ClickUp task carries that evidence when it moves
+      `testing → shipped`. DoD is not "tests exist" but "here is the result."
 - [ ] No secrets, no debug logging, migrations included
 
 ## ADRs
