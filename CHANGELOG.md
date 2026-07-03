@@ -9,6 +9,15 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Step-level approval audit (Epic 8)**: every approval-step decision now
+  writes its own audit row (`approval.step_approved`/`approval.step_rejected`,
+  keyed to the requisition, naming round + step and preserving the delegation
+  dual-identity), not only the final step that completes the chain. A
+  requisition's audit timeline now shows each approver's decision in order,
+  then the requisition-level outcome. Closes Epic 8 (workflow completion).
+
+### Added
+
 - **Close a settled PO (Epic 8, received → closed)**: `POST
   /purchase-orders/:id/close` (purchasing/admin) — the second unwired
   lifecycle transition. Only a received PO closes, and only once every invoice
