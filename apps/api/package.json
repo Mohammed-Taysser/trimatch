@@ -17,6 +17,7 @@
     "openapi:export": "node dist/export-openapi.js"
   },
   "dependencies": {
+    "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
@@ -26,6 +27,7 @@
     "@nestjs/swagger": "^11.4.5",
     "@trimatch/shared": "workspace:*",
     "bcryptjs": "^3.0.3",
+    "bullmq": "^5.79.2",
     "dotenv": "^17.4.2",
     "nestjs-pino": "^4.6.1",
     "nestjs-zod": "^5.4.0",

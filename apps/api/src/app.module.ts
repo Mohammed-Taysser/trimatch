@@ -17,6 +17,7 @@ import { HealthModule } from './health/health.module';
 import { IdentityModule } from './identity/identity.module';
 import { InvoicingModule } from './invoicing/invoicing.module';
 import { MatchingModule } from './matching/matching.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { PurchasingModule } from './purchasing/purchasing.module';
 import { ReceivingModule } from './receiving/receiving.module';
 import { RequisitionsModule } from './requisitions/requisitions.module';
@@ -67,6 +68,7 @@ import { VendorsModule } from './vendors/vendors.module';
     ReceivingModule,
     InvoicingModule,
     MatchingModule,
+    NotificationsModule,
     HealthModule,
   ],
   providers: [
