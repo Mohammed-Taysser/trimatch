@@ -8,7 +8,9 @@ import {
 } from './features/admin/AdminDashboardPage';
 import { ApprovalsInboxPage } from './features/approvals/ApprovalsInboxPage';
 import { LoginPage } from './features/auth/LoginPage';
-import { InvoicesPage } from './features/invoicing/InvoicesPage';
+import { ExceptionsTab } from './features/invoicing/ExceptionsTab';
+import { InvoicesLayout } from './features/invoicing/InvoicesPage';
+import { InvoicesTab } from './features/invoicing/InvoicesTab';
 import { NotFoundPage } from './features/misc/NotFoundPage';
 import { PurchaseOrdersTab } from './features/purchasing/PurchaseOrdersTab';
 import { PurchasingLayout } from './features/purchasing/PurchasingPage';
@@ -86,10 +88,13 @@ export default function App() {
         path="/invoices"
         element={
           <RequireRole roles={['ap']}>
-            <InvoicesPage />
+            <InvoicesLayout />
           </RequireRole>
         }
-      />
+      >
+        <Route index element={<InvoicesTab />} />
+        <Route path="exceptions" element={<ExceptionsTab />} />
+      </Route>
       <Route
         path="/admin"
         element={

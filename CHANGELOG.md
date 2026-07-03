@@ -9,6 +9,16 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Invoices split into dedicated pages (Epic 21)**: the ~620-line AP screen was
+  split into `/invoices` (invoice entry + the invoice list with match / mark
+  payable / apply-credit-note) and `/invoices/exceptions` (the exceptions
+  worklist with per-reason counts, sort/filter and resolutions), under an
+  `InvoicesLayout` with the routed section nav. With admin and purchasing
+  already split, every tab-crammed role screen is now a real multi-page,
+  deep-linkable area.
+
+### Added
+
 - **Purchasing as a multi-page area (Epic 21)**: the purchasing screen's two
   tabs became nested routes — `/purchasing/orders` and `/purchasing/vendors`
   (index redirects to orders) — under a `PurchasingLayout` with the routed
