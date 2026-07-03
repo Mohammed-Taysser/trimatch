@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExceptionsSummarySchema, InvoiceSchema } from '@trimatch/shared';
 import { useState } from 'react';
-import { Alert, Button, EmptyState, Field } from '../../components/ui';
+import { Alert, Button, ConfirmButton, EmptyState, Field } from '../../components/ui';
 import { ApiError, apiFetch } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { money } from '../../lib/format';
@@ -240,14 +240,15 @@ export function ExceptionsTab() {
                 >
                   Credit note
                 </Button>
-                <Button
+                <ConfirmButton
                   small
                   variant="danger"
-                  onClick={() => resolve.mutate({ id: ex.invoice.id, action: 'reject' })}
                   disabled={resolve.isPending}
+                  confirmLabel="Reject"
+                  onConfirm={() => resolve.mutate({ id: ex.invoice.id, action: 'reject' })}
                 >
                   Reject
-                </Button>
+                </ConfirmButton>
               </div>
             </li>
           ))}

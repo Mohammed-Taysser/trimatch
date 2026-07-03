@@ -13,8 +13,8 @@ import {
   Card,
   EmptyState,
   Field,
-  Loading,
   Pagination,
+  Skeleton,
   StatusBadge,
 } from '../../components/ui';
 import { ApiError, apiFetch, apiFetchPaged } from '../../lib/api';
@@ -285,7 +285,7 @@ export function InvoicesTab() {
 
       <section>
         <h2>Invoices</h2>
-        {invoices.isPending && <Loading />}
+        {invoices.isPending && <Skeleton rows={4} />}
         {invoices.data?.items.length === 0 && <EmptyState title="No invoices yet" />}
         <ul className="card-list">
           {invoices.data?.items.map((inv) => (

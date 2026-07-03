@@ -1,5 +1,5 @@
-import { ReactNode } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { ReactNode, useEffect, useRef } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { Button } from './ui';
 
@@ -37,6 +37,13 @@ export function AppShell({
   children: ReactNode;
 }) {
   const { user, logout } = useAuth();
+  const { pathname } = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
+  // a11y: on route change, move focus to the page region so keyboard and
+  // screen-reader users land at the top of the new page, not mid-list.
+  useEffect(() => {
+    mainRef.current?.focus();
+  }, [pathname]);
   return (
     <>
       <header className="shell-header">
@@ -53,7 +60,7 @@ export function AppShell({
           </span>
         </div>
       </header>
-      <main className="page">
+      <main className="page" ref={mainRef} tabIndex={-1}>
         {breadcrumbs && breadcrumbs.length > 0 && (
           <nav className="breadcrumbs" aria-label="Breadcrumb">
             {breadcrumbs.map((crumb, index) => (

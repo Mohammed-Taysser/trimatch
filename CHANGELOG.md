@@ -9,6 +9,15 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **UX friendliness pass (Epic 21)**: destructive actions (Cancel PO, Delete
+  requisition, Reject invoice) now ask for inline confirmation via a reusable
+  `ConfirmButton` (no accidental clicks); list loads show shimmer `Skeleton`
+  placeholders instead of a bare "Loading…"; and on every route change the
+  page region takes focus so keyboard/screen-reader users land at the top of
+  the new page. Completes Epic 21 (UI refinement & multi-page app).
+
+### Added
+
 - **Purchase-order detail page + breadcrumbs (Epic 21)**: a focused,
   deep-linkable `/purchase-orders/:id` page (vendor, status, version, totals,
   and the full lines table with received/open per line), reachable via a
