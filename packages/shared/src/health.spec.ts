@@ -25,13 +25,14 @@ describe('shared zod schemas are consumed by both apps (AC 2)', () => {
   it('accepts both ok and degraded readiness payloads', () => {
     const ok = HealthReadinessSchema.parse({
       status: 'ok',
-      checks: { postgres: true, redis: true },
+      checks: { postgres: true, redis: true, queue: true },
     });
     const degraded = HealthReadinessSchema.parse({
       status: 'degraded',
-      checks: { postgres: false, redis: true },
+      checks: { postgres: false, redis: true, queue: false },
     });
     expect(ok.status).toBe('ok');
     expect(degraded.checks.postgres).toBe(false);
+    expect(degraded.checks.queue).toBe(false);
   });
 });
