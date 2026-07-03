@@ -251,6 +251,38 @@ describe('approver inbox and decisions (FR-104 · TC-105)', () => {
       expect(view.body.data.status).toBe('approved');
     });
 
+    it('every step decision writes its own audit row, in order (step-level audit)', async () => {
+      const reqId = await submitR2();
+      const step1 = await inboxItem(leadToken, reqId);
+      await request(app.getHttpServer())
+        .post(`/api/v1/approvals/steps/${step1?.stepId}/approve`)
+        .set('Authorization', `Bearer ${leadToken}`)
+        .expect(204);
+      const step2 = await inboxItem(headToken, reqId);
+      await request(app.getHttpServer())
+        .post(`/api/v1/approvals/steps/${step2?.stepId}/approve`)
+        .set('Authorization', `Bearer ${headToken}`)
+        .expect(204);
+
+      const rows = await app
+        .get(Sequelize)
+        .query<{ action: string; comment: string }>(
+          `SELECT action, comment FROM audit_log WHERE entity_id = '${reqId}' ORDER BY created_at ASC`,
+          { type: QueryTypes.SELECT },
+        );
+      const stepRows = rows.filter((r) => r.action === 'approval.step_approved');
+      // one audit row per step decision — not only the final one
+      expect(stepRows).toHaveLength(2);
+      expect(stepRows[0].comment).toContain('step 1');
+      expect(stepRows[1].comment).toContain('step 2');
+      // the requisition-level approval row still follows the last step
+      const actions = rows.map((r) => r.action);
+      expect(actions.indexOf('requisition.approved')).toBeGreaterThan(
+        actions.lastIndexOf('approval.step_approved') - 1,
+      );
+      expect(actions).toContain('requisition.approved');
+    });
+
     it('TC-503: step 1 approved, step 2 rejects → requisition rejected, chain stops', async () => {
       const reqId = await submitR2();
       const step1 = await inboxItem(leadToken, reqId);
@@ -273,6 +305,24 @@ describe('approver inbox and decisions (FR-104 · TC-105)', () => {
       // chain stopped: nothing remains in anyone's inbox for this requisition
       expect(await inboxItem(leadToken, reqId)).toBeUndefined();
       expect(await inboxItem(headToken, reqId)).toBeUndefined();
+
+      // the trail shows the approved step 1, the rejecting step 2, and the outcome
+      const rows = await app
+        .get(Sequelize)
+        .query<{ action: string }>(
+          `SELECT action FROM audit_log WHERE entity_id = '${reqId}' ORDER BY created_at ASC`,
+          { type: QueryTypes.SELECT },
+        );
+      const actions = rows.map((r) => r.action);
+      // step 1 approved, then step 2 rejected, then the requisition rejected —
+      // in that order (a leading submission row may precede them)
+      expect(actions).toContain('approval.step_approved');
+      expect(actions.indexOf('approval.step_approved')).toBeLessThan(
+        actions.indexOf('approval.step_rejected'),
+      );
+      expect(actions.indexOf('approval.step_rejected')).toBeLessThan(
+        actions.indexOf('requisition.rejected'),
+      );
     });
 
     it('acting out of turn → 409 STEP_NOT_CURRENT', async () => {

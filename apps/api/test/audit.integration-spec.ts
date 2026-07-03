@@ -105,12 +105,16 @@ describe('immutable audit trail (FR-106 · NFR-01 · TC-901)', () => {
 
     expect(rows.map((r) => [r.action, r.from_state, r.to_state])).toEqual([
       ['requisition.submitted', 'draft', 'pending_approval'],
+      ['approval.step_rejected', 'pending', 'rejected'],
       ['requisition.rejected', 'pending_approval', 'rejected'],
       ['requisition.revised', 'rejected', 'draft'],
       ['requisition.submitted', 'draft', 'pending_approval'],
+      ['approval.step_approved', 'pending', 'approved'],
       ['requisition.approved', 'pending_approval', 'approved'],
     ]);
-    expect(rows[1].comment).toBe('needs a cheaper option');
+    // the reject reason lands on the requisition-level row; the step row carries it too
+    expect(rows[2].comment).toBe('needs a cheaper option');
+    expect(rows[1].comment).toContain('needs a cheaper option');
     for (const row of rows) {
       expect(row.actor_id).toBeTruthy();
       expect(row.created_at).toBeTruthy();

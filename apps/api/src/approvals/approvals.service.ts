@@ -139,6 +139,24 @@ export class ApprovalsService {
         { status: decision, reason: trimmedReason ?? null, decidedAt: new Date() },
         { transaction },
       );
+      // Every step decision is audited (not only the one that completes the
+      // chain), keyed to the requisition so its trail shows the full per-step
+      // timeline; the delegation dual-identity is preserved.
+      await this.audit.record(
+        {
+          entityType: 'requisition',
+          entityId: step.requisitionId,
+          actorId: approverId,
+          action: `approval.step_${decision}`,
+          fromState: 'pending',
+          toState: decision,
+          comment:
+            [`round ${step.round} step ${step.stepNo}`, trimmedReason, onBehalfOf]
+              .filter(Boolean)
+              .join(' — ') || undefined,
+        },
+        transaction,
+      );
       await this.advanceRequisition(
         step,
         decision,
