@@ -13,6 +13,7 @@ export const HealthReadinessSchema = z.object({
   checks: z.object({
     postgres: z.boolean(),
     redis: z.boolean(),
+    queue: z.boolean(),
   }),
 });
 export type HealthReadiness = z.infer<typeof HealthReadinessSchema>;

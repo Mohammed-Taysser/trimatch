@@ -9,6 +9,19 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **BullMQ notifications foundation (Epic 9)**: a `NotificationsModule` stands up
+  the async queue that ADR-0001 provisioned but nothing used yet — the Redis
+  connection is parsed from the existing `REDIS_URL` env (no new config), a
+  `notifications` queue is registered, and a `WorkerHost` processor drains it.
+  Health readiness gained a third `queue` check (alongside postgres and redis),
+  so `/api/v1/health/readiness` reports `degraded` if the queue's Redis
+  connection is not ready. A smoke integration test enqueues a job and awaits it
+  via `QueueEvents` to prove the enqueue → worker path end to end. This is the
+  substrate the notification model, hand-off emitters and outbound channel build
+  on.
+
+### Added
+
 - **UX friendliness pass (Epic 21)**: destructive actions (Cancel PO, Delete
   requisition, Reject invoice) now ask for inline confirmation via a reusable
   `ConfirmButton` (no accidental clicks); list loads show shimmer `Skeleton`

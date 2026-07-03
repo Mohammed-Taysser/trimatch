@@ -25,11 +25,11 @@ describe('api boots against real infrastructure and serves /api/v1 health (AC 1)
     expect(HealthLivenessSchema.parse(res.body.data).service).toBe('trimatch-api');
   });
 
-  it('GET /api/v1/health/readiness reports postgres and redis as reachable', async () => {
+  it('GET /api/v1/health/readiness reports postgres, redis and the queue as reachable', async () => {
     const res = await request(app.getHttpServer()).get('/api/v1/health/readiness').expect(200);
     expect(HealthReadinessSchema.parse(res.body.data)).toEqual({
       status: 'ok',
-      checks: { postgres: true, redis: true },
+      checks: { postgres: true, redis: true, queue: true },
     });
   });
 
