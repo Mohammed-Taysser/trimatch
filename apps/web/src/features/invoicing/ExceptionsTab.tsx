@@ -5,14 +5,17 @@ import { Alert, Button, EmptyState, Field } from '../../components/ui';
 import { ApiError, apiFetch } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { money } from '../../lib/format';
+import { useUrlState } from '../../lib/useUrlState';
 
 // The exceptions worklist: per-reason counts, sort/filter, side-by-side deltas
 // and the AP resolutions (accept variance / request credit note / reject).
 export function ExceptionsTab() {
   const { token } = useAuth();
   const queryClient = useQueryClient();
-  const [reasonFilter, setReasonFilter] = useState('');
-  const [sortBy, setSortBy] = useState('oldest');
+  // filter + sort live in the URL so a worklist view is shareable
+  const url = useUrlState();
+  const reasonFilter = url.get('reason');
+  const sortBy = url.get('sort', 'oldest');
   const [resolutionReasons, setResolutionReasons] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +94,7 @@ export function ExceptionsTab() {
             small
             className="chip"
             aria-pressed={reasonFilter === ''}
-            onClick={() => setReasonFilter('')}
+            onClick={() => url.set({ reason: '' })}
           >
             all ({summary.data?.total ?? 0})
           </Button>
@@ -101,7 +104,7 @@ export function ExceptionsTab() {
               small
               className="chip"
               aria-pressed={reasonFilter === entry.reason}
-              onClick={() => setReasonFilter(entry.reason)}
+              onClick={() => url.set({ reason: entry.reason })}
             >
               {entry.reason} ({entry.count})
             </Button>
@@ -112,7 +115,7 @@ export function ExceptionsTab() {
             <select
               aria-label="Sort exceptions"
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              onChange={(e) => url.set({ sort: e.target.value })}
             >
               <option value="oldest">oldest first</option>
               <option value="newest">newest first</option>
@@ -124,7 +127,7 @@ export function ExceptionsTab() {
             <select
               aria-label="Filter exceptions by reason"
               value={reasonFilter}
-              onChange={(e) => setReasonFilter(e.target.value)}
+              onChange={(e) => url.set({ reason: e.target.value })}
             >
               <option value="">all</option>
               <option value="PRICE_VARIANCE">PRICE_VARIANCE</option>

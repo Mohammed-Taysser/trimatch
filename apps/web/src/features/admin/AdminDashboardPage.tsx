@@ -18,6 +18,7 @@ import {
 } from '../../components/ui';
 import { ApiError, apiFetch, apiFetchPaged } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
+import { useUrlState } from '../../lib/useUrlState';
 import { formatDate, formatDateTime, money } from '../../lib/format';
 import { Outlet } from 'react-router-dom';
 
@@ -49,8 +50,9 @@ const AUDIT_ENTITIES = [
 
 export function RequisitionsTab() {
   const { token } = useAuth();
-  const [status, setStatus] = useState('');
-  const [page, setPage] = useState(1);
+  const url = useUrlState();
+  const status = url.get('status');
+  const page = Number(url.get('page', '1'));
   const list = useQuery({
     queryKey: ['admin-requisitions', status, page],
     queryFn: () =>
@@ -65,10 +67,7 @@ export function RequisitionsTab() {
         <select
           aria-label="Filter requisitions by status"
           value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
-            setPage(1);
-          }}
+          onChange={(e) => url.set({ status: e.target.value, page: '' })}
         >
           <option value="">all</option>
           {REQ_STATUSES.map((s) => (
@@ -96,7 +95,7 @@ export function RequisitionsTab() {
           </li>
         ))}
       </ul>
-      <Pagination meta={list.data?.meta} onPage={setPage} />
+      <Pagination meta={list.data?.meta} onPage={(p) => url.set({ page: String(p) })} />
     </section>
   );
 }
@@ -239,9 +238,10 @@ export function UsersTab() {
 
 export function AuditTab() {
   const { token } = useAuth();
-  const [entityType, setEntityType] = useState('');
-  const [entityId, setEntityId] = useState('');
-  const [page, setPage] = useState(1);
+  const url = useUrlState();
+  const entityType = url.get('entityType');
+  const entityId = url.get('entityId');
+  const page = Number(url.get('page', '1'));
   const filters = `${entityType ? `&entityType=${entityType}` : ''}${
     entityId ? `&entityId=${entityId}` : ''
   }`;
@@ -260,10 +260,7 @@ export function AuditTab() {
           <select
             aria-label="Filter audit by entity type"
             value={entityType}
-            onChange={(e) => {
-              setEntityType(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => url.set({ entityType: e.target.value, page: '' })}
           >
             <option value="">all</option>
             {AUDIT_ENTITIES.map((entity) => (
@@ -278,10 +275,7 @@ export function AuditTab() {
             aria-label="Filter audit by entity id"
             placeholder="uuid"
             value={entityId}
-            onChange={(e) => {
-              setEntityId(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => url.set({ entityId: e.target.value, page: '' })}
             style={{ width: 320 }}
           />
         </Field>
@@ -321,7 +315,7 @@ export function AuditTab() {
           </tbody>
         </table>
       </div>
-      <Pagination meta={trail.data?.meta} onPage={setPage} />
+      <Pagination meta={trail.data?.meta} onPage={(p) => url.set({ page: String(p) })} />
     </section>
   );
 }
