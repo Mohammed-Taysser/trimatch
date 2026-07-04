@@ -7,6 +7,16 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Changed
+
+- **DB index audit (Epic 20)**: FK/join columns were already indexed; this closes
+  three hot-path gaps found by reviewing the list queries — `invoices(status,
+  created_at)` for the AP exceptions queue, `requisitions(status, created_at)` for
+  the admin/"approved" lists, and folding `created_at` into the audit-log browser
+  index (`audit_log(entity_type, entity_id, created_at)`, replacing the redundant
+  two-column prefix). Verified with `EXPLAIN` (the exceptions query now does an
+  index scan, filter + sort covered).
+
 ### Security
 
 - **Application security review + hardening (Epic 16)**: an app-wide pass
