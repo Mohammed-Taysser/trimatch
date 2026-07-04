@@ -7,6 +7,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': 'http://localhost:3000',
+      // Socket.IO (real-time notifications) — proxy the handshake + ws upgrade.
+      '/socket.io': { target: 'http://localhost:3000', ws: true },
     },
   },
   // @trimatch/shared is a linked CJS workspace package — include it in dev

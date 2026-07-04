@@ -9,6 +9,18 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Real-time notification delivery over WebSocket (Epic 9)**: a Socket.IO
+  `NotificationsGateway` authenticates each handshake with the caller's JWT and
+  joins the socket to a room named by their user id — so a socket only ever
+  receives its **own** notifications. The queue worker, after persisting a
+  notification, pushes it to the recipient's room; the web notification center
+  subscribes and updates the badge/panel **live**, so the client no longer polls
+  (react-query focus-refetch stays as a backstop). A Redis adapter
+  (`@socket.io/redis-adapter`, reusing `REDIS_URL`) fans room emits out across
+  instances. Verified in-browser: an out-of-band hand-off moved the unread badge
+  with no user interaction. The web proxies `/socket.io` (handshake + ws upgrade)
+  to the api in dev.
+
 - **Outbound notification channel + daily digest (Epic 9)**: a pluggable
   `OutboundChannel` behind a DI token, selected by `NOTIFICATIONS_CHANNEL` — a
   **no-op default** (`none`, out-of-app delivery disabled cleanly) and one

@@ -9,6 +9,7 @@ import { NotificationsDigestScheduler } from './notifications-digest.scheduler';
 import { NotificationsDigestService } from './notifications-digest.service';
 import { NOTIFICATIONS_QUEUE } from './notifications.constants';
 import { NotificationsController } from './notifications.controller';
+import { NotificationsGateway } from './notifications.gateway';
 import { NotificationsProcessor } from './notifications.processor';
 import { NotificationsProducer } from './notifications.producer';
 import { NotificationsService } from './notifications.service';
@@ -37,6 +38,7 @@ import { QueueHealth } from './queue-health.service';
     NotificationsProcessor,
     NotificationsService,
     NotificationsProducer,
+    NotificationsGateway,
     QueueHealth,
     outboundChannelProvider,
     NotificationsDigestService,
