@@ -3,7 +3,7 @@ import { AuthUser, LoginResponse, PasswordResetAck } from '@trimatch/shared';
 import { SensitiveThrottle } from '../common/sensitive-throttle.decorator';
 import { AuthService } from './auth.service';
 import { CurrentUser, JwtPayload, Public } from './decorators';
-import { ForgotPasswordDto, LoginRequestDto, ResetPasswordDto } from './dto';
+import { ChangePasswordDto, ForgotPasswordDto, LoginRequestDto, ResetPasswordDto } from './dto';
 import { PasswordResetService } from './password-reset.service';
 
 @Controller('auth')
@@ -39,6 +39,19 @@ export class AuthController {
   @HttpCode(200)
   async resetPassword(@Body() body: ResetPasswordDto): Promise<PasswordResetAck> {
     await this.passwordReset.resetPassword(body.email, body.code, body.newPassword);
+    return { ok: true };
+  }
+
+  // Authenticated — a signed-in user rotates their own password (current
+  // password required); the stricter auth rate limit applies.
+  @SensitiveThrottle()
+  @Post('change-password')
+  @HttpCode(200)
+  async changePassword(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: ChangePasswordDto,
+  ): Promise<PasswordResetAck> {
+    await this.auth.changePassword(user.sub, body.currentPassword, body.newPassword);
     return { ok: true };
   }
 

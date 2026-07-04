@@ -25,12 +25,21 @@ export interface PasswordResetDelivery {
   expiresAt: string;
 }
 
+// Confirmation that an account's password was changed (Epic 16) — a security
+// heads-up, no secret involved.
+export interface PasswordChangedNotice {
+  recipientEmail: string;
+  recipientName: string;
+  changedAt: string;
+}
+
 // Pluggable out-of-app delivery (Epic 9). Implementations: a no-op default and
 // a webhook channel, selected by NOTIFICATIONS_CHANNEL. Injected via the token.
 export interface OutboundChannel {
   readonly name: string;
   deliver(digest: NotificationDigest): Promise<void>;
   deliverPasswordReset(reset: PasswordResetDelivery): Promise<void>;
+  deliverPasswordChanged(notice: PasswordChangedNotice): Promise<void>;
 }
 
 export const OUTBOUND_CHANNEL = Symbol('OUTBOUND_CHANNEL');

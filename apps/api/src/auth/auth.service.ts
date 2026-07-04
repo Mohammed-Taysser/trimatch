@@ -1,14 +1,16 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthUser, AuthUserSchema, LoginResponse, LoginResponseSchema } from '@trimatch/shared';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../identity/users.service';
+import { OUTBOUND_CHANNEL, OutboundChannel } from '../notifications/outbound/outbound-channel';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly users: UsersService,
     private readonly jwt: JwtService,
+    @Inject(OUTBOUND_CHANNEL) private readonly channel: OutboundChannel,
   ) {}
 
   async login(email: string, password: string): Promise<LoginResponse> {
@@ -27,6 +29,28 @@ export class AuthService {
     return LoginResponseSchema.parse({
       accessToken,
       user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role },
+    });
+  }
+
+  // Authenticated change: the current password must match before rotating, and a
+  // confirmation is emailed out-of-band so the account owner is alerted.
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const user = await this.users.findById(userId);
+    if (!user || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
+      throw new UnauthorizedException({
+        code: 'INVALID_CREDENTIALS',
+        message: 'Current password is incorrect',
+      });
+    }
+    await this.users.setPasswordHash(userId, await bcrypt.hash(newPassword, 10));
+    await this.channel.deliverPasswordChanged({
+      recipientEmail: user.email,
+      recipientName: user.fullName,
+      changedAt: new Date().toISOString(),
     });
   }
 

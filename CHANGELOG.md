@@ -9,6 +9,13 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Authenticated password change (Epic 16)**: `POST /auth/change-password` lets a
+  signed-in user rotate their own password — the **current password must match**
+  before the new hash is set, and a confirmation is emailed out-of-band via the
+  outbound channel (a security heads-up, no secret). The route carries the
+  stricter auth rate limit. Completes the account-security set (login · reset ·
+  change).
+
 - **Self-service password reset with OTP (Epic 16)**: `POST /auth/forgot-password`
   issues a single-use, 10-minute OTP (generated with **otplib**) and **always acks
   the same** whether or not the email exists (no account enumeration).
