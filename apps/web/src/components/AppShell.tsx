@@ -37,7 +37,7 @@ export function AppShell({
   breadcrumbs?: Breadcrumb[];
   children: ReactNode;
 }) {
-  const { user, logout } = useAuth();
+  const { user, logout, mustEnrollTwoFactor } = useAuth();
   const { pathname } = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   // a11y: on route change, move focus to the page region so keyboard and
@@ -56,12 +56,21 @@ export function AppShell({
             <span>
               {user?.fullName} <span className={`badge badge-brand`}>{user?.role}</span>
             </span>
+            <Link to="/account/security" className="shell-link">
+              Security
+            </Link>
             <Button small onClick={logout}>
               Sign out
             </Button>
           </span>
         </div>
       </header>
+      {mustEnrollTwoFactor && (
+        <div className="enroll-banner" role="alert">
+          <span>Your organization requires two-factor authentication.</span>
+          <Link to="/account/security">Set it up now →</Link>
+        </div>
+      )}
       <main className="page" ref={mainRef} tabIndex={-1}>
         {breadcrumbs && breadcrumbs.length > 0 && (
           <nav className="breadcrumbs" aria-label="Breadcrumb">

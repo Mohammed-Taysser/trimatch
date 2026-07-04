@@ -58,6 +58,7 @@ describe('login returns a JWT for valid demo credentials', () => {
       email: 'requester@demo',
       fullName: 'Riley Requester',
       role: 'requester',
+      twoFactorEnabled: false,
     });
   });
 
@@ -143,6 +144,7 @@ describe('me resolves the current user from the token subject', () => {
       email: 'requester@demo',
       fullName: 'Riley Requester',
       role: 'requester',
+      twoFactorEnabled: false,
     });
   });
 

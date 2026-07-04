@@ -9,6 +9,16 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Two-factor auth — web UI (Epic 16 · 869e01b14)**: the React surface for the 2FA
+  API. A **Security** page (`/account/security`, any signed-in user) enrols an
+  authenticator — renders the `otpauthUri` as a **QR** (`qrcode.react`, client-side)
+  plus the setup key, confirms a code, and shows the one-time **recovery codes**
+  (copyable, shown once); it also disables 2FA (with inline confirmation). **Login**
+  gained a second-factor step: when the API returns a challenge, the form asks for a
+  TOTP/recovery code and posts to `/auth/2fa/verify`. The auth store now handles the
+  `LoginResult` union and keeps 2FA state fresh after enrol/disable; a banner prompts
+  enrolment when the company mandates 2FA (`mustEnrollTwoFactor`). `AuthUser` gained
+  `twoFactorEnabled` so the UI can reflect status.
 - **Settings framework: company + per-user preferences (Epic 12 · 869e01dmv)**: a
   DB-backed settings layer resolved **per-user → company → code default**. A code
   registry defines each setting (key, type, default, which scopes may write it) and
