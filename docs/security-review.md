@@ -69,8 +69,12 @@ predicate, so it stays safe even if the enum is later loosened — defense in de
 
 These are defence-in-depth improvements, not confirmed vulnerabilities:
 
-- **869dzymvv** — invalidate existing JWTs on password change/reset (token
-  versioning); today a pre-existing token survives a reset until it expires.
+- ~~**869dzymvv** — invalidate existing JWTs on password change/reset (token
+  versioning); today a pre-existing token survives a reset until it expires.~~
+  **Done.** `users.token_version` is stamped into every JWT (`tv` claim) and
+  checked per request by `JwtAuthGuard`; it is bumped on password change, reset,
+  and deactivation, so those events instantly revoke every previously-issued
+  token. (A Redis cache of the per-request lookup is a future optimisation.)
 - **869dzymvw** — set Express `trust proxy` in production so per-IP rate limiting
   works behind the nginx reverse proxy (ADR-0005).
 - **869dzymvy** — restrict the WebSocket gateway CORS origin in production

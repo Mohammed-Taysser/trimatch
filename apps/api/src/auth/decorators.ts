@@ -11,6 +11,9 @@ export interface JwtPayload {
   sub: string;
   email: string;
   role: UserRole;
+  // Session-invalidation counter (869dzymvv). The guard rejects the token when
+  // this no longer matches the user's current token_version.
+  tv: number;
 }
 
 export function currentUserFactory(_data: unknown, ctx: ExecutionContext): JwtPayload {

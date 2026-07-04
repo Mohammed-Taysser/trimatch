@@ -33,6 +33,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
+      tv: user.tokenVersion,
     });
     return LoginResponseSchema.parse({
       accessToken,
@@ -55,6 +56,9 @@ export class AuthService {
       });
     }
     await this.users.setPasswordHash(userId, await bcrypt.hash(newPassword, 10));
+    // 869dzymvv: rotating the password signs out every session, including this
+    // one — the client re-authenticates with the new password.
+    await this.users.bumpTokenVersion(userId);
     await this.channel.deliverPasswordChanged({
       recipientEmail: user.email,
       recipientName: user.fullName,

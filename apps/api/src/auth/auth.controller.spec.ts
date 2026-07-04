@@ -33,7 +33,12 @@ describe('auth endpoints delegate to the auth service', () => {
 
   it('GET /auth/me resolves the token subject', async () => {
     await expect(
-      controller.me({ sub: loginResponse.user.id, email: 'requester@demo', role: 'requester' }),
+      controller.me({
+        sub: loginResponse.user.id,
+        email: 'requester@demo',
+        role: 'requester',
+        tv: 0,
+      }),
     ).resolves.toEqual(loginResponse.user);
   });
 
@@ -64,6 +69,7 @@ describe('auth endpoints delegate to the auth service', () => {
       sub: loginResponse.user.id,
       email: 'requester@demo',
       role: 'requester' as const,
+      tv: 0,
     };
     await expect(
       controller.changePassword(user, { currentPassword: 'Demo123!', newPassword: 'BrandNew1!' }),

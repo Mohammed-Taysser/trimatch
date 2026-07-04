@@ -33,7 +33,7 @@ export class PasswordResetService {
   async requestReset(email: string): Promise<void> {
     const user = await this.users.findByEmail(email);
     // ADR-0007: deactivated accounts get the same silent no-op as unknown ones.
-    if (!user || !user.active) return;
+    if (!user?.active) return;
 
     // Supersede any still-valid OTP so only the newest code works.
     await this.otps.update({ usedAt: new Date() }, { where: { userId: user.id, usedAt: null } });
@@ -58,7 +58,7 @@ export class PasswordResetService {
   async resetPassword(email: string, code: string, newPassword: string): Promise<void> {
     const user = await this.users.findByEmail(email);
     // ADR-0007: a deactivated account cannot complete a reset either.
-    if (!user || !user.active) throw invalidReset();
+    if (!user?.active) throw invalidReset();
 
     const otp = await this.otps.findOne({
       where: { userId: user.id, usedAt: null, expiresAt: { [Op.gt]: new Date() } },
@@ -76,6 +76,9 @@ export class PasswordResetService {
     }
 
     await this.users.setPasswordHash(user.id, await bcrypt.hash(newPassword, 10));
+    // 869dzymvv: a reset revokes every existing session — any lingering or stolen
+    // token is dead once the password is rotated.
+    await this.users.bumpTokenVersion(user.id);
     await otp.update({ usedAt: new Date() }); // single-use
   }
 }

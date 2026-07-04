@@ -9,6 +9,15 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Session invalidation via token versioning (Epic 16 · 869dzymvv)**: JWTs now
+  carry a `tv` claim backed by a new `users.token_version` counter, which
+  `JwtAuthGuard` checks on every authenticated request. Bumping it — on **password
+  change** (signs out all sessions, including the current one), **password reset**
+  (kills any lingering/stolen session), and **deactivation** — instantly revokes
+  every previously-issued token (`TOKEN_REVOKED` / `ACCOUNT_DEACTIVATED`) with no
+  server-side session store. Closes the last soft-delete gap: a deactivated user's
+  live token dies immediately, not at expiry. Documented in
+  [docs/03-domain.md](docs/03-domain.md) §4.2.
 - **User soft-delete / deactivation (ADR-0007, Epic 20)**: `users.active` mirrors
   `vendors.active` — a deactivated user cannot authenticate (login returns
   `ACCOUNT_DEACTIVATED`, checked _after_ the password so account state never leaks;

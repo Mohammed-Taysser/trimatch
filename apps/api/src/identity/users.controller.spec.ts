@@ -6,6 +6,7 @@ const admin: JwtPayload = {
   sub: '019787c8-0000-4000-8000-000000000001',
   email: 'admin@demo',
   role: 'admin',
+  tv: 0,
 };
 const USER_ID = '019787c8-0000-4000-8000-00000000aaaa';
 

@@ -13,18 +13,22 @@ const demoUser = {
   role: 'requester',
   passwordHash: bcrypt.hashSync('Demo123!', 4),
   active: true,
+  tokenVersion: 0,
 };
 
 const deliverPasswordChanged = jest.fn().mockResolvedValue(undefined);
 const setPasswordHash = jest.fn().mockResolvedValue(undefined);
+const bumpTokenVersion = jest.fn().mockResolvedValue(undefined);
 
 function makeService(overrides: Partial<Record<'findByEmail' | 'findById', unknown>> = {}) {
   deliverPasswordChanged.mockClear();
   setPasswordHash.mockClear();
+  bumpTokenVersion.mockClear();
   const users = {
     findByEmail: jest.fn().mockResolvedValue(demoUser),
     findById: jest.fn().mockResolvedValue(demoUser),
     setPasswordHash,
+    bumpTokenVersion,
     ...overrides,
   } as unknown as UsersService;
   const jwt = {
@@ -91,6 +95,8 @@ describe('changePassword rotates only after the current password matches', () =>
     const service = makeService();
     await service.changePassword(DEMO_ID, 'Demo123!', 'BrandNew1!');
     expect(setPasswordHash).toHaveBeenCalledWith(DEMO_ID, expect.any(String));
+    // 869dzymvv: rotating the password invalidates every existing session.
+    expect(bumpTokenVersion).toHaveBeenCalledWith(DEMO_ID);
     expect(deliverPasswordChanged).toHaveBeenCalledWith(
       expect.objectContaining({ recipientEmail: 'requester@demo' }),
     );

@@ -51,4 +51,12 @@ export class User extends Model {
   @Default(true)
   @Column(DataType.BOOLEAN)
   declare active: boolean;
+
+  // Session-invalidation counter (869dzymvv): stamped into the JWT `tv` claim at
+  // login and checked per request. Bumped on password change/reset and on
+  // deactivation, which instantly revokes every previously-issued token.
+  @AllowNull(false)
+  @Default(0)
+  @Column(DataType.INTEGER)
+  declare tokenVersion: number;
 }
