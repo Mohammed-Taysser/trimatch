@@ -29,6 +29,13 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Changed
 
+- **Central "not found = 404" handling (Epic 20 · 869e01dmy)**: the global exception
+  filter now maps a Sequelize `EmptyResultError` to a 404 `NOT_FOUND` envelope instead
+  of leaking a 500. Services can drop the manual `if (!row) throw NotFoundException`
+  boilerplate in favour of `findByPk(id, { rejectOnEmpty: new NotFoundException(...) })`
+  (adopted in `VendorsService`). Guidance recorded: reach for `rejectOnEmpty` only when
+  a missing row genuinely **is** an error — for optional/"exists?" lookups keep the
+  nullable finder and branch; it is not "always better".
 - **Health checks use real driver pings via @nestjs/terminus (Epic 20 · 869dzr3jw)**:
   `/health/readiness` now proves each dependency actually answers rather than that a
   TCP port is open — Postgres via Terminus's `SequelizeHealthIndicator` (`SELECT 1`)

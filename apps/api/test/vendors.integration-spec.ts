@@ -89,6 +89,15 @@ describe('vendor registry (FR-202)', () => {
     expect(VendorListSchema.parse(activeOnly.body.data).some((v) => v.id === mine?.id)).toBe(false);
   });
 
+  it('updating a non-existent vendor → 404 NOT_FOUND (rejectOnEmpty · 869e01dmy)', async () => {
+    const res = await request(app.getHttpServer())
+      .put('/api/v1/vendors/019787c8-dead-4000-8000-000000000000')
+      .set('Authorization', `Bearer ${purchasingToken}`)
+      .send({ paymentTerms: 'NET 30' })
+      .expect(404);
+    expect(res.body).toMatchObject({ code: 'NOT_FOUND', message: 'Vendor not found' });
+  });
+
   it('an inactive vendor cannot receive new POs (assertActive → 409 VENDOR_INACTIVE)', async () => {
     const list = await request(app.getHttpServer())
       .get('/api/v1/vendors?pageSize=100')

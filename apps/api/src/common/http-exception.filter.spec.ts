@@ -5,6 +5,7 @@ import {
   HttpStatus,
   NotFoundException,
 } from '@nestjs/common';
+import { EmptyResultError } from 'sequelize';
 import { HttpExceptionFilter } from './http-exception.filter';
 
 const filter = new HttpExceptionFilter();
@@ -60,6 +61,12 @@ describe('every error response uses the fixed envelope', () => {
     const { status, body } = run(new Error('boom'));
     expect(status).toBe(500);
     expect(body).toMatchObject({ code: 'INTERNAL_ERROR', message: 'Unexpected error' });
+  });
+
+  it('maps a Sequelize EmptyResultError to 404 NOT_FOUND (869e01dmy)', () => {
+    const { status, body } = run(new EmptyResultError('no rows'));
+    expect(status).toBe(404);
+    expect(body).toMatchObject({ code: 'NOT_FOUND', message: 'Resource not found' });
   });
 
   it('maps a 429 (rate limit) to TOO_MANY_REQUESTS in the envelope', () => {
