@@ -12,6 +12,8 @@
     "test:integration": "jest -c jest.integration.config.cjs --passWithNoTests",
     "migrate": "sequelize-cli db:migrate",
     "migrate:undo": "sequelize-cli db:migrate:undo",
+    "migrate:undo:all": "sequelize-cli db:migrate:undo:all",
+    "db:reset": "pnpm migrate:undo:all && pnpm migrate && pnpm seed",
     "migration:new": "sequelize-cli migration:generate --name",
     "seed": "sequelize-cli db:seed:all",
     "openapi:export": "node dist/export-openapi.js"

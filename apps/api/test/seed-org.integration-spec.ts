@@ -10,7 +10,7 @@ import {
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { setupApp } from '../src/setup-app';
-import { findAcrossPages } from './helpers';
+import { collectAcrossPages, findAcrossPages } from './helpers';
 
 // Requires migrate && seed — asserts the demo org from runbook §1 is demoable.
 const PASSWORD = 'Demo123!';
@@ -79,11 +79,21 @@ describe('seeded demo org covers the full MVP flow (869dz0fug)', () => {
   });
 
   it('purchasing sees the demo vendors including the inactive one', async () => {
-    const res = await request(app.getHttpServer())
-      .get('/api/v1/vendors?pageSize=100')
-      .set('Authorization', `Bearer ${purchasingToken}`)
-      .expect(200);
-    const demo = VendorListSchema.parse(res.body.data).filter((v) => v.name.includes('(demo)'));
+    // Collect across pages — a long-lived local DB accumulates vendors that push
+    // the seeded (demo) ones off the first page.
+    const demo = await collectAcrossPages(
+      async (page) => {
+        const res = await request(app.getHttpServer())
+          .get(`/api/v1/vendors?page=${page}&pageSize=100`)
+          .set('Authorization', `Bearer ${purchasingToken}`)
+          .expect(200);
+        return {
+          items: VendorListSchema.parse(res.body.data),
+          totalPages: res.body.meta.totalPages as number,
+        };
+      },
+      (v) => v.name.includes('(demo)'),
+    );
     expect(demo.length).toBeGreaterThanOrEqual(3);
     expect(demo.some((v) => !v.active)).toBe(true);
   });
