@@ -7,6 +7,7 @@ const validEnv = {
   REDIS_URL: 'redis://localhost:6379',
   JWT_SECRET: 'test-secret-at-least-16-chars',
   JWT_EXPIRES_IN: '1h',
+  NOTIFICATIONS_CHANNEL: 'none',
 };
 
 describe('app refuses to boot with invalid env config (AC 3)', () => {
@@ -57,5 +58,35 @@ describe('app refuses to boot with invalid env config (AC 3)', () => {
 
   it('throws when JWT_SECRET is shorter than 16 characters', () => {
     expect(() => validateEnv({ ...validEnv, JWT_SECRET: 'short' })).toThrow(/JWT_SECRET/);
+  });
+
+  it('throws when NOTIFICATIONS_CHANNEL is missing — no silent defaults', () => {
+    const { NOTIFICATIONS_CHANNEL, ...rest } = validEnv;
+    expect(() => validateEnv(rest)).toThrow(/NOTIFICATIONS_CHANNEL/);
+  });
+
+  it('throws when NOTIFICATIONS_CHANNEL is not a supported value', () => {
+    expect(() => validateEnv({ ...validEnv, NOTIFICATIONS_CHANNEL: 'sms' })).toThrow(
+      /NOTIFICATIONS_CHANNEL/,
+    );
+  });
+
+  it('accepts the webhook channel when its URL is provided', () => {
+    const env = validateEnv({
+      ...validEnv,
+      NOTIFICATIONS_CHANNEL: 'webhook',
+      NOTIFICATIONS_WEBHOOK_URL: 'https://hooks.example.com/notify',
+    });
+    expect(env.NOTIFICATIONS_CHANNEL).toBe('webhook');
+  });
+
+  it('fails loudly on partial config — webhook channel without its URL', () => {
+    expect(() => validateEnv({ ...validEnv, NOTIFICATIONS_CHANNEL: 'webhook' })).toThrow(
+      /NOTIFICATIONS_WEBHOOK_URL/,
+    );
+  });
+
+  it('does not require a webhook URL when the channel is none', () => {
+    expect(() => validateEnv({ ...validEnv, NOTIFICATIONS_CHANNEL: 'none' })).not.toThrow();
   });
 });
