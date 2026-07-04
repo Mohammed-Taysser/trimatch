@@ -353,9 +353,10 @@ export class MatchingService {
         {
           model: MatchRecord,
           required: true,
-          // reason is enum-validated by the DTO — safe to inline.
+          // JSONB containment (@>), parameterized — the value is bound, not
+          // interpolated, so it stays safe even if the reason enum is loosened.
           where: query.reason
-            ? literal(`"matchRecords"."reasons" @> '[{"code":"${query.reason}"}]'`)
+            ? { reasons: { [Op.contains]: [{ code: query.reason }] } }
             : undefined,
         },
       ],
