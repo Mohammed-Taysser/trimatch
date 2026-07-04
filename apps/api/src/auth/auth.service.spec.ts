@@ -4,6 +4,7 @@ import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../identity/users.service';
 import { OutboundChannel } from '../notifications/outbound/outbound-channel';
 import { AuthService } from './auth.service';
+import { TwoFactorService } from './two-factor.service';
 
 const DEMO_ID = '019787c8-0000-4000-8000-000000000001';
 const demoUser = {
@@ -14,16 +15,19 @@ const demoUser = {
   passwordHash: bcrypt.hashSync('Demo123!', 4),
   active: true,
   tokenVersion: 0,
+  totpEnabled: false,
 };
 
 const deliverPasswordChanged = jest.fn().mockResolvedValue(undefined);
 const setPasswordHash = jest.fn().mockResolvedValue(undefined);
 const bumpTokenVersion = jest.fn().mockResolvedValue(undefined);
+const verifyCode = jest.fn().mockResolvedValue(true);
 
 function makeService(overrides: Partial<Record<'findByEmail' | 'findById', unknown>> = {}) {
   deliverPasswordChanged.mockClear();
   setPasswordHash.mockClear();
   bumpTokenVersion.mockClear();
+  verifyCode.mockClear();
   const users = {
     findByEmail: jest.fn().mockResolvedValue(demoUser),
     findById: jest.fn().mockResolvedValue(demoUser),
@@ -33,14 +37,17 @@ function makeService(overrides: Partial<Record<'findByEmail' | 'findById', unkno
   } as unknown as UsersService;
   const jwt = {
     signAsync: jest.fn().mockResolvedValue('signed.jwt.token'),
+    verifyAsync: jest.fn().mockResolvedValue({ sub: DEMO_ID, scope: 'mfa-challenge' }),
   } as unknown as JwtService;
   const channel = { deliverPasswordChanged } as unknown as OutboundChannel;
-  return new AuthService(users, jwt, channel);
+  const twoFactor = { verifyCode } as unknown as TwoFactorService;
+  return new AuthService(users, jwt, channel, twoFactor);
 }
 
 describe('login returns a JWT for valid demo credentials', () => {
   it('returns a signed token and the auth user', async () => {
     const result = await makeService().login('requester@demo', 'Demo123!');
+    if (!('accessToken' in result)) throw new Error('expected a session, not a 2FA challenge');
     expect(result.accessToken).toBe('signed.jwt.token');
     expect(result.user).toEqual({
       id: DEMO_ID,
@@ -69,6 +76,42 @@ describe('login returns a JWT for valid demo credentials', () => {
     });
     await expect(service.login('requester@demo', 'Demo123!')).rejects.toMatchObject({
       response: { code: 'ACCOUNT_DEACTIVATED' },
+    });
+  });
+});
+
+describe('login with 2FA enabled returns a challenge, not a session (869dzycut)', () => {
+  it('returns a challenge instead of an access token', async () => {
+    const service = makeService({
+      findByEmail: jest.fn().mockResolvedValue({ ...demoUser, totpEnabled: true }),
+    });
+    const result = await service.login('requester@demo', 'Demo123!');
+    expect(result).toEqual({ twoFactorRequired: true, challenge: 'signed.jwt.token' });
+  });
+});
+
+describe('verifyTwoFactor exchanges a valid challenge for a session', () => {
+  const enabledUser = { ...demoUser, totpEnabled: true };
+
+  it('issues a session when the challenge and code are valid', async () => {
+    const service = makeService({ findById: jest.fn().mockResolvedValue(enabledUser) });
+    const result = await service.verifyTwoFactor('challenge.jwt', '123456');
+    expect(result.accessToken).toBe('signed.jwt.token');
+    expect(verifyCode).toHaveBeenCalled();
+  });
+
+  it('rejects when the code is wrong', async () => {
+    verifyCode.mockResolvedValueOnce(false);
+    const service = makeService({ findById: jest.fn().mockResolvedValue(enabledUser) });
+    await expect(service.verifyTwoFactor('challenge.jwt', '000000')).rejects.toMatchObject({
+      response: { code: 'INVALID_TWO_FACTOR_CODE' },
+    });
+  });
+
+  it('rejects a user who is no longer 2FA-enabled', async () => {
+    const service = makeService({ findById: jest.fn().mockResolvedValue(demoUser) });
+    await expect(service.verifyTwoFactor('challenge.jwt', '123456')).rejects.toMatchObject({
+      response: { code: 'INVALID_TWO_FACTOR_CHALLENGE' },
     });
   });
 });

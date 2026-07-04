@@ -38,6 +38,15 @@ export class JwtAuthGuard implements CanActivate {
       });
     }
 
+    // A scoped token (e.g. the 2FA login challenge, 869dzycut) is not a full
+    // session — it may only be redeemed at its own endpoint, never here.
+    if ((payload as { scope?: unknown }).scope !== undefined) {
+      throw new UnauthorizedException({
+        code: 'UNAUTHORIZED',
+        message: 'This token cannot be used for API access',
+      });
+    }
+
     // Session invalidation (869dzymvv): the signature is valid, but a token is
     // only live while the account is still active AND its `tv` claim matches the
     // user's current token_version. A password change/reset or deactivation bumps

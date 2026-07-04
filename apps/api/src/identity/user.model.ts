@@ -59,4 +59,15 @@ export class User extends Model {
   @Default(0)
   @Column(DataType.INTEGER)
   declare tokenVersion: number;
+
+  // Optional TOTP 2FA (869dzycut). The secret is set at enrolment and only
+  // trusted once `totpEnabled` flips true (after a confirming code).
+  @AllowNull(true)
+  @Column(DataType.STRING)
+  declare totpSecret: string | null;
+
+  @AllowNull(false)
+  @Default(false)
+  @Column(DataType.BOOLEAN)
+  declare totpEnabled: boolean;
 }
