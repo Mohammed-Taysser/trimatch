@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { NotificationDigest, OutboundChannel } from './outbound-channel';
+import { NotificationDigest, OutboundChannel, PasswordResetDelivery } from './outbound-channel';
 
 // The default when NOTIFICATIONS_CHANNEL=none: out-of-app delivery is disabled
 // cleanly. The digest still runs (and can be observed in logs) but sends nothing.
@@ -11,5 +11,10 @@ export class NoopOutboundChannel implements OutboundChannel {
     this.logger.debug(
       `outbound disabled — skipped digest of ${digest.unread.length} for ${digest.recipientId}`,
     );
+  }
+
+  async deliverPasswordReset(reset: PasswordResetDelivery): Promise<void> {
+    // Never log the code.
+    this.logger.debug(`outbound disabled — skipped password-reset for ${reset.recipientEmail}`);
   }
 }

@@ -13,6 +13,7 @@ import { NotificationsGateway } from './notifications.gateway';
 import { NotificationsProcessor } from './notifications.processor';
 import { NotificationsProducer } from './notifications.producer';
 import { NotificationsService } from './notifications.service';
+import { OUTBOUND_CHANNEL } from './outbound/outbound-channel';
 import { outboundChannelProvider } from './outbound/outbound-channel.provider';
 import { QueueHealth } from './queue-health.service';
 
@@ -50,6 +51,7 @@ import { QueueHealth } from './queue-health.service';
     NotificationsService,
     NotificationsProducer,
     NotificationsDigestService,
+    OUTBOUND_CHANNEL,
     BullModule,
   ],
 })

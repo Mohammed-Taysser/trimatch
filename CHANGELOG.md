@@ -9,6 +9,17 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Self-service password reset with OTP (Epic 16)**: `POST /auth/forgot-password`
+  issues a single-use, 10-minute OTP (generated with **otplib**) and **always acks
+  the same** whether or not the email exists (no account enumeration).
+  `POST /auth/reset-password` verifies the code and rotates the password hash; the
+  OTP is single-use, expires, and locks after 5 failed guesses. The code is
+  delivered out-of-band via the outbound channel (Epic 9) and is **never persisted
+  in clear text nor logged** — only its bcrypt hash is stored (`password_reset_otps`
+  table). Both endpoints are `@Public` and carry the **stricter auth rate limit**.
+  otplib is pinned to **v12** (CJS) — v13 is an ESM-only rewrite the CJS toolchain
+  doesn't support yet.
+
 - **Rate limiting (Epic 16)**: a global `@nestjs/throttler` guard runs **before**
   auth, so even unauthenticated requests are throttled per IP. Two limits, both
   from env (fail-loud, no defaults): a lenient global limit on every route, and a
