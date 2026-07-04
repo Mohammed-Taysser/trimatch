@@ -33,6 +33,11 @@ export class UsersService {
     return rows.map((row) => row.id);
   }
 
+  // Rotates the stored password hash (self-service reset). The caller hashes.
+  async setPasswordHash(userId: string, passwordHash: string): Promise<void> {
+    await this.userModel.update({ passwordHash }, { where: { id: userId } });
+  }
+
   // Superadmin dashboard: the org, paginated, with manager names resolved.
   async listAll(query: PaginationQuery): Promise<PagedResult<UserAdmin>> {
     const { rows, count } = await this.userModel.findAndCountAll({
