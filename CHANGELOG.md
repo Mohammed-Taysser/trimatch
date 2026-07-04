@@ -9,6 +9,19 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Outbound notification channel + daily digest (Epic 9)**: a pluggable
+  `OutboundChannel` behind a DI token, selected by `NOTIFICATIONS_CHANNEL` — a
+  **no-op default** (`none`, out-of-app delivery disabled cleanly) and one
+  concrete **`webhook`** channel that POSTs each recipient's digest to
+  `NOTIFICATIONS_WEBHOOK_URL`. Partial config **fails the boot** (webhook without
+  a URL is rejected by the env schema), honouring the no-silent-defaults rule. A
+  `NotificationsDigestService` batches every recipient's unread notifications into
+  one digest (delivery failures isolated per recipient); it runs as a **repeatable
+  BullMQ job** (daily 08:00) that is only scheduled when a channel is configured,
+  so the feature adds no cost — and never touches Redis — when disabled. New env:
+  `NOTIFICATIONS_CHANNEL` (required), `NOTIFICATIONS_WEBHOOK_URL` (required iff
+  `webhook`); both documented in `.env.example`.
+
 - **Notification center in the web app shell (Epic 9)**: a 🔔 bell in the shared
   header carries a live unread-count badge (clamped `99+`) and opens a dropdown
   panel listing notifications newest-first. Unread rows are visually marked (dot
