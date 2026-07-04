@@ -15,6 +15,20 @@ export async function findAcrossPages<T>(
   }
 }
 
+// Like findAcrossPages, but returns ALL matches — so an assertion about a known
+// set survives a long-lived local DB where the matches span several pages.
+export async function collectAcrossPages<T>(
+  fetchPage: (page: number) => Promise<{ items: T[]; totalPages: number }>,
+  predicate: (item: T) => boolean,
+): Promise<T[]> {
+  const found: T[] = [];
+  for (let page = 1; ; page++) {
+    const { items, totalPages } = await fetchPage(page);
+    found.push(...items.filter(predicate));
+    if (page >= totalPages) return found;
+  }
+}
+
 // Matrix chains (FR-501) create one step per approver — approve a requisition
 // through every provided approver's inbox until its chain is exhausted.
 export async function approveAcrossChain(

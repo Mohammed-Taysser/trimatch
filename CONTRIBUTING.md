@@ -60,6 +60,20 @@ BREAKING CHANGE: <description, if any>
 - One logical change per commit; each commit should pass CI on its own.
 - Enforced by commitlint + husky once `package.json` exists (tracked in Epic 0).
 
+## Local integration tests
+
+`pnpm test:integration` runs against your local Postgres (not a throwaway DB), so
+data accumulates across runs. Assertions are written to tolerate that (scoped
+queries, `\d{4,}` doc-number patterns, `collectAcrossPages`), so repeated local
+runs stay green. If you ever want a pristine slate matching CI, reset the local
+DB in one command:
+
+```bash
+pnpm --filter @trimatch/api db:reset   # undo all migrations → migrate → seed
+```
+
+Note: this **wipes** the local DB (it is shared with `pnpm dev`).
+
 ## Definition of Done
 
 - [ ] Acceptance criteria of the story are met (and are now test names)
