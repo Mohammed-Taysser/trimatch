@@ -15,6 +15,9 @@ export const UserAdminSchema = z.object({
   managerName: z.string().nullable(),
   department: z.string().nullable(),
   jobTitle: z.string().nullable(),
+  // ADR-0007: deactivated users keep every historical record but cannot log in
+  // or be assigned as approvers.
+  active: z.boolean(),
 });
 export type UserAdmin = z.infer<typeof UserAdminSchema>;
 export const UserAdminListSchema = z.array(UserAdminSchema);
@@ -23,10 +26,14 @@ export const UserUpdateSchema = z
   .object({
     role: UserRoleSchema.optional(),
     managerId: z.uuid().nullable().optional(),
+    // ADR-0007: soft-delete/offboarding — false deactivates, true reactivates.
+    active: z.boolean().optional(),
   })
-  .refine((update) => update.role !== undefined || update.managerId !== undefined, {
-    message: 'change the role, the manager, or both',
-  });
+  .refine(
+    (update) =>
+      update.role !== undefined || update.managerId !== undefined || update.active !== undefined,
+    { message: 'change the role, the manager, the active flag, or a combination' },
+  );
 export type UserUpdate = z.infer<typeof UserUpdateSchema>;
 
 export const AuditQuerySchema = z.object({

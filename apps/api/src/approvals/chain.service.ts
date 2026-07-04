@@ -46,16 +46,22 @@ export class ChainService {
   }
 
   private async resolveTitle(title: string, requester: User): Promise<string> {
+    // ADR-0007: the resolved approver must be active. Named titles come from the
+    // users pool (filtered in the query); hierarchy titles resolve through
+    // manager_id and are fetched so a deactivated manager fails loudly
+    // (NO_APPROVER) rather than being handed an approval step they can't act on.
     if (title === 'Team Lead') {
-      if (!requester.managerId) this.unresolvable(title);
-      return requester.managerId as string;
+      const lead = requester.managerId ? await User.findByPk(requester.managerId) : null;
+      if (!lead?.active) this.unresolvable(title);
+      return (lead as User).id;
     }
     if (title === 'Department Head') {
       const manager = requester.managerId ? await User.findByPk(requester.managerId) : null;
-      if (!manager?.managerId) this.unresolvable(title);
-      return manager?.managerId as string;
+      const head = manager?.managerId ? await User.findByPk(manager.managerId) : null;
+      if (!head?.active) this.unresolvable(title);
+      return (head as User).id;
     }
-    const holder = await User.findOne({ where: { jobTitle: title } });
+    const holder = await User.findOne({ where: { jobTitle: title, active: true } });
     if (!holder) this.unresolvable(title);
     return (holder as User).id;
   }

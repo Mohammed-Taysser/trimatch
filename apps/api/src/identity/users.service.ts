@@ -69,6 +69,13 @@ export class UsersService {
         message: 'You cannot change your own role — ask another admin',
       });
     }
+    // Same guard for deactivation: an admin cannot lock themselves out.
+    if (input.active === false && id === actorId) {
+      throw new ConflictException({
+        code: 'SELF_DEACTIVATION',
+        message: 'You cannot deactivate your own account — ask another admin',
+      });
+    }
     let managerName: string | null = null;
     if (input.managerId !== undefined && input.managerId !== null) {
       if (input.managerId === id) {
@@ -109,6 +116,19 @@ export class UsersService {
         comment: `manager: ${previous?.fullName ?? 'none'} → ${managerName ?? 'none'}`,
       });
     }
+    // ADR-0007: (de)activation is the offboarding/onboarding path — audited so
+    // the trail records who deactivated whom and when. Reversible.
+    if (input.active !== undefined && input.active !== user.active) {
+      await user.update({ active: input.active });
+      await this.audit.record({
+        entityType: 'user',
+        entityId: id,
+        actorId,
+        action: input.active ? 'user.reactivated' : 'user.deactivated',
+        fromState: input.active ? 'inactive' : 'active',
+        toState: input.active ? 'active' : 'inactive',
+      });
+    }
     if (user.managerId && managerName === null) {
       const manager = await this.userModel.findByPk(user.managerId);
       managerName = manager?.fullName ?? null;
@@ -126,6 +146,7 @@ export class UsersService {
       managerName,
       department: row.department,
       jobTitle: row.jobTitle,
+      active: row.active,
     });
   }
 }
