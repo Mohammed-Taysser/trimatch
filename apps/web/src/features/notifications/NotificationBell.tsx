@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Notification, NotificationListSchema } from '@trimatch/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import { EmptyState, Skeleton } from '../../components/ui';
 import { apiFetch, apiFetchPaged } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -53,8 +54,8 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  // Live unread badge — react-query refetches on window focus by default; the
-  // interval keeps it current while the tab stays open.
+  // Live unread badge — pushed to via the socket below, plus react-query's
+  // default refetch-on-focus as a backstop (no polling needed).
   const unread = useQuery({
     queryKey: ['notifications', 'unread-count'],
     queryFn: () =>
@@ -63,8 +64,21 @@ export function NotificationBell() {
         schema: NotificationListSchema,
       }).then((page) => page.meta.total),
     enabled: Boolean(token),
-    refetchInterval: 30_000,
   });
+
+  // Real-time push: a Socket.IO connection authenticated with the JWT; the server
+  // emits to this user's room, and we invalidate the queries so the badge/panel
+  // update live. Same-origin (proxied to the api in dev, nginx in prod).
+  useEffect(() => {
+    if (!token) return;
+    const socket = io({ auth: { token } });
+    socket.on('notification', () => {
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    });
+    return () => {
+      socket.disconnect();
+    };
+  }, [token, queryClient]);
 
   // The panel list is only fetched while open (and on focus while open).
   const list = useQuery({
