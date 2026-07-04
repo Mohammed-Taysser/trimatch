@@ -141,7 +141,8 @@ Three tiers, enforced in code and by the schema:
   state never leaks) and is excluded from approver pools (named titles filter `active:true`;
   hierarchy titles fail loudly with `NO_APPROVER` if the manager is deactivated).
   Deactivation is reversible (`PATCH /users/:id { active }`, audited as
-  `user.deactivated`/`user.reactivated`; an admin cannot deactivate themselves).
+  `user.deactivated`/`user.reactivated`; an admin cannot deactivate themselves)
+  and bumps `token_version`, so any live JWT is revoked at once (869dzymvv, below).
 - **Tier 2 — actor/audit FKs never cascade.** Every FK into `users` (except the optional
   `manager_id`, which is `SET NULL`) is `NO ACTION`, so a hard `DELETE` of a referenced user
   _errors_ rather than erasing history. Append-only tables (`audit_log`, `match_records`,
@@ -154,6 +155,17 @@ Three tiers, enforced in code and by the schema:
   approval steps). `notifications.recipient_id → users` is the sole cross-entity `CASCADE`,
   kept deliberately: notifications are personal, derived, ephemeral data (supports
   right-to-erasure), and the cascade is dormant while users are soft-deleted.
+
+### 4.2 Session invalidation (token versioning · 869dzymvv)
+
+JWTs are stateless, so a change of credentials or status must be able to revoke tokens that
+were already handed out. `users.token_version` is a monotonic counter stamped into every JWT
+as the `tv` claim at login; `JwtAuthGuard` reads the live `token_version` on **every**
+authenticated request and rejects a token whose `tv` is behind it (`TOKEN_REVOKED`) or whose
+account is inactive (`ACCOUNT_DEACTIVATED`). The counter is bumped on **password change**
+(`change-password` — signs out all sessions including the current one), **password reset**
+(kills any lingering/stolen session), and **deactivation**. The per-request lookup is a
+narrow two-column read; caching it in Redis is a noted future optimisation.
 
 ## 5. Domain events (for notifications & future integrations)
 

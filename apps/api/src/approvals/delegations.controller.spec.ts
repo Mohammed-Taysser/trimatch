@@ -6,6 +6,7 @@ const approver: JwtPayload = {
   sub: '019787c8-0000-4000-8000-000000000002',
   email: 'lead@demo',
   role: 'approver',
+  tv: 0,
 };
 const DELEGATION_ID = '019787c8-0000-4000-8000-00000000dddd';
 

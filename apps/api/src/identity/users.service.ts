@@ -38,6 +38,21 @@ export class UsersService {
     await this.userModel.update({ passwordHash }, { where: { id: userId } });
   }
 
+  // Per-request session check (869dzymvv): the JWT guard compares the token's
+  // `tv` claim against the live token_version and rejects a stale one. Narrow
+  // projection so the hot path fetches only what it needs. (A Redis cache of
+  // this is a future optimisation — see the cache-manager task.)
+  async authState(id: string): Promise<{ tokenVersion: number; active: boolean } | null> {
+    const row = await this.userModel.findByPk(id, { attributes: ['tokenVersion', 'active'] });
+    return row ? { tokenVersion: row.tokenVersion, active: row.active } : null;
+  }
+
+  // Invalidates every previously-issued token for a user in one write. Called on
+  // password change/reset and on deactivation.
+  async bumpTokenVersion(id: string): Promise<void> {
+    await this.userModel.increment('tokenVersion', { by: 1, where: { id } });
+  }
+
   // Superadmin dashboard: the org, paginated, with manager names resolved.
   async listAll(query: PaginationQuery): Promise<PagedResult<UserAdmin>> {
     const { rows, count } = await this.userModel.findAndCountAll({
@@ -120,6 +135,10 @@ export class UsersService {
     // the trail records who deactivated whom and when. Reversible.
     if (input.active !== undefined && input.active !== user.active) {
       await user.update({ active: input.active });
+      // Deactivation revokes any live session immediately (869dzymvv); the login
+      // block already stops new sign-ins. Reactivation forces a fresh login too
+      // (old tokens stay dead), which is the safer default.
+      await this.bumpTokenVersion(id);
       await this.audit.record({
         entityType: 'user',
         entityId: id,

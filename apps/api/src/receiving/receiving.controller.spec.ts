@@ -6,6 +6,7 @@ const user: JwtPayload = {
   sub: '019787c8-0000-4000-8000-000000000005',
   email: 'warehouse@demo',
   role: 'warehouse',
+  tv: 0,
 };
 
 describe('receipt endpoint delegates with the acting warehouse user', () => {

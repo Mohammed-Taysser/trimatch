@@ -27,6 +27,7 @@ function build(overrides: { user?: unknown; otpRow?: unknown }): {
   const users = {
     findByEmail: jest.fn().mockResolvedValue(overrides.user ?? null),
     setPasswordHash: jest.fn().mockResolvedValue(undefined),
+    bumpTokenVersion: jest.fn().mockResolvedValue(undefined),
   };
   const deliverPasswordReset = jest.fn().mockResolvedValue(undefined);
   const channel = { name: 'test', deliverPasswordReset } as unknown as OutboundChannel;
@@ -94,6 +95,8 @@ describe('PasswordResetService', () => {
       const { service, users } = build({ user: USER, otpRow: row });
       await service.resetPassword(USER.email, '123456', 'NewPass1!');
       expect(users.setPasswordHash).toHaveBeenCalledWith(USER.id, expect.any(String));
+      // 869dzymvv: a reset revokes every existing session for the account.
+      expect(users.bumpTokenVersion).toHaveBeenCalledWith(USER.id);
       expect(row.update).toHaveBeenCalledWith({ usedAt: expect.any(Date) });
     });
 
