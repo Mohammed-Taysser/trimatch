@@ -12,6 +12,8 @@ coverage/
 .env
 .env.*
 !.env.example
+# CI-only placeholders (no secrets) — committed so the CI env has one source
+!.env.ci
 
 # logs
 logs/
