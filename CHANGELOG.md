@@ -7,6 +7,16 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Added
+
+- **Redis-backed caching with @nestjs/cache-manager (Epic 20 · 869dzr3k8)**: a
+  global `CacheModule` backed by Redis (Keyv store over `REDIS_URL`, default TTL
+  from the new `CACHE_TTL` env var) with the first cache-aside path on the
+  **active approval-matrix ruleset** — read on every requisition submission, it
+  now serves from Redis and is explicitly invalidated when an admin publishes a
+  new version (the TTL is only a backstop). Cross-instance safe. Stack:
+  `@nestjs/cache-manager@3` + `cache-manager@7` + `@keyv/redis@5`.
+
 ### Changed
 
 - **Health checks use real driver pings via @nestjs/terminus (Epic 20 · 869dzr3jw)**:
