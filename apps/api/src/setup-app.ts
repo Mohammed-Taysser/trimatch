@@ -14,6 +14,14 @@ export function setupApp(app: INestApplication): INestApplication {
   return app;
 }
 
+// Express `trust proxy` (869dzymvw). Behind the ADR-0005 nginx reverse proxy the
+// socket IP is the proxy's, so per-IP rate limiting must read the real client
+// from X-Forwarded-For — `hops` is how many proxies to trust (1 for nginx, 0 to
+// trust none). Applied from bootstrap only; tests/openapi hit the app directly.
+export function applyTrustProxy(app: INestApplication, hops: number): void {
+  app.getHttpAdapter().getInstance().set('trust proxy', hops);
+}
+
 export function setupOpenApi(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()
     .setTitle('TriMatch API')

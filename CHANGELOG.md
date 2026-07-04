@@ -7,6 +7,15 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Security
+
+- **Trust proxy for correct per-IP rate limiting (Epic 16 · 869dzymvw)**: the API
+  bootstrap now sets Express `trust proxy` from a required `TRUST_PROXY` env var
+  (number of reverse-proxy hops — 1 behind the ADR-0005 nginx proxy, 0 for
+  direct/local). Without it, every request behind the proxy shares the proxy's IP
+  and the throttler buckets them together; with it, the limiter reads the real
+  client IP from `X-Forwarded-For`. New var added to `.env.example` / `.env.ci`.
+
 ### Added
 
 - **Session invalidation via token versioning (Epic 16 · 869dzymvv)**: JWTs now

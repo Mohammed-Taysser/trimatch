@@ -75,7 +75,9 @@ These are defence-in-depth improvements, not confirmed vulnerabilities:
   checked per request by `JwtAuthGuard`; it is bumped on password change, reset,
   and deactivation, so those events instantly revoke every previously-issued
   token. (A Redis cache of the per-request lookup is a future optimisation.)
-- **869dzymvw** — set Express `trust proxy` in production so per-IP rate limiting
-  works behind the nginx reverse proxy (ADR-0005).
+- ~~**869dzymvw** — set Express `trust proxy` in production so per-IP rate limiting
+  works behind the nginx reverse proxy (ADR-0005).~~ **Done.** Bootstrap applies
+  `trust proxy` from the required `TRUST_PROXY` env var (hops: 1 behind nginx, 0
+  direct), so the throttler reads the real client IP from `X-Forwarded-For`.
 - **869dzymvy** — restrict the WebSocket gateway CORS origin in production
   (currently reflects any origin, fine for same-origin dev).

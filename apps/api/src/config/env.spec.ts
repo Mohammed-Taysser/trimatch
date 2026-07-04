@@ -12,6 +12,7 @@ const validEnv = {
   THROTTLE_LIMIT: '100',
   THROTTLE_AUTH_TTL: '60000',
   THROTTLE_AUTH_LIMIT: '5',
+  TRUST_PROXY: '0',
 };
 
 describe('app refuses to boot with invalid env config (AC 3)', () => {
@@ -109,5 +110,15 @@ describe('app refuses to boot with invalid env config (AC 3)', () => {
     expect(() => validateEnv({ ...validEnv, THROTTLE_AUTH_LIMIT: '0' })).toThrow(
       /THROTTLE_AUTH_LIMIT/,
     );
+  });
+
+  it('throws when TRUST_PROXY is missing — no silent default', () => {
+    const { TRUST_PROXY, ...rest } = validEnv;
+    expect(() => validateEnv(rest)).toThrow(/TRUST_PROXY/);
+  });
+
+  it('coerces TRUST_PROXY to a number and rejects a negative hop count', () => {
+    expect(validateEnv({ ...validEnv, TRUST_PROXY: '1' }).TRUST_PROXY).toBe(1);
+    expect(() => validateEnv({ ...validEnv, TRUST_PROXY: '-1' })).toThrow(/TRUST_PROXY/);
   });
 });
