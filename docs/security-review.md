@@ -79,5 +79,7 @@ These are defence-in-depth improvements, not confirmed vulnerabilities:
   works behind the nginx reverse proxy (ADR-0005).~~ **Done.** Bootstrap applies
   `trust proxy` from the required `TRUST_PROXY` env var (hops: 1 behind nginx, 0
   direct), so the throttler reads the real client IP from `X-Forwarded-For`.
-- **869dzymvy** — restrict the WebSocket gateway CORS origin in production
-  (currently reflects any origin, fine for same-origin dev).
+- ~~**869dzymvy** — restrict the WebSocket gateway CORS origin in production
+  (currently reflects any origin, fine for same-origin dev).~~ **Done.** The
+  gateway no longer reflects any origin; the production Socket.IO server enforces
+  the allow-list from the required `WS_CORS_ORIGIN` env var via `RedisIoAdapter`.

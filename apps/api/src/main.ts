@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
-import { RedisIoAdapter } from './notifications/redis-io.adapter';
+import { parseWsOrigins, RedisIoAdapter } from './notifications/redis-io.adapter';
 import { applyTrustProxy, setupApp, setupOpenApi } from './setup-app';
 
 async function bootstrap(): Promise<void> {
@@ -17,6 +17,8 @@ async function bootstrap(): Promise<void> {
   // Real-time notifications: back Socket.IO with the Redis adapter for
   // cross-instance fan-out (reuses REDIS_URL).
   const wsAdapter = new RedisIoAdapter(app);
+  // Restrict WebSocket handshakes to the configured browser origins (869dzymvy).
+  wsAdapter.setCorsOrigin(parseWsOrigins(config.getOrThrow<string>('WS_CORS_ORIGIN')));
   await wsAdapter.connectToRedis(config.getOrThrow<string>('REDIS_URL'));
   app.useWebSocketAdapter(wsAdapter);
   const port = config.getOrThrow<number>('API_PORT');
