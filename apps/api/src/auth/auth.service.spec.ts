@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../identity/users.service';
 import { OutboundChannel } from '../notifications/outbound/outbound-channel';
+import { SettingsService } from '../settings/settings.service';
 import { AuthService } from './auth.service';
 import { TwoFactorService } from './two-factor.service';
 
@@ -22,12 +23,14 @@ const deliverPasswordChanged = jest.fn().mockResolvedValue(undefined);
 const setPasswordHash = jest.fn().mockResolvedValue(undefined);
 const bumpTokenVersion = jest.fn().mockResolvedValue(undefined);
 const verifyCode = jest.fn().mockResolvedValue(true);
+const getCompany = jest.fn().mockResolvedValue(false); // security.require2fa off by default
 
 function makeService(overrides: Partial<Record<'findByEmail' | 'findById', unknown>> = {}) {
   deliverPasswordChanged.mockClear();
   setPasswordHash.mockClear();
   bumpTokenVersion.mockClear();
   verifyCode.mockClear();
+  getCompany.mockClear();
   const users = {
     findByEmail: jest.fn().mockResolvedValue(demoUser),
     findById: jest.fn().mockResolvedValue(demoUser),
@@ -41,7 +44,8 @@ function makeService(overrides: Partial<Record<'findByEmail' | 'findById', unkno
   } as unknown as JwtService;
   const channel = { deliverPasswordChanged } as unknown as OutboundChannel;
   const twoFactor = { verifyCode } as unknown as TwoFactorService;
-  return new AuthService(users, jwt, channel, twoFactor);
+  const settings = { getCompany } as unknown as SettingsService;
+  return new AuthService(users, jwt, channel, twoFactor, settings);
 }
 
 describe('login returns a JWT for valid demo credentials', () => {
@@ -77,6 +81,21 @@ describe('login returns a JWT for valid demo credentials', () => {
     await expect(service.login('requester@demo', 'Demo123!')).rejects.toMatchObject({
       response: { code: 'ACCOUNT_DEACTIVATED' },
     });
+  });
+});
+
+describe('login enforces the company 2FA-required policy (869e01dmv)', () => {
+  it('flags mustEnrollTwoFactor for a user without 2FA when the company requires it', async () => {
+    getCompany.mockResolvedValueOnce(true);
+    const result = await makeService().login('requester@demo', 'Demo123!');
+    if (!('accessToken' in result)) throw new Error('expected a session');
+    expect(result.mustEnrollTwoFactor).toBe(true);
+  });
+
+  it('omits the flag when the policy is off', async () => {
+    const result = await makeService().login('requester@demo', 'Demo123!');
+    if (!('accessToken' in result)) throw new Error('expected a session');
+    expect(result.mustEnrollTwoFactor).toBeUndefined();
   });
 });
 

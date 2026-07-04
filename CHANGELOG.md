@@ -9,6 +9,17 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Settings framework: company + per-user preferences (Epic 12 · 869e01dmv)**: a
+  DB-backed settings layer resolved **per-user → company → code default**. A code
+  registry defines each setting (key, type, default, which scopes may write it) and
+  the `settings` table stores only overrides, so an unset key is never a row and
+  there are no silent unknown keys. Admins manage company settings
+  (`GET`/`PUT /settings/company/:key`, audited); users manage their own
+  (`GET`/`PUT /settings/me/:key`). Two consumers wired: **notification digest emails
+  respect a user's `notifications.emailEnabled` preference** (in-app notifications
+  unaffected), and a **`security.require2fa` company policy** flags
+  `mustEnrollTwoFactor` on login and blocks disabling 2FA — behaviour driven by a
+  setting, not a constant.
 - **Optional TOTP two-factor auth (Epic 16 · 869dzycut)**: a user can enrol an
   authenticator app — `POST /auth/2fa/setup` returns an otpauth URI (QR) + secret,
   `POST /auth/2fa/enable` confirms a code, turns 2FA on, and returns ten one-time

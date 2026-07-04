@@ -27,6 +27,9 @@ export type AuthUser = z.infer<typeof AuthUserSchema>;
 export const LoginResponseSchema = z.object({
   accessToken: z.string(),
   user: AuthUserSchema,
+  // 869e01dmv: set when the company policy requires 2FA but this user hasn't
+  // enrolled — the client should force enrolment. Absent otherwise.
+  mustEnrollTwoFactor: z.boolean().optional(),
 });
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;
 

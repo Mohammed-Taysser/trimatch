@@ -17,6 +17,7 @@ import { randomBytes } from 'node:crypto';
 import { authenticator } from 'otplib';
 import { User } from '../identity/user.model';
 import { UsersService } from '../identity/users.service';
+import { SettingsService } from '../settings/settings.service';
 import { TwoFactorRecoveryCode } from './two-factor-recovery-code.model';
 
 const ISSUER = 'TriMatch';
@@ -37,6 +38,7 @@ export class TwoFactorService {
     private readonly users: UsersService,
     @InjectModel(TwoFactorRecoveryCode)
     private readonly recoveryCodes: typeof TwoFactorRecoveryCode,
+    private readonly settings: SettingsService,
   ) {}
 
   // Generates a fresh secret and returns it plus the otpauth URI to render as a
@@ -90,6 +92,13 @@ export class TwoFactorService {
       throw new ConflictException({
         code: 'TWO_FACTOR_NOT_ENABLED',
         message: 'Two-factor auth is not enabled',
+      });
+    }
+    // 869e01dmv: a company policy can forbid turning 2FA off.
+    if (await this.settings.getCompany<boolean>('security.require2fa')) {
+      throw new ConflictException({
+        code: 'TWO_FACTOR_REQUIRED_BY_POLICY',
+        message: 'Your organization requires two-factor authentication; it cannot be disabled',
       });
     }
     if (!(await this.verifyCode(user, code))) {

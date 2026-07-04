@@ -11,4 +11,5 @@ export * from './notifications';
 export * from './purchase-orders';
 export * from './receiving';
 export * from './requisitions';
+export * from './settings';
 export * from './vendors';

@@ -3,6 +3,7 @@ import * as bcrypt from 'bcryptjs';
 import { authenticator } from 'otplib';
 import { User } from '../identity/user.model';
 import { UsersService } from '../identity/users.service';
+import { SettingsService } from '../settings/settings.service';
 import { TwoFactorRecoveryCode } from './two-factor-recovery-code.model';
 import { TwoFactorService } from './two-factor.service';
 
@@ -11,6 +12,7 @@ const SECRET = authenticator.generateSecret();
 function makeService(
   user: Partial<User> | null,
   recoveryRows: { codeHash: string; update: jest.Mock }[] = [],
+  requires2fa = false,
 ) {
   const users = {
     findById: jest.fn().mockResolvedValue(user),
@@ -23,8 +25,11 @@ function makeService(
     bulkCreate: jest.fn().mockResolvedValue([]),
     findAll: jest.fn().mockResolvedValue(recoveryRows),
   } as unknown as typeof TwoFactorRecoveryCode;
-  const service = new TwoFactorService(users, recoveryCodes);
-  return { service, users, recoveryCodes };
+  const settings = {
+    getCompany: jest.fn().mockResolvedValue(requires2fa),
+  } as unknown as SettingsService;
+  const service = new TwoFactorService(users, recoveryCodes, settings);
+  return { service, users, recoveryCodes, settings };
 }
 
 const enrolled = { id: 'u1', email: 'user@demo', totpSecret: SECRET, totpEnabled: false } as User;
@@ -97,5 +102,13 @@ describe('TwoFactorService disable', () => {
   it('refuses when 2FA is not enabled', async () => {
     const { service } = makeService(enrolled);
     await expect(service.disable('u1', '000000')).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('refuses to disable when the company mandates 2FA (869e01dmv)', async () => {
+    const enabled = { id: 'u1', email: 'user@demo', totpSecret: SECRET, totpEnabled: true } as User;
+    const { service } = makeService(enabled, [], true); // company requires 2FA
+    await expect(service.disable('u1', authenticator.generate(SECRET))).rejects.toMatchObject({
+      response: { code: 'TWO_FACTOR_REQUIRED_BY_POLICY' },
+    });
   });
 });

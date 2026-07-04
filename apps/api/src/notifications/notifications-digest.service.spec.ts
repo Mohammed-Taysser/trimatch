@@ -1,3 +1,4 @@
+import { SettingsService } from '../settings/settings.service';
 import { Notification } from './notification.model';
 import { NotificationsDigestService } from './notifications-digest.service';
 import { OutboundChannel } from './outbound/outbound-channel';
@@ -19,10 +20,14 @@ const userB = { email: 'b@demo', fullName: 'Bob' };
 function serviceWith(
   rows: unknown[],
   deliver: jest.Mock,
+  emailEnabled: (recipientId: string) => boolean = () => true,
 ): { service: NotificationsDigestService; deliver: jest.Mock } {
   const model = { findAll: jest.fn().mockResolvedValue(rows) } as unknown as typeof Notification;
   const channel = { name: 'webhook', deliver } as unknown as OutboundChannel;
-  return { service: new NotificationsDigestService(model, channel), deliver };
+  const settings = {
+    getForUser: jest.fn((_key: string, userId: string) => Promise.resolve(emailEnabled(userId))),
+  } as unknown as SettingsService;
+  return { service: new NotificationsDigestService(model, channel, settings), deliver };
 }
 
 describe('NotificationsDigestService', () => {
@@ -33,7 +38,7 @@ describe('NotificationsDigestService', () => {
       deliver,
     );
     const summary = await service.runDigest();
-    expect(summary).toEqual({ recipients: 2, delivered: 2 });
+    expect(summary).toEqual({ recipients: 2, delivered: 2, skipped: 0 });
     expect(deliver).toHaveBeenCalledTimes(2);
     const toA = deliver.mock.calls.find((call) => call[0].recipientId === 'A')?.[0];
     expect(toA.recipientEmail).toBe('a@demo');
@@ -48,7 +53,7 @@ describe('NotificationsDigestService', () => {
       );
     const { service } = serviceWith([row('n1', 'A', userA), row('n2', 'B', userB)], deliver);
     const summary = await service.runDigest();
-    expect(summary).toEqual({ recipients: 2, delivered: 1 });
+    expect(summary).toEqual({ recipients: 2, delivered: 1, skipped: 0 });
   });
 
   it('skips a notification whose recipient is missing', async () => {
@@ -56,6 +61,19 @@ describe('NotificationsDigestService', () => {
     const { service } = serviceWith([row('n1', 'A', undefined)], deliver);
     const summary = await service.runDigest();
     expect(deliver).not.toHaveBeenCalled();
-    expect(summary).toEqual({ recipients: 1, delivered: 0 });
+    expect(summary).toEqual({ recipients: 1, delivered: 0, skipped: 0 });
+  });
+
+  it('skips recipients who disabled digest emails (869e01dmv)', async () => {
+    const deliver = jest.fn().mockResolvedValue(undefined);
+    const { service } = serviceWith(
+      [row('n1', 'A', userA), row('n2', 'B', userB)],
+      deliver,
+      (recipientId) => recipientId === 'B', // A opted out of digest emails
+    );
+    const summary = await service.runDigest();
+    expect(summary).toEqual({ recipients: 2, delivered: 1, skipped: 1 });
+    expect(deliver).toHaveBeenCalledTimes(1);
+    expect(deliver.mock.calls[0][0].recipientId).toBe('B');
   });
 });
