@@ -43,4 +43,12 @@ export class User extends Model {
 
   @Column(DataType.STRING(100))
   declare jobTitle: string | null;
+
+  // ADR-0007 tier 1: deactivation marker. A deactivated user cannot log in and
+  // is excluded from approver pools; the row is never physically deleted so
+  // history always resolves the real actor. Reversible.
+  @AllowNull(false)
+  @Default(true)
+  @Column(DataType.BOOLEAN)
+  declare active: boolean;
 }

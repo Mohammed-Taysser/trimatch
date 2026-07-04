@@ -127,6 +127,33 @@ stateDiagram-v2
 8. **I-8** All money arithmetic happens in integer minor units; comparisons in basis points (PRD §5.2).
    ([ADR-0004](adr/0004-money-representation.md) decides to migrate this to DECIMAL;
    in effect once the Epic 20 money-representation task lands.)
+9. **I-9** Master data & actors (`users`, `vendors`) are soft-deleted, never hard-deleted, and
+   no FK cascades across an entity boundary — so history always resolves the real actor
+   ([ADR-0007](adr/0007-deletion-strategy.md); see §4.1).
+
+### 4.1 Deletion & retention tiers (ADR-0007)
+
+Three tiers, enforced in code and by the schema:
+
+- **Tier 1 — master data & actors are soft-deleted.** `users.active` and `vendors.active`
+  mark deactivation; the row is never physically removed. A deactivated user cannot
+  authenticate (login returns `ACCOUNT_DEACTIVATED` _after_ the password check, so account
+  state never leaks) and is excluded from approver pools (named titles filter `active:true`;
+  hierarchy titles fail loudly with `NO_APPROVER` if the manager is deactivated).
+  Deactivation is reversible (`PATCH /users/:id { active }`, audited as
+  `user.deactivated`/`user.reactivated`; an admin cannot deactivate themselves).
+- **Tier 2 — actor/audit FKs never cascade.** Every FK into `users` (except the optional
+  `manager_id`, which is `SET NULL`) is `NO ACTION`, so a hard `DELETE` of a referenced user
+  _errors_ rather than erasing history. Append-only tables (`audit_log`, `match_records`,
+  `po_amendments`) are never a cascade target — this is the enforcement mechanism for I-7.
+  (`NO ACTION` already provides RESTRICT semantics; because users are soft-deleted the delete
+  path is unreachable in normal operation, so the constraints are left as-is rather than
+  rewritten to explicit `RESTRICT` — a documented no-op.)
+- **Tier 3 — `CASCADE` only within an aggregate.** A parent and the child rows it exclusively
+  owns (a requisition and its lines, an invoice/PO/GRN and its lines, a requisition and its
+  approval steps). `notifications.recipient_id → users` is the sole cross-entity `CASCADE`,
+  kept deliberately: notifications are personal, derived, ephemeral data (supports
+  right-to-erasure), and the cascade is dormant while users are soft-deleted.
 
 ## 5. Domain events (for notifications & future integrations)
 

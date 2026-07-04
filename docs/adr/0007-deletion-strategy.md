@@ -1,7 +1,7 @@
 # ADR-0007: Deletion strategy (soft-delete master data, no cross-entity cascade)
 
-- **Status:** proposed
-- **Date:** 2026-07-03
+- **Status:** accepted (implemented — user soft-delete, 869dzr8xe)
+- **Date:** 2026-07-03 (accepted 2026-07-04)
 
 ## Context
 
@@ -84,3 +84,28 @@ for uniformity — decided during implementation).
   is the likely mechanism for entities that need query-time hiding; evaluated during
   implementation against the simpler `active` flag already used for vendors.
 - Supersede only via a new ADR.
+
+## Implementation notes (869dzr8xe, 2026-07-04)
+
+Tier 1 shipped: `users.active` (migration `20260704142905`, mirrors `vendors.active`),
+login blocked for deactivated accounts (`ACCOUNT_DEACTIVATED`, checked after the password so
+state never leaks), password reset silently no-ops for them, chain resolution excludes
+inactive approvers (named titles filter `active:true`; hierarchy titles fail `NO_APPROVER`),
+and admin deactivate/reactivate via `PATCH /users/:id { active }` (audited, self-deactivation
+refused). Tests cover: deactivated login blocked + reversible, audit trail, self-guard,
+history still resolves the actor, referenced user cannot be hard-deleted, pool exclusion.
+
+Two decisions taken during implementation:
+
+- **FK explicitness (tier 2): keep `NO ACTION`, do not rewrite to explicit `RESTRICT`.**
+  `NO ACTION` already refuses the delete (verified by test), and because users are now
+  soft-deleted the hard-delete path is unreachable in normal operation. Rewriting ~8 actor
+  FKs to `RESTRICT` is a semantic no-op, so the intent is captured in docs/tests rather than
+  churned into the schema.
+- **`notifications.recipient_id` (tier 3): keep `CASCADE`.** It is the one sanctioned
+  cross-entity cascade — personal, derived, ephemeral data that supports right-to-erasure —
+  and it is dormant while users are soft-deleted. Recorded, not removed.
+
+Not in scope (existing tickets): revoking a deactivated user's already-issued JWT is the
+session-invalidation follow-up (869dzymvv) — until then a live token survives until it
+expires; login is blocked immediately.

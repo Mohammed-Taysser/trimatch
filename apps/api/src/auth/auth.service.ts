@@ -21,6 +21,14 @@ export class AuthService {
         message: 'Invalid email or password',
       });
     }
+    // ADR-0007: a deactivated user cannot authenticate. Checked only after the
+    // password matches, so account state never leaks to someone guessing.
+    if (!user.active) {
+      throw new UnauthorizedException({
+        code: 'ACCOUNT_DEACTIVATED',
+        message: 'This account has been deactivated — contact an administrator',
+      });
+    }
     const accessToken = await this.jwt.signAsync({
       sub: user.id,
       email: user.email,

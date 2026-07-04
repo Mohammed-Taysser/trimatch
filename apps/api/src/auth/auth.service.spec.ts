@@ -12,6 +12,7 @@ const demoUser = {
   fullName: 'Riley Requester',
   role: 'requester',
   passwordHash: bcrypt.hashSync('Demo123!', 4),
+  active: true,
 };
 
 const deliverPasswordChanged = jest.fn().mockResolvedValue(undefined);
@@ -54,6 +55,17 @@ describe('login returns a JWT for valid demo credentials', () => {
     await expect(makeService().login('requester@demo', 'wrong')).rejects.toThrow(
       UnauthorizedException,
     );
+  });
+
+  // ADR-0007: a deactivated user cannot authenticate even with the right
+  // password. The check runs after bcrypt.compare so state never leaks.
+  it('rejects a deactivated account with ACCOUNT_DEACTIVATED (correct password)', async () => {
+    const service = makeService({
+      findByEmail: jest.fn().mockResolvedValue({ ...demoUser, active: false }),
+    });
+    await expect(service.login('requester@demo', 'Demo123!')).rejects.toMatchObject({
+      response: { code: 'ACCOUNT_DEACTIVATED' },
+    });
   });
 });
 

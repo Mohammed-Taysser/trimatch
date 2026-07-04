@@ -7,6 +7,19 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Added
+
+- **User soft-delete / deactivation (ADR-0007, Epic 20)**: `users.active` mirrors
+  `vendors.active` — a deactivated user cannot authenticate (login returns
+  `ACCOUNT_DEACTIVATED`, checked _after_ the password so account state never leaks;
+  password reset silently no-ops) and is excluded from approver pools (named titles
+  filter `active:true`; a deactivated manager fails `NO_APPROVER`). Admins deactivate
+  or reactivate via `PATCH /users/:id { active }` — reversible, audited
+  (`user.deactivated`/`user.reactivated`), and an admin cannot deactivate themselves.
+  Every historical record still resolves the real actor, and a hard `DELETE` of a
+  referenced user stays refused by the FK (`NO ACTION`). Deletion tiers documented in
+  [docs/03-domain.md](docs/03-domain.md) §4.1 (I-9).
+
 ### Changed
 
 - **DB index audit (Epic 20)**: FK/join columns were already indexed; this closes

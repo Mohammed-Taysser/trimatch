@@ -5,7 +5,13 @@ import { OutboundChannel } from '../notifications/outbound/outbound-channel';
 import { PasswordResetOtp } from './password-reset-otp.model';
 import { PasswordResetService } from './password-reset.service';
 
-const USER = { id: 'u1', email: 'requester@demo', fullName: 'Riley', passwordHash: 'old' };
+const USER = {
+  id: 'u1',
+  email: 'requester@demo',
+  fullName: 'Riley',
+  passwordHash: 'old',
+  active: true,
+};
 
 function build(overrides: { user?: unknown; otpRow?: unknown }): {
   service: PasswordResetService;
@@ -41,6 +47,14 @@ describe('PasswordResetService', () => {
     it('is a silent no-op for an unknown email (no enumeration)', async () => {
       const { service, otps, deliverPasswordReset } = build({ user: null });
       await service.requestReset('nobody@demo');
+      expect(otps.create).not.toHaveBeenCalled();
+      expect(deliverPasswordReset).not.toHaveBeenCalled();
+    });
+
+    // ADR-0007: a deactivated account is indistinguishable from an unknown one.
+    it('is a silent no-op for a deactivated account', async () => {
+      const { service, otps, deliverPasswordReset } = build({ user: { ...USER, active: false } });
+      await service.requestReset(USER.email);
       expect(otps.create).not.toHaveBeenCalled();
       expect(deliverPasswordReset).not.toHaveBeenCalled();
     });
