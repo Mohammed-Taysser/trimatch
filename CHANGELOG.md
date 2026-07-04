@@ -9,6 +9,16 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Optional TOTP two-factor auth (Epic 16 · 869dzycut)**: a user can enrol an
+  authenticator app — `POST /auth/2fa/setup` returns an otpauth URI (QR) + secret,
+  `POST /auth/2fa/enable` confirms a code, turns 2FA on, and returns ten one-time
+  recovery codes (stored only as bcrypt hashes). With 2FA on, `POST /auth/login`
+  returns a **short-lived challenge** instead of a session; `POST /auth/2fa/verify`
+  exchanges the challenge + a TOTP or recovery code for the access token. The
+  challenge is scope-gated so the guard refuses it on protected routes.
+  `POST /auth/2fa/disable` (TOTP/recovery code required) tears it down. All
+  code-checking endpoints use the stricter auth rate limit; reuses the otplib
+  adopted for password reset.
 - **Redis-backed caching with @nestjs/cache-manager (Epic 20 · 869dzr3k8)**: a
   global `CacheModule` backed by Redis (Keyv store over `REDIS_URL`, default TTL
   from the new `CACHE_TTL` env var) with the first cache-aside path on the

@@ -8,6 +8,9 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { PasswordResetOtp } from './password-reset-otp.model';
 import { PasswordResetService } from './password-reset.service';
+import { TwoFactorRecoveryCode } from './two-factor-recovery-code.model';
+import { TwoFactorController } from './two-factor.controller';
+import { TwoFactorService } from './two-factor.service';
 
 // jsonwebtoken types expiresIn as an ms.StringValue union; the env schema
 // guarantees a non-empty duration string like "8h".
@@ -27,9 +30,9 @@ type ExpiresIn = NonNullable<JwtModuleOptions['signOptions']>['expiresIn'];
     }),
     IdentityModule,
     NotificationsModule,
-    SequelizeModule.forFeature([PasswordResetOtp]),
+    SequelizeModule.forFeature([PasswordResetOtp, TwoFactorRecoveryCode]),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, PasswordResetService],
+  controllers: [AuthController, TwoFactorController],
+  providers: [AuthService, PasswordResetService, TwoFactorService],
 })
 export class AuthModule {}

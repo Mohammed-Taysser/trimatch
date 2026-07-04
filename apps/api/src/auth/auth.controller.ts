@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
-import { AuthUser, LoginResponse, PasswordResetAck } from '@trimatch/shared';
+import { AuthUser, LoginResult, PasswordResetAck } from '@trimatch/shared';
 import { SensitiveThrottle } from '../common/sensitive-throttle.decorator';
 import { AuthService } from './auth.service';
 import { CurrentUser, JwtPayload, Public } from './decorators';
@@ -19,7 +19,7 @@ export class AuthController {
   @SensitiveThrottle()
   @Post('login')
   @HttpCode(200)
-  login(@Body() body: LoginRequestDto): Promise<LoginResponse> {
+  login(@Body() body: LoginRequestDto): Promise<LoginResult> {
     return this.auth.login(body.email, body.password);
   }
 

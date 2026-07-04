@@ -53,6 +53,20 @@ export class UsersService {
     await this.userModel.increment('tokenVersion', { by: 1, where: { id } });
   }
 
+  // TOTP 2FA (869dzycut). Enrolment stores a pending secret (not yet trusted);
+  // enable trusts it; disable clears it.
+  async setTotpSecret(id: string, secret: string): Promise<void> {
+    await this.userModel.update({ totpSecret: secret, totpEnabled: false }, { where: { id } });
+  }
+
+  async enableTotp(id: string): Promise<void> {
+    await this.userModel.update({ totpEnabled: true }, { where: { id } });
+  }
+
+  async disableTotp(id: string): Promise<void> {
+    await this.userModel.update({ totpSecret: null, totpEnabled: false }, { where: { id } });
+  }
+
   // Superadmin dashboard: the org, paginated, with manager names resolved.
   async listAll(query: PaginationQuery): Promise<PagedResult<UserAdmin>> {
     const { rows, count } = await this.userModel.findAndCountAll({

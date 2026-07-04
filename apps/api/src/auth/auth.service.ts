@@ -1,9 +1,22 @@
 import { Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { AuthUser, AuthUserSchema, LoginResponse, LoginResponseSchema } from '@trimatch/shared';
+import {
+  AuthUser,
+  AuthUserSchema,
+  LoginResponse,
+  LoginResponseSchema,
+  LoginResult,
+} from '@trimatch/shared';
 import * as bcrypt from 'bcryptjs';
+import { User } from '../identity/user.model';
 import { UsersService } from '../identity/users.service';
 import { OUTBOUND_CHANNEL, OutboundChannel } from '../notifications/outbound/outbound-channel';
+import { TwoFactorService } from './two-factor.service';
+
+// The 2FA login challenge is a short-lived JWT scoped so the guard rejects it for
+// API access (869dzycut); it is only redeemable at POST /auth/2fa/verify.
+const MFA_CHALLENGE_SCOPE = 'mfa-challenge';
+const MFA_CHALLENGE_TTL = '5m';
 
 @Injectable()
 export class AuthService {
@@ -11,9 +24,10 @@ export class AuthService {
     private readonly users: UsersService,
     private readonly jwt: JwtService,
     @Inject(OUTBOUND_CHANNEL) private readonly channel: OutboundChannel,
+    private readonly twoFactor: TwoFactorService,
   ) {}
 
-  async login(email: string, password: string): Promise<LoginResponse> {
+  async login(email: string, password: string): Promise<LoginResult> {
     const user = await this.users.findByEmail(email);
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       throw new UnauthorizedException({
@@ -29,6 +43,39 @@ export class AuthService {
         message: 'This account has been deactivated — contact an administrator',
       });
     }
+    // 869dzycut: with 2FA on, the password is only the first factor — return a
+    // challenge instead of a session.
+    if (user.totpEnabled) {
+      const challenge = await this.jwt.signAsync(
+        { sub: user.id, scope: MFA_CHALLENGE_SCOPE },
+        { expiresIn: MFA_CHALLENGE_TTL },
+      );
+      return { twoFactorRequired: true, challenge };
+    }
+    return this.issueSession(user);
+  }
+
+  // Second factor: redeem the login challenge with a TOTP or recovery code.
+  async verifyTwoFactor(challenge: string, code: string): Promise<LoginResponse> {
+    let payload: { sub: string; scope?: string };
+    try {
+      payload = await this.jwt.verifyAsync<{ sub: string; scope?: string }>(challenge);
+    } catch {
+      throw this.invalidChallenge();
+    }
+    if (payload.scope !== MFA_CHALLENGE_SCOPE) throw this.invalidChallenge();
+    const user = await this.users.findById(payload.sub);
+    if (!user || !user.active || !user.totpEnabled) throw this.invalidChallenge();
+    if (!(await this.twoFactor.verifyCode(user, code))) {
+      throw new UnauthorizedException({
+        code: 'INVALID_TWO_FACTOR_CODE',
+        message: 'Invalid two-factor code',
+      });
+    }
+    return this.issueSession(user);
+  }
+
+  private async issueSession(user: User): Promise<LoginResponse> {
     const accessToken = await this.jwt.signAsync({
       sub: user.id,
       email: user.email,
@@ -38,6 +85,13 @@ export class AuthService {
     return LoginResponseSchema.parse({
       accessToken,
       user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role },
+    });
+  }
+
+  private invalidChallenge(): UnauthorizedException {
+    return new UnauthorizedException({
+      code: 'INVALID_TWO_FACTOR_CHALLENGE',
+      message: 'Invalid or expired two-factor challenge — sign in again',
     });
   }
 
