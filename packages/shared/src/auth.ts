@@ -48,3 +48,11 @@ export type ResetPassword = z.infer<typeof ResetPasswordSchema>;
 // A deliberately opaque acknowledgement shared by both endpoints.
 export const PasswordResetAckSchema = z.object({ ok: z.literal(true) });
 export type PasswordResetAck = z.infer<typeof PasswordResetAckSchema>;
+
+// Authenticated self-service password change (Epic 16): verify the current
+// password, set a new one, and email a confirmation.
+export const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8, 'must be at least 8 characters'),
+});
+export type ChangePassword = z.infer<typeof ChangePasswordSchema>;

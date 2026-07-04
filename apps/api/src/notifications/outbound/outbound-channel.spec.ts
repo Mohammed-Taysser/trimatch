@@ -65,6 +65,46 @@ describe('outbound channels', () => {
     expect(factory({ NOTIFICATIONS_CHANNEL: 'none' }).name).toBe('none');
   });
 
+  it('NoopOutboundChannel sends no password-reset or password-changed', async () => {
+    const fetchSpy = jest.spyOn(global, 'fetch');
+    const noop = new NoopOutboundChannel();
+    await noop.deliverPasswordReset({
+      recipientEmail: 'a@demo',
+      recipientName: 'A',
+      code: '123456',
+      expiresAt: '2026-07-04T00:10:00.000Z',
+    });
+    await noop.deliverPasswordChanged({
+      recipientEmail: 'a@demo',
+      recipientName: 'A',
+      changedAt: '2026-07-04T00:00:00.000Z',
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('WebhookOutboundChannel POSTs typed password-reset and password-changed payloads', async () => {
+    const fetchSpy = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue({ ok: true, status: 200 } as unknown as Response);
+    const webhook = new WebhookOutboundChannel('https://hooks.example/notify');
+    await webhook.deliverPasswordReset({
+      recipientEmail: 'a@demo',
+      recipientName: 'A',
+      code: '123456',
+      expiresAt: '2026-07-04T00:10:00.000Z',
+    });
+    await webhook.deliverPasswordChanged({
+      recipientEmail: 'a@demo',
+      recipientName: 'A',
+      changedAt: '2026-07-04T00:00:00.000Z',
+    });
+    const resetBody = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string);
+    const changedBody = JSON.parse((fetchSpy.mock.calls[1][1] as RequestInit).body as string);
+    expect(resetBody.type).toBe('password_reset');
+    expect(resetBody.code).toBe('123456');
+    expect(changedBody.type).toBe('password_changed');
+  });
+
   it('the factory selects the webhook channel when configured', () => {
     const channel = factory({
       NOTIFICATIONS_CHANNEL: 'webhook',

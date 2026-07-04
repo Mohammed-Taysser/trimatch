@@ -1,5 +1,10 @@
 import { Logger } from '@nestjs/common';
-import { NotificationDigest, OutboundChannel, PasswordResetDelivery } from './outbound-channel';
+import {
+  NotificationDigest,
+  OutboundChannel,
+  PasswordChangedNotice,
+  PasswordResetDelivery,
+} from './outbound-channel';
 
 // Posts each recipient's digest to the configured webhook (NOTIFICATIONS_WEBHOOK_URL).
 // A non-2xx or network failure throws so the digest job can log it per recipient
@@ -21,6 +26,11 @@ export class WebhookOutboundChannel implements OutboundChannel {
     await this.post({ type: 'password_reset', ...reset });
     // Never log the code.
     this.logger.debug(`delivered password-reset to webhook for ${reset.recipientEmail}`);
+  }
+
+  async deliverPasswordChanged(notice: PasswordChangedNotice): Promise<void> {
+    await this.post({ type: 'password_changed', ...notice });
+    this.logger.debug(`delivered password-changed to webhook for ${notice.recipientEmail}`);
   }
 
   private async post(payload: unknown): Promise<void> {

@@ -17,6 +17,7 @@ describe('auth endpoints delegate to the auth service', () => {
   const service = {
     login: jest.fn().mockResolvedValue(loginResponse),
     me: jest.fn().mockResolvedValue(loginResponse.user),
+    changePassword: jest.fn().mockResolvedValue(undefined),
   } as unknown as AuthService;
   const passwordReset = {
     requestReset: jest.fn().mockResolvedValue(undefined),
@@ -56,5 +57,17 @@ describe('auth endpoints delegate to the auth service', () => {
       '123456',
       'BrandNew1!',
     );
+  });
+
+  it('POST /auth/change-password delegates for the current user', async () => {
+    const user = {
+      sub: loginResponse.user.id,
+      email: 'requester@demo',
+      role: 'requester' as const,
+    };
+    await expect(
+      controller.changePassword(user, { currentPassword: 'Demo123!', newPassword: 'BrandNew1!' }),
+    ).resolves.toEqual({ ok: true });
+    expect(service.changePassword).toHaveBeenCalledWith(user.sub, 'Demo123!', 'BrandNew1!');
   });
 });
