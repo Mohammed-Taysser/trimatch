@@ -24,6 +24,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PurchasingModule } from './purchasing/purchasing.module';
 import { ReceivingModule } from './receiving/receiving.module';
 import { RequisitionsModule } from './requisitions/requisitions.module';
+import { SettingsModule } from './settings/settings.module';
 import { VendorsModule } from './vendors/vendors.module';
 
 @Module({
@@ -73,6 +74,7 @@ import { VendorsModule } from './vendors/vendors.module';
     InvoicingModule,
     MatchingModule,
     NotificationsModule,
+    SettingsModule,
     HealthModule,
     RateLimitModule,
   ],

@@ -1,12 +1,14 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { User } from '../identity/user.model';
+import { SettingsService } from '../settings/settings.service';
 import { Notification } from './notification.model';
 import { NotificationDigest, OUTBOUND_CHANNEL, OutboundChannel } from './outbound/outbound-channel';
 
 export interface DigestSummary {
   recipients: number;
   delivered: number;
+  skipped: number;
 }
 
 @Injectable()
@@ -16,6 +18,7 @@ export class NotificationsDigestService {
   constructor(
     @InjectModel(Notification) private readonly notifications: typeof Notification,
     @Inject(OUTBOUND_CHANNEL) private readonly channel: OutboundChannel,
+    private readonly settings: SettingsService,
   ) {}
 
   // Batches every recipient's unread notifications into one digest and hands it
@@ -36,9 +39,16 @@ export class NotificationsDigestService {
     }
 
     let delivered = 0;
+    let skipped = 0;
     for (const [recipientId, bucket] of byRecipient) {
       const recipient = bucket[0].recipient;
       if (!recipient) continue; // recipient gone (soft-delete/erasure) — skip
+      // 869e01dmv: honour the per-user email preference. The in-app notification
+      // rows already exist; this only gates the outbound digest email.
+      if (!(await this.settings.getForUser<boolean>('notifications.emailEnabled', recipientId))) {
+        skipped += 1;
+        continue;
+      }
       const digest: NotificationDigest = {
         recipientId,
         recipientEmail: recipient.email,
@@ -59,8 +69,9 @@ export class NotificationsDigestService {
     }
 
     this.logger.log(
-      `digest via '${this.channel.name}': delivered ${delivered}/${byRecipient.size} recipients`,
+      `digest via '${this.channel.name}': delivered ${delivered}/${byRecipient.size} recipients ` +
+        `(${skipped} skipped by preference)`,
     );
-    return { recipients: byRecipient.size, delivered };
+    return { recipients: byRecipient.size, delivered, skipped };
   }
 }

@@ -11,6 +11,7 @@ import * as bcrypt from 'bcryptjs';
 import { User } from '../identity/user.model';
 import { UsersService } from '../identity/users.service';
 import { OUTBOUND_CHANNEL, OutboundChannel } from '../notifications/outbound/outbound-channel';
+import { SettingsService } from '../settings/settings.service';
 import { TwoFactorService } from './two-factor.service';
 
 // The 2FA login challenge is a short-lived JWT scoped so the guard rejects it for
@@ -25,6 +26,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     @Inject(OUTBOUND_CHANNEL) private readonly channel: OutboundChannel,
     private readonly twoFactor: TwoFactorService,
+    private readonly settings: SettingsService,
   ) {}
 
   async login(email: string, password: string): Promise<LoginResult> {
@@ -52,7 +54,10 @@ export class AuthService {
       );
       return { twoFactorRequired: true, challenge };
     }
-    return this.issueSession(user);
+    // 869e01dmv: if the company mandates 2FA and this user hasn't enrolled, still
+    // issue a session but flag that enrolment is required.
+    const mustEnrollTwoFactor = await this.settings.getCompany<boolean>('security.require2fa');
+    return this.issueSession(user, mustEnrollTwoFactor);
   }
 
   // Second factor: redeem the login challenge with a TOTP or recovery code.
@@ -75,7 +80,7 @@ export class AuthService {
     return this.issueSession(user);
   }
 
-  private async issueSession(user: User): Promise<LoginResponse> {
+  private async issueSession(user: User, mustEnrollTwoFactor = false): Promise<LoginResponse> {
     const accessToken = await this.jwt.signAsync({
       sub: user.id,
       email: user.email,
@@ -85,6 +90,7 @@ export class AuthService {
     return LoginResponseSchema.parse({
       accessToken,
       user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role },
+      ...(mustEnrollTwoFactor ? { mustEnrollTwoFactor: true } : {}),
     });
   }
 

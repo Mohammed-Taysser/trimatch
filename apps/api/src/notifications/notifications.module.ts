@@ -2,6 +2,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
+import { SettingsModule } from '../settings/settings.module';
 import { Notification } from './notification.model';
 import { NOTIFICATIONS_DIGEST_QUEUE } from './notifications-digest.constants';
 import { NotificationsDigestProcessor } from './notifications-digest.processor';
@@ -33,6 +34,7 @@ import { QueueHealth } from './queue-health.service';
     }),
     BullModule.registerQueue({ name: NOTIFICATIONS_QUEUE }),
     BullModule.registerQueue({ name: NOTIFICATIONS_DIGEST_QUEUE }),
+    SettingsModule,
   ],
   controllers: [NotificationsController],
   providers: [

@@ -4,6 +4,7 @@ import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { IdentityModule } from '../identity/identity.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { SettingsModule } from '../settings/settings.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { PasswordResetOtp } from './password-reset-otp.model';
@@ -30,6 +31,7 @@ type ExpiresIn = NonNullable<JwtModuleOptions['signOptions']>['expiresIn'];
     }),
     IdentityModule,
     NotificationsModule,
+    SettingsModule,
     SequelizeModule.forFeature([PasswordResetOtp, TwoFactorRecoveryCode]),
   ],
   controllers: [AuthController, TwoFactorController],
