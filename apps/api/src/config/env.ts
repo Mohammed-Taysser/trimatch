@@ -22,6 +22,11 @@ export const envSchema = z
     THROTTLE_LIMIT: z.coerce.number().int().positive(),
     THROTTLE_AUTH_TTL: z.coerce.number().int().positive(),
     THROTTLE_AUTH_LIMIT: z.coerce.number().int().positive(),
+    // Number of reverse-proxy hops in front of the API (Express `trust proxy`,
+    // 869dzymvw). Behind the ADR-0005 nginx proxy this is 1, so per-IP rate
+    // limiting reads the real client IP from X-Forwarded-For; direct/dev is 0
+    // (trust nobody). Required — no silent default.
+    TRUST_PROXY: z.coerce.number().int().min(0),
   })
   .refine(
     (env) => env.NOTIFICATIONS_CHANNEL !== 'webhook' || Boolean(env.NOTIFICATIONS_WEBHOOK_URL),

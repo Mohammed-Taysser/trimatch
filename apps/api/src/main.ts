@@ -4,13 +4,16 @@ import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { RedisIoAdapter } from './notifications/redis-io.adapter';
-import { setupApp, setupOpenApi } from './setup-app';
+import { applyTrustProxy, setupApp, setupOpenApi } from './setup-app';
 
 async function bootstrap(): Promise<void> {
   const app = setupApp(await NestFactory.create(AppModule, { bufferLogs: true }));
   app.useLogger(app.get(Logger));
   setupOpenApi(app);
   const config = app.get(ConfigService);
+  // Trust N reverse-proxy hops so per-IP rate limiting sees the real client IP
+  // (X-Forwarded-For) behind the ADR-0005 nginx proxy (869dzymvw).
+  applyTrustProxy(app, config.getOrThrow<number>('TRUST_PROXY'));
   // Real-time notifications: back Socket.IO with the Redis adapter for
   // cross-instance fan-out (reuses REDIS_URL).
   const wsAdapter = new RedisIoAdapter(app);
