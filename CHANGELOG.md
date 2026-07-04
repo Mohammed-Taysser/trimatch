@@ -9,6 +9,13 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Security
 
+- **Restrict WebSocket CORS origin (Epic 16 · 869dzymvy)**: the notifications
+  gateway no longer reflects any origin. The production Socket.IO server now
+  enforces an allow-list from a required `WS_CORS_ORIGIN` env var (comma-separated
+  origins — the Vite origin in dev, the public site origin in prod; never `*`) via
+  `RedisIoAdapter`, so a browser handshake from any other origin is rejected. This
+  closes the last open security-review follow-up. New var added to `.env.example`
+  / `.env.ci`.
 - **Trust proxy for correct per-IP rate limiting (Epic 16 · 869dzymvw)**: the API
   bootstrap now sets Express `trust proxy` from a required `TRUST_PROXY` env var
   (number of reverse-proxy hops — 1 behind the ADR-0005 nginx proxy, 0 for

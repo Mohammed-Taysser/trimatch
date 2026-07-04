@@ -13,7 +13,12 @@ function bearer(header?: string): string | undefined {
 // JWT (either `auth.token` or an Authorization header) and are joined to a room
 // named by their user id, so a socket only ever receives its OWN notifications.
 // The Redis adapter (main.ts) fans room emits out across instances.
-@WebSocketGateway({ cors: { origin: true } })
+//
+// CORS is intentionally NOT set here (no reflect-any-origin): the production
+// server enforces the allowed origins from WS_CORS_ORIGIN via RedisIoAdapter
+// (869dzymvy). The default adapter used in tests sees no browser Origin header,
+// so handshakes are unaffected.
+@WebSocketGateway()
 export class NotificationsGateway implements OnGatewayConnection {
   private readonly logger = new Logger(NotificationsGateway.name);
 

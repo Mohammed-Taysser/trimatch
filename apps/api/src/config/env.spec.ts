@@ -13,6 +13,7 @@ const validEnv = {
   THROTTLE_AUTH_TTL: '60000',
   THROTTLE_AUTH_LIMIT: '5',
   TRUST_PROXY: '0',
+  WS_CORS_ORIGIN: 'http://localhost:5173',
 };
 
 describe('app refuses to boot with invalid env config (AC 3)', () => {
@@ -120,5 +121,10 @@ describe('app refuses to boot with invalid env config (AC 3)', () => {
   it('coerces TRUST_PROXY to a number and rejects a negative hop count', () => {
     expect(validateEnv({ ...validEnv, TRUST_PROXY: '1' }).TRUST_PROXY).toBe(1);
     expect(() => validateEnv({ ...validEnv, TRUST_PROXY: '-1' })).toThrow(/TRUST_PROXY/);
+  });
+
+  it('throws when WS_CORS_ORIGIN is missing — no silent default', () => {
+    const { WS_CORS_ORIGIN, ...rest } = validEnv;
+    expect(() => validateEnv(rest)).toThrow(/WS_CORS_ORIGIN/);
   });
 });

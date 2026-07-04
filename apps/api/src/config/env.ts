@@ -27,6 +27,11 @@ export const envSchema = z
     // limiting reads the real client IP from X-Forwarded-For; direct/dev is 0
     // (trust nobody). Required — no silent default.
     TRUST_PROXY: z.coerce.number().int().min(0),
+    // Allowed WebSocket CORS origin(s), comma-separated (869dzymvy). The Socket.IO
+    // server rejects handshakes from any other browser origin — dev is the Vite
+    // origin (http://localhost:5173), prod is the public site origin. Never `*`.
+    // Required — no silent default.
+    WS_CORS_ORIGIN: z.string().min(1),
   })
   .refine(
     (env) => env.NOTIFICATIONS_CHANNEL !== 'webhook' || Boolean(env.NOTIFICATIONS_WEBHOOK_URL),
