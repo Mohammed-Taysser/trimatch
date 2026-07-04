@@ -14,6 +14,7 @@ const validEnv = {
   THROTTLE_AUTH_LIMIT: '5',
   TRUST_PROXY: '0',
   WS_CORS_ORIGIN: 'http://localhost:5173',
+  CACHE_TTL: '30000',
 };
 
 describe('app refuses to boot with invalid env config (AC 3)', () => {
@@ -126,5 +127,10 @@ describe('app refuses to boot with invalid env config (AC 3)', () => {
   it('throws when WS_CORS_ORIGIN is missing — no silent default', () => {
     const { WS_CORS_ORIGIN, ...rest } = validEnv;
     expect(() => validateEnv(rest)).toThrow(/WS_CORS_ORIGIN/);
+  });
+
+  it('throws when CACHE_TTL is missing — no silent default', () => {
+    const { CACHE_TTL, ...rest } = validEnv;
+    expect(() => validateEnv(rest)).toThrow(/CACHE_TTL/);
   });
 });

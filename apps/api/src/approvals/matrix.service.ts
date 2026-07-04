@@ -1,10 +1,16 @@
-import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject, Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import { MatrixRuleset, MatrixRulesetCreate, MatrixRulesetSchema } from '@trimatch/shared';
+import { Cache } from 'cache-manager';
 import { Sequelize } from 'sequelize-typescript';
 import { AuditService } from '../audit/audit.service';
 import { MatrixRule } from './matrix-rule.model';
 import { findOverlaps } from './matrix.validate';
+
+// The active ruleset is read on every requisition submission but only changes
+// when an admin publishes a new version — an ideal cache-aside target (869dzr3k8).
+const ACTIVE_RULESET_CACHE_KEY = 'matrix:active-ruleset';
 
 @Injectable()
 export class MatrixService {
@@ -12,9 +18,23 @@ export class MatrixService {
     @InjectModel(MatrixRule) private readonly rules: typeof MatrixRule,
     @InjectConnection() private readonly sequelize: Sequelize,
     private readonly audit: AuditService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   async activeRuleset(): Promise<MatrixRuleset> {
+    const cached = await this.cache.get<unknown>(ACTIVE_RULESET_CACHE_KEY);
+    if (cached) {
+      // Tolerate a stale/foreign shape (e.g. after a deploy) by treating a parse
+      // failure as a miss rather than serving corrupt data.
+      const parsed = MatrixRulesetSchema.safeParse(cached);
+      if (parsed.success) return parsed.data;
+    }
+    const ruleset = await this.loadActiveRuleset();
+    await this.cache.set(ACTIVE_RULESET_CACHE_KEY, ruleset);
+    return ruleset;
+  }
+
+  private async loadActiveRuleset(): Promise<MatrixRuleset> {
     const version = (await this.rules.max('version')) as number | null;
     if (!version) return MatrixRulesetSchema.parse({ version: 0, rules: [] });
     const rows = await this.rules.findAll({
@@ -60,6 +80,9 @@ export class MatrixService {
         transaction,
       );
     });
+    // Invalidate so the next read reloads the new version from the DB. The TTL is
+    // only a backstop; publishing is the authoritative bust.
+    await this.cache.del(ACTIVE_RULESET_CACHE_KEY);
     return this.activeRuleset();
   }
 

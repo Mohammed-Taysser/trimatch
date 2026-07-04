@@ -32,6 +32,9 @@ export const envSchema = z
     // origin (http://localhost:5173), prod is the public site origin. Never `*`.
     // Required — no silent default.
     WS_CORS_ORIGIN: z.string().min(1),
+    // Default TTL (ms) for the Redis-backed cache (869dzr3k8). A safety-net
+    // expiry on top of explicit write-side invalidation. Required — no default.
+    CACHE_TTL: z.coerce.number().int().positive(),
   })
   .refine(
     (env) => env.NOTIFICATIONS_CHANNEL !== 'webhook' || Boolean(env.NOTIFICATIONS_WEBHOOK_URL),

@@ -118,6 +118,15 @@ describe('matrix rules as validated, versioned data (FR-501/505 · TC-506)', () 
     expect(ruleset.version).toBe(beforeVersion + 1);
     expect(ruleset.rules).toHaveLength(2);
 
+    // caching (869dzr3k8): a fresh read reflects the just-published version,
+    // proving the write invalidated the cache — a stale cache would still
+    // return `beforeVersion`.
+    const afterPublish = await request(app.getHttpServer())
+      .get('/api/v1/matrix-rules')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    expect(MatrixRulesetSchema.parse(afterPublish.body.data).version).toBe(beforeVersion + 1);
+
     // restore the default ruleset as the active version so chain computation
     // (and other suites) keep working against R1–R5
     const defaults = MatrixRulesetSchema.parse(before.body.data).rules.map((r) => ({

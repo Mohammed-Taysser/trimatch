@@ -7,6 +7,7 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { ApprovalsModule } from './approvals/approvals.module';
 import { AuthModule } from './auth/auth.module';
+import { AppCacheModule } from './cache/app-cache.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { HttpExceptionFilter } from './common/http-exception.filter';
@@ -60,6 +61,7 @@ import { VendorsModule } from './vendors/vendors.module';
         };
       },
     }),
+    AppCacheModule,
     DatabaseModule,
     IdentityModule,
     AuthModule,
