@@ -38,10 +38,11 @@ export class VendorsService {
   }
 
   async update(id: string, input: VendorUpdate): Promise<VendorView> {
-    const row = await this.vendors.findByPk(id);
-    if (!row) {
-      throw new NotFoundException({ code: 'NOT_FOUND', message: 'Vendor not found' });
-    }
+    // 869e01dmy: a missing vendor here IS an error — let the finder reject with a
+    // specific NotFoundException instead of a manual null-check.
+    const row = await this.vendors.findByPk(id, {
+      rejectOnEmpty: new NotFoundException({ code: 'NOT_FOUND', message: 'Vendor not found' }),
+    });
     try {
       await row.update({ ...input });
     } catch (error) {
@@ -58,10 +59,9 @@ export class VendorsService {
 
   // FR-202: inactive vendors cannot receive new POs — PO creation calls this.
   async assertActive(id: string): Promise<Vendor> {
-    const row = await this.vendors.findByPk(id);
-    if (!row) {
-      throw new NotFoundException({ code: 'NOT_FOUND', message: 'Vendor not found' });
-    }
+    const row = await this.vendors.findByPk(id, {
+      rejectOnEmpty: new NotFoundException({ code: 'NOT_FOUND', message: 'Vendor not found' }),
+    });
     if (!row.active) {
       throw new ConflictException({
         code: 'VENDOR_INACTIVE',
