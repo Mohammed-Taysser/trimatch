@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useRef } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import { NotificationBell } from '../features/notifications/NotificationBell';
 import { useAuth } from '../lib/auth';
 import { Button } from './ui';
 
@@ -51,6 +52,7 @@ export function AppShell({
           <span className="shell-brand">TriMatch</span>
           <span className="shell-scope">{ROLE_SCOPE[user?.role ?? ''] ?? ''}</span>
           <span className="shell-user">
+            <NotificationBell />
             <span>
               {user?.fullName} <span className={`badge badge-brand`}>{user?.role}</span>
             </span>

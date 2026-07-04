@@ -591,3 +591,107 @@ textarea:focus {
     display: none;
   }
 }
+
+/* Notification center — bell + unread badge + dropdown panel (Epic 9) */
+.notif {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.notif-bell {
+  position: relative;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 0.2rem 0.35rem;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.notif-bell:hover {
+  background: var(--color-bg);
+}
+.notif-bell:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+.notif-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  padding: 0 0.22rem;
+  border-radius: 999px;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.05rem;
+  text-align: center;
+}
+.notif-panel {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  width: 340px;
+  max-width: 90vw;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 20;
+  overflow: hidden;
+}
+.notif-panel-head {
+  padding: var(--space-3);
+  font-weight: 700;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
+}
+.notif-panel-body {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: var(--space-2);
+}
+.notif-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.notif-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  font: inherit;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.notif-item:hover {
+  background: var(--color-bg);
+}
+.notif-item.is-unread {
+  background: var(--color-brand-soft);
+}
+.notif-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-brand);
+}
+.notif-msg {
+  flex: 1;
+  font-size: var(--text-sm);
+}
+.notif-time {
+  flex: none;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}

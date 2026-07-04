@@ -9,6 +9,17 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Notification center in the web app shell (Epic 9)**: a 🔔 bell in the shared
+  header carries a live unread-count badge (clamped `99+`) and opens a dropdown
+  panel listing notifications newest-first. Unread rows are visually marked (dot
+  + tint); clicking a notification marks it read and deep-links to the entity —
+  role-aware, falling back to the recipient's accessible list where no detail
+  page exists yet. Built on `@tanstack/react-query`, so the count refetches on
+  window focus (plus a 30s poll) for free; the panel dismisses on outside-click
+  or Escape. Unread count comes from `GET /notifications?unread=true` `meta.total`
+  (no dedicated count endpoint needed). Frontend component tests await the
+  test-infra work in Epic 18; verified in-browser.
+
 - **Notifications emitted on every workflow hand-off (Epic 9)**: silent hand-offs
   now push. A resilient `NotificationsProducer` enqueues a job on each transition,
   always **after the triggering transaction commits** (a rolled-back change is
