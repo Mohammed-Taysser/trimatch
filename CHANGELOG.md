@@ -7,6 +7,15 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Changed
+
+- **Health checks use real driver pings via @nestjs/terminus (Epic 20 · 869dzr3jw)**:
+  `/health/readiness` now proves each dependency actually answers rather than that a
+  TCP port is open — Postgres via Terminus's `SequelizeHealthIndicator` (`SELECT 1`)
+  and Redis via a real `PING` over BullMQ's connection; the queue check is unchanged.
+  The `{ status, checks: { postgres, redis, queue } }` response contract and the 503
+  degraded behaviour are unchanged, so orchestrator probes keep working.
+
 ### Security
 
 - **Restrict WebSocket CORS origin (Epic 16 · 869dzymvy)**: the notifications

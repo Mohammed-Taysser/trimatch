@@ -1,43 +1,23 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { InjectConnection } from '@nestjs/sequelize';
+import { SequelizeHealthIndicator } from '@nestjs/terminus';
 import {
   HealthLiveness,
   HealthLivenessSchema,
   HealthReadiness,
   HealthReadinessSchema,
 } from '@trimatch/shared';
-import { connect } from 'node:net';
+import { Sequelize } from 'sequelize-typescript';
 import { QueueHealth } from '../notifications/queue-health.service';
 
-// Plain TCP reachability until Sequelize/BullMQ land (Epic 1) — readiness then
-// upgrades to real driver pings without changing the contract.
-function checkTcp(url: string, defaultPort: number, timeoutMs = 1500): Promise<boolean> {
-  return new Promise((resolve) => {
-    let parsed: URL;
-    try {
-      parsed = new URL(url);
-    } catch {
-      resolve(false);
-      return;
-    }
-    const socket = connect({
-      host: parsed.hostname,
-      port: Number(parsed.port) || defaultPort,
-    });
-    const done = (ok: boolean) => {
-      socket.destroy();
-      resolve(ok);
-    };
-    socket.once('connect', () => done(true));
-    socket.once('error', () => done(false));
-    socket.setTimeout(timeoutMs, () => done(false));
-  });
-}
-
+// Readiness uses real driver-level pings (869dzr3jw): a Sequelize `SELECT 1` via
+// @nestjs/terminus and a Redis PING over BullMQ's connection — reachability that
+// a plain TCP probe couldn't prove. The response contract is unchanged.
 @Injectable()
 export class HealthService {
   constructor(
-    private readonly config: ConfigService,
+    private readonly db: SequelizeHealthIndicator,
+    @InjectConnection() private readonly sequelize: Sequelize,
     private readonly queue: QueueHealth,
   ) {}
 
@@ -52,13 +32,24 @@ export class HealthService {
 
   async readiness(): Promise<HealthReadiness> {
     const [postgres, redis, queue] = await Promise.all([
-      checkTcp(this.config.getOrThrow<string>('DATABASE_URL'), 5432),
-      checkTcp(this.config.getOrThrow<string>('REDIS_URL'), 6379),
+      this.pingPostgres(),
+      this.queue.pingRedis(),
       this.queue.isReady(),
     ]);
     return HealthReadinessSchema.parse({
       status: postgres && redis && queue ? 'ok' : 'degraded',
       checks: { postgres, redis, queue },
     });
+  }
+
+  // Terminus throws on a failed/slow ping; a degraded check is a boolean here,
+  // not a 503 — the controller decides the status code from the aggregate.
+  private async pingPostgres(): Promise<boolean> {
+    try {
+      await this.db.pingCheck('postgres', { connection: this.sequelize, timeout: 1500 });
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

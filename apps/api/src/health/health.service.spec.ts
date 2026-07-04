@@ -1,46 +1,61 @@
 import { ServiceUnavailableException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { SequelizeHealthIndicator } from '@nestjs/terminus';
+import { Sequelize } from 'sequelize-typescript';
 import { QueueHealth } from '../notifications/queue-health.service';
 import { HealthController } from './health.controller';
 import { HealthService } from './health.service';
 
-function serviceWith(env: Record<string, string>, queueReady = false): HealthService {
-  const config = { getOrThrow: (key: string) => env[key] } as unknown as ConfigService;
-  const queue = { isReady: () => Promise.resolve(queueReady) } as unknown as QueueHealth;
-  return new HealthService(config, queue);
+// Terminus does the real DB ping (throws on failure); QueueHealth does the real
+// Redis PING and the queue-connection readiness. The service maps all three to
+// the unchanged { status, checks } contract.
+function serviceWith(pg: boolean, redis: boolean, queue: boolean): HealthService {
+  const db = {
+    pingCheck: pg
+      ? jest.fn().mockResolvedValue({ postgres: { status: 'up' } })
+      : jest.fn().mockRejectedValue(new Error('db down')),
+  } as unknown as SequelizeHealthIndicator;
+  const queueHealth = {
+    pingRedis: () => Promise.resolve(redis),
+    isReady: () => Promise.resolve(queue),
+  } as unknown as QueueHealth;
+  return new HealthService(db, {} as Sequelize, queueHealth);
 }
 
-describe('readiness reports reachability of postgres, redis and the queue', () => {
-  it('reports degraded with failed checks when a connection URL is malformed', async () => {
-    const service = serviceWith({ DATABASE_URL: 'not a url', REDIS_URL: 'also not a url' });
-    const result = await service.readiness();
+describe('readiness pings postgres, redis and the queue at the driver level', () => {
+  it('is ok when every driver ping succeeds', async () => {
+    const result = await serviceWith(true, true, true).readiness();
+    expect(result).toEqual({
+      status: 'ok',
+      checks: { postgres: true, redis: true, queue: true },
+    });
+  });
+
+  it('is degraded when the postgres ping throws', async () => {
+    const result = await serviceWith(false, true, true).readiness();
     expect(result).toEqual({
       status: 'degraded',
-      checks: { postgres: false, redis: false, queue: false },
+      checks: { postgres: false, redis: true, queue: true },
     });
   });
 
-  it('reports a failed check when the port is closed', async () => {
-    const service = serviceWith({
-      DATABASE_URL: 'postgres://127.0.0.1:1/trimatch',
-      REDIS_URL: 'redis://127.0.0.1:1',
-    });
-    const result = await service.readiness();
+  it('is degraded when redis does not answer PING', async () => {
+    const result = await serviceWith(true, false, true).readiness();
     expect(result.status).toBe('degraded');
-    expect(result.checks).toEqual({ postgres: false, redis: false, queue: false });
+    expect(result.checks.redis).toBe(false);
   });
 
-  it('falls back to the default port when the URL has none', async () => {
-    const service = serviceWith({
-      DATABASE_URL: 'postgres://127.0.0.1/trimatch',
-      REDIS_URL: 'redis://127.0.0.1',
-    });
-    // Outcome depends on what listens on 5432/6379 locally — only the shape
-    // and the port-fallback path are asserted.
-    const result = await service.readiness();
-    expect(typeof result.checks.postgres).toBe('boolean');
-    expect(typeof result.checks.redis).toBe('boolean');
-    expect(typeof result.checks.queue).toBe('boolean');
+  it('is degraded when the queue connection is not ready', async () => {
+    const result = await serviceWith(true, true, false).readiness();
+    expect(result.status).toBe('degraded');
+    expect(result.checks.queue).toBe(false);
+  });
+
+  it('liveness reports the service is up with uptime', () => {
+    const liveness = serviceWith(true, true, true).liveness();
+    expect(liveness.status).toBe('ok');
+    expect(liveness.service).toBe('trimatch-api');
+    expect(typeof liveness.uptimeSeconds).toBe('number');
+    expect(typeof liveness.timestamp).toBe('string');
   });
 });
 
