@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
 import { AuthUser, LoginResponse } from '@trimatch/shared';
+import { SensitiveThrottle } from '../common/sensitive-throttle.decorator';
 import { AuthService } from './auth.service';
 import { CurrentUser, JwtPayload, Public } from './decorators';
 import { LoginRequestDto } from './dto';
@@ -8,7 +9,10 @@ import { LoginRequestDto } from './dto';
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
+  // Credential endpoint — the stricter "auth" rate limit applies here
+  // (brute-force protection), on top of the global per-IP limit.
   @Public()
+  @SensitiveThrottle()
   @Post('login')
   @HttpCode(200)
   login(@Body() body: LoginRequestDto): Promise<LoginResponse> {

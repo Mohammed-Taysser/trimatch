@@ -3,12 +3,14 @@ import { IncomingMessage, ServerResponse } from 'node:http';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { ApprovalsModule } from './approvals/approvals.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { HttpExceptionFilter } from './common/http-exception.filter';
+import { RateLimitModule } from './common/rate-limit.module';
 import { ResponseEnvelopeInterceptor } from './common/response.interceptor';
 import { AppZodValidationPipe } from './common/zod-validation.pipe';
 import { validateEnv } from './config/env';
@@ -70,8 +72,12 @@ import { VendorsModule } from './vendors/vendors.module';
     MatchingModule,
     NotificationsModule,
     HealthModule,
+    RateLimitModule,
   ],
   providers: [
+    // Rate limiting runs FIRST — brute-force protection applies before auth, so
+    // even unauthenticated (e.g. login) requests are throttled per IP.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     // Everything is authenticated by default; opt out per route with @Public().
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },

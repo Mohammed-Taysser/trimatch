@@ -15,6 +15,13 @@ export const envSchema = z
     // so a partial config fails the boot rather than half-enabling the channel.
     NOTIFICATIONS_CHANNEL: z.enum(['none', 'webhook']),
     NOTIFICATIONS_WEBHOOK_URL: z.url().optional(),
+    // Rate limiting (Epic 16). Window in milliseconds + max requests per IP per
+    // window: a lenient global limit, and a stricter one for credential
+    // endpoints (login). All required — no silent defaults.
+    THROTTLE_TTL: z.coerce.number().int().positive(),
+    THROTTLE_LIMIT: z.coerce.number().int().positive(),
+    THROTTLE_AUTH_TTL: z.coerce.number().int().positive(),
+    THROTTLE_AUTH_LIMIT: z.coerce.number().int().positive(),
   })
   .refine(
     (env) => env.NOTIFICATIONS_CHANNEL !== 'webhook' || Boolean(env.NOTIFICATIONS_WEBHOOK_URL),

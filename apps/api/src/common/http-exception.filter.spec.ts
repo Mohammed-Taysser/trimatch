@@ -1,4 +1,10 @@
-import { ArgumentsHost, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  NotFoundException,
+} from '@nestjs/common';
 import { HttpExceptionFilter } from './http-exception.filter';
 
 const filter = new HttpExceptionFilter();
@@ -54,5 +60,17 @@ describe('every error response uses the fixed envelope', () => {
     const { status, body } = run(new Error('boom'));
     expect(status).toBe(500);
     expect(body).toMatchObject({ code: 'INTERNAL_ERROR', message: 'Unexpected error' });
+  });
+
+  it('maps a 429 (rate limit) to TOO_MANY_REQUESTS in the envelope', () => {
+    const { status, body } = run(
+      new HttpException('Too many requests — please slow down.', HttpStatus.TOO_MANY_REQUESTS),
+    );
+    expect(status).toBe(429);
+    expect(body).toMatchObject({
+      code: 'TOO_MANY_REQUESTS',
+      message: 'Too many requests — please slow down.',
+      path: '/api/v1/things',
+    });
   });
 });

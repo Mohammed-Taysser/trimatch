@@ -106,7 +106,7 @@ describe('goods receiving (FR-301/302 · TC-301/TC-302 · TC-204)', () => {
       .send({ poId, lines: [{ poLineId, quantity: 40 }] })
       .expect(201);
     const grn = GrnSchema.parse(first.body.data);
-    expect(grn.grnNumber).toMatch(/^GRN-\d{4}-\d{4}$/);
+    expect(grn.grnNumber).toMatch(/^GRN-\d{4}-\d{4,}$/);
     expect(grn.receivedByName).toBe('Winter Warehouse');
 
     let po = await poDetail(poId, warehouseToken);

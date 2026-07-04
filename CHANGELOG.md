@@ -9,6 +9,17 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Added
 
+- **Rate limiting (Epic 16)**: a global `@nestjs/throttler` guard runs **before**
+  auth, so even unauthenticated requests are throttled per IP. Two limits, both
+  from env (fail-loud, no defaults): a lenient global limit on every route, and a
+  **stricter limit on credential endpoints** (login) applied via a
+  `@SensitiveThrottle()` marker + the throttler's `skipIf`. Counters live in
+  **Redis** (`@nest-lab/throttler-storage-redis`, reusing `REDIS_URL`) so limits
+  hold across instances. Exceeding a limit returns **429** in the fixed error
+  envelope (`code: TOO_MANY_REQUESTS`). New env: `THROTTLE_TTL`/`THROTTLE_LIMIT`
+  and `THROTTLE_AUTH_TTL`/`THROTTLE_AUTH_LIMIT` (documented in `.env.example`; CI
+  uses high limits so the suite runs, with a dedicated spec proving the 429).
+
 - **Real-time notification delivery over WebSocket (Epic 9)**: a Socket.IO
   `NotificationsGateway` authenticates each handshake with the caller's JWT and
   joins the socket to a room named by their user id — so a socket only ever

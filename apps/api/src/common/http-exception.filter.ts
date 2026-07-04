@@ -8,6 +8,7 @@ const STATUS_CODES: Record<number, string> = {
   404: 'NOT_FOUND',
   409: 'CONFLICT',
   422: 'VALIDATION_ERROR',
+  429: 'TOO_MANY_REQUESTS',
   500: 'INTERNAL_ERROR',
   503: 'SERVICE_UNAVAILABLE',
 };

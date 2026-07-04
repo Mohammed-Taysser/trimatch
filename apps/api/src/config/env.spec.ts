@@ -8,6 +8,10 @@ const validEnv = {
   JWT_SECRET: 'test-secret-at-least-16-chars',
   JWT_EXPIRES_IN: '1h',
   NOTIFICATIONS_CHANNEL: 'none',
+  THROTTLE_TTL: '60000',
+  THROTTLE_LIMIT: '100',
+  THROTTLE_AUTH_TTL: '60000',
+  THROTTLE_AUTH_LIMIT: '5',
 };
 
 describe('app refuses to boot with invalid env config (AC 3)', () => {
@@ -88,5 +92,22 @@ describe('app refuses to boot with invalid env config (AC 3)', () => {
 
   it('does not require a webhook URL when the channel is none', () => {
     expect(() => validateEnv({ ...validEnv, NOTIFICATIONS_CHANNEL: 'none' })).not.toThrow();
+  });
+
+  it('coerces the throttle limits to numbers', () => {
+    const env = validateEnv(validEnv);
+    expect(env.THROTTLE_LIMIT).toBe(100);
+    expect(env.THROTTLE_AUTH_LIMIT).toBe(5);
+  });
+
+  it('throws when a throttle limit is missing — no silent defaults', () => {
+    const { THROTTLE_LIMIT, ...rest } = validEnv;
+    expect(() => validateEnv(rest)).toThrow(/THROTTLE_LIMIT/);
+  });
+
+  it('throws when a throttle limit is not a positive number', () => {
+    expect(() => validateEnv({ ...validEnv, THROTTLE_AUTH_LIMIT: '0' })).toThrow(
+      /THROTTLE_AUTH_LIMIT/,
+    );
   });
 });
