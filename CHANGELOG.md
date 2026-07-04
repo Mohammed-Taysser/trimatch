@@ -56,6 +56,12 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ### Security
 
+- **Encrypt TOTP secrets at rest (Epic 16 · 869e01b1b)**: a TOTP secret must be
+  recoverable to verify codes, so it can't be hashed — it is now encrypted with
+  **AES-256-GCM** (`TotpCipher`) under a required `TOTP_ENCRYPTION_KEY` (32 bytes /
+  64 hex) before being stored, and decrypted only in `TwoFactorService` to verify a
+  code. The GCM auth tag makes tampering detectable. New var added to `.env.example`
+  / `.env.ci` (generate real keys with `openssl rand -hex 32`).
 - **Restrict WebSocket CORS origin (Epic 16 · 869dzymvy)**: the notifications
   gateway no longer reflects any origin. The production Socket.IO server now
   enforces an allow-list from a required `WS_CORS_ORIGIN` env var (comma-separated

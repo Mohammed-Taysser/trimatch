@@ -35,6 +35,10 @@ export const envSchema = z
     // Default TTL (ms) for the Redis-backed cache (869dzr3k8). A safety-net
     // expiry on top of explicit write-side invalidation. Required — no default.
     CACHE_TTL: z.coerce.number().int().positive(),
+    // AES-256-GCM key (32 bytes = 64 hex chars) for encrypting TOTP secrets at
+    // rest (869e01b1b) — a secret that must be stored verifiably, not hashed.
+    // Generate with `openssl rand -hex 32`. Required — no default.
+    TOTP_ENCRYPTION_KEY: z.string().regex(/^[0-9a-fA-F]{64}$/, 'must be 64 hex chars (32 bytes)'),
   })
   .refine(
     (env) => env.NOTIFICATIONS_CHANNEL !== 'webhook' || Boolean(env.NOTIFICATIONS_WEBHOOK_URL),

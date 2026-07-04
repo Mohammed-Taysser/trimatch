@@ -18,6 +18,7 @@ import { authenticator } from 'otplib';
 import { User } from '../identity/user.model';
 import { UsersService } from '../identity/users.service';
 import { SettingsService } from '../settings/settings.service';
+import { TotpCipher } from './totp-cipher';
 import { TwoFactorRecoveryCode } from './two-factor-recovery-code.model';
 
 const ISSUER = 'TriMatch';
@@ -39,6 +40,7 @@ export class TwoFactorService {
     @InjectModel(TwoFactorRecoveryCode)
     private readonly recoveryCodes: typeof TwoFactorRecoveryCode,
     private readonly settings: SettingsService,
+    private readonly cipher: TotpCipher,
   ) {}
 
   // Generates a fresh secret and returns it plus the otpauth URI to render as a
@@ -52,7 +54,8 @@ export class TwoFactorService {
       });
     }
     const secret = authenticator.generateSecret();
-    await this.users.setTotpSecret(userId, secret);
+    // Stored encrypted; the plaintext is returned once for the QR/manual entry.
+    await this.users.setTotpSecret(userId, this.cipher.encrypt(secret));
     return TwoFactorSetupResponseSchema.parse({
       secret,
       otpauthUri: authenticator.keyuri(user.email, ISSUER, secret),
@@ -75,7 +78,7 @@ export class TwoFactorService {
         message: 'Start enrolment with POST /auth/2fa/setup first',
       });
     }
-    if (!authenticator.verify({ token: code, secret: user.totpSecret })) {
+    if (!authenticator.verify({ token: code, secret: this.cipher.decrypt(user.totpSecret) })) {
       throw invalidCode();
     }
     await this.users.enableTotp(userId);
@@ -111,7 +114,10 @@ export class TwoFactorService {
   // True when `code` is the current TOTP or an unused recovery code (consumed on
   // match). Used by the login second-factor step.
   async verifyCode(user: User, code: string): Promise<boolean> {
-    if (user.totpSecret && authenticator.verify({ token: code, secret: user.totpSecret })) {
+    if (
+      user.totpSecret &&
+      authenticator.verify({ token: code, secret: this.cipher.decrypt(user.totpSecret) })
+    ) {
       return true;
     }
     return this.consumeRecoveryCode(user.id, code);

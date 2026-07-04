@@ -4,6 +4,7 @@ import { authenticator } from 'otplib';
 import { User } from '../identity/user.model';
 import { UsersService } from '../identity/users.service';
 import { SettingsService } from '../settings/settings.service';
+import { TotpCipher } from './totp-cipher';
 import { TwoFactorRecoveryCode } from './two-factor-recovery-code.model';
 import { TwoFactorService } from './two-factor.service';
 
@@ -28,7 +29,10 @@ function makeService(
   const settings = {
     getCompany: jest.fn().mockResolvedValue(requires2fa),
   } as unknown as SettingsService;
-  const service = new TwoFactorService(users, recoveryCodes, settings);
+  // Identity cipher: the mocked users carry plaintext secrets, so encrypt/decrypt
+  // are no-ops here; the real AES round-trip is covered by totp-cipher.spec.
+  const cipher = { encrypt: (s: string) => s, decrypt: (s: string) => s } as unknown as TotpCipher;
+  const service = new TwoFactorService(users, recoveryCodes, settings, cipher);
   return { service, users, recoveryCodes, settings };
 }
 
