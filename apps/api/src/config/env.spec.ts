@@ -15,6 +15,7 @@ const validEnv = {
   TRUST_PROXY: '0',
   WS_CORS_ORIGIN: 'http://localhost:5173',
   CACHE_TTL: '30000',
+  TOTP_ENCRYPTION_KEY: '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff',
 };
 
 describe('app refuses to boot with invalid env config (AC 3)', () => {
@@ -132,5 +133,13 @@ describe('app refuses to boot with invalid env config (AC 3)', () => {
   it('throws when CACHE_TTL is missing — no silent default', () => {
     const { CACHE_TTL, ...rest } = validEnv;
     expect(() => validateEnv(rest)).toThrow(/CACHE_TTL/);
+  });
+
+  it('throws when TOTP_ENCRYPTION_KEY is missing or not 64 hex chars', () => {
+    const { TOTP_ENCRYPTION_KEY, ...rest } = validEnv;
+    expect(() => validateEnv(rest)).toThrow(/TOTP_ENCRYPTION_KEY/);
+    expect(() => validateEnv({ ...validEnv, TOTP_ENCRYPTION_KEY: 'too-short' })).toThrow(
+      /TOTP_ENCRYPTION_KEY/,
+    );
   });
 });

@@ -9,6 +9,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { PasswordResetOtp } from './password-reset-otp.model';
 import { PasswordResetService } from './password-reset.service';
+import { TotpCipher } from './totp-cipher';
 import { TwoFactorRecoveryCode } from './two-factor-recovery-code.model';
 import { TwoFactorController } from './two-factor.controller';
 import { TwoFactorService } from './two-factor.service';
@@ -35,6 +36,6 @@ type ExpiresIn = NonNullable<JwtModuleOptions['signOptions']>['expiresIn'];
     SequelizeModule.forFeature([PasswordResetOtp, TwoFactorRecoveryCode]),
   ],
   controllers: [AuthController, TwoFactorController],
-  providers: [AuthService, PasswordResetService, TwoFactorService],
+  providers: [AuthService, PasswordResetService, TwoFactorService, TotpCipher],
 })
 export class AuthModule {}
