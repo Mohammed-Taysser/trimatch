@@ -7,6 +7,20 @@ Versioning: [SemVer](https://semver.org) driven by Conventional Commits
 
 ## [Unreleased]
 
+### Security
+
+- **Application security review + hardening (Epic 16)**: an app-wide pass
+  (authorization/IDOR, injection, secrets, transport) found **no confirmed
+  vulnerabilities** — owned resources (requisitions, notifications, delegations,
+  approval steps) are caller-scoped; procurement resources are role-gated as
+  intended; all raw SQL is parameterized; the OTP and other secrets never appear
+  in logs, responses, or the JWT. Hardening applied: **helmet** security headers
+  in `setupApp` (with a test asserting them), a CI **`audit`** job
+  (`pnpm audit --prod --audit-level=high`), and the exceptions `reason` filter is
+  now a **parameterized** JSONB predicate (`Op.contains`) instead of an inlined
+  `literal()`. Findings and three defence-in-depth follow-ups are recorded in
+  [docs/security-review.md](docs/security-review.md).
+
 ### Added
 
 - **Authenticated password change (Epic 16)**: `POST /auth/change-password` lets a
