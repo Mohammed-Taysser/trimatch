@@ -17,6 +17,7 @@
     "openapi:export": "node dist/export-openapi.js"
   },
   "dependencies": {
+    "@nest-lab/throttler-storage-redis": "^1.2.0",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
@@ -26,6 +27,7 @@
     "@nestjs/platform-socket.io": "^11.1.27",
     "@nestjs/sequelize": "^11.0.1",
     "@nestjs/swagger": "^11.4.5",
+    "@nestjs/throttler": "^6.5.0",
     "@nestjs/websockets": "^11.1.27",
     "@socket.io/redis-adapter": "^8.3.0",
     "@trimatch/shared": "workspace:*",
