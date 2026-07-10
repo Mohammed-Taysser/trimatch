@@ -21,6 +21,8 @@ export const AuthUserSchema = z.object({
   email: z.string(),
   fullName: z.string(),
   role: UserRoleSchema,
+  // 869e01b14: lets the web reflect 2FA status (e.g. the security settings page).
+  twoFactorEnabled: z.boolean(),
 });
 export type AuthUser = z.infer<typeof AuthUserSchema>;
 

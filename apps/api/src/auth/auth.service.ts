@@ -89,7 +89,13 @@ export class AuthService {
     });
     return LoginResponseSchema.parse({
       accessToken,
-      user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role },
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        twoFactorEnabled: user.totpEnabled,
+      },
       ...(mustEnrollTwoFactor ? { mustEnrollTwoFactor: true } : {}),
     });
   }
@@ -136,6 +142,7 @@ export class AuthService {
       email: user.email,
       fullName: user.fullName,
       role: user.role,
+      twoFactorEnabled: user.totpEnabled,
     });
   }
 }

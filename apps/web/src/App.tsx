@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { SecurityPage } from './features/account/SecurityPage';
 import {
   AdminLayout,
   AuditTab,
@@ -119,6 +120,7 @@ export default function App() {
         <Route path="users" element={<UsersTab />} />
         <Route path="audit" element={<AuditTab />} />
       </Route>
+      <Route path="/account/security" element={<SecurityPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

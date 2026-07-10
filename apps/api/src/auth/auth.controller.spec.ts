@@ -10,6 +10,7 @@ const loginResponse: LoginResponse = {
     email: 'requester@demo',
     fullName: 'Riley Requester',
     role: 'requester',
+    twoFactorEnabled: false,
   },
 };
 
